@@ -1,85 +1,11 @@
+#include <stdint.h>
+#include <istream>
+#include <vector>
+
 #define PT2_DISPCURVES 8
 #define PT2_TIME_UNIT 4E-12 // 4 ps
 #define PT2_WRAPAROUND_TIME 210698240 
 #define PT2_MEASMODE_T2 2 
-
-
-class pt2_file {
-private:
-	std::istream& is;
-	uint32_t overflow_time;
-	uint32_t records_read;
-
-public:
-	pt2_text_hdr text_hdr;
-	pt2_binary_hdr binary_hdr;
-	pt2_board_hdr board_hdr;
-	pt2_tttr_hdr tttr_hdr;
-	std::vector<pt2_record>* records;
-
-
-	pt2_file(std::istream& is) : is(is), overflow_time(0), records_read(0), records(NULL) {
-		read_headers();
-	}
-
-	pt2_record read_record() {
-		uint32_t rec;
-		pt2_record r;
-
-		if (records_read >= tttr_hdr.n_records)
-			throw new ArgumentException("Read too many records");
-		records_read++;
-
-		is.read(&rec, 4);
-		r.time = 0x0fffffff & rec;
-		r.channel = 0xf0000000 & rec;
-		
-		if (r.channel == 0xf) {
-			r.special = true;
-			r.markers = r.time & 0xf;
-			if (markers == 0) // overflow record
-				overflow_time += PT2_WRAPAROUND_TIME;
-		}
-
-		r.time += overflow_time;
-
-		return r;
-	}
-
-	void read_all_records(istream& is) {
-		int n = tttr_hdr.n_records;
-		records = new std::vector<pt2_record>(n);
-		for (int i=0; i < n; i++)
-			records.push_back(read_record());
-	}
-
-private:
-	void read_headers() {
-		is.read(&text_hdr, sizeof(pt2_text_hdr));
-		check_text_header();
-		is.read(&binary_hdr, sizeof(pt2_binary_hdr));
-		check_binary_header();
-		is.read(&board_hdr, sizeof(pt2_board_hdr));
-		is.read(&tttr_hdr, sizeof(pt2_tttr_hdr));
-		is.ignore(4*tttr_hdr.imaging_hdr_sz);
-		read_all_records(is);
-	}
-
-
-	void check_text_header() {
-		if (strcmp(text_hdr.ident, "PicoHarp 300"))
-			throw new ArgumentException("File identifier not found");
-
-		if (strncmp(text_hdr.format_version, "2.0", 3))
-			throw new ArgumentException("Unsupported file format version");
-	}
-
-	void check_binary_header() {
-		if (binary_hdr.meas_mode != PT2_MEASMODE_T2)
-			throw new ArgumentException("Unsupported measurement mode");
-	}
-};
-
 
 #pragma pack(4)
 
@@ -168,7 +94,7 @@ struct pt2_tttr_hdr {
 	uint32_t stop_after;
 	uint32_t stop_reason;
 	uint32_t n_records;
-	uint32_t imaging_header_sz;
+	uint32_t imaging_hdr_sz;
 };
 
 
@@ -178,5 +104,40 @@ struct pt2_record {
 	uint64_t time;
 	bool special;
 	uint8_t markers;
+};
+
+
+/* pt2 file wrapper class */
+class pt2_file {
+private:
+	std::istream& is;
+	uint32_t overflow_time;
+	uint32_t records_read;
+
+public:
+	pt2_text_hdr text_hdr;
+	pt2_binary_hdr binary_hdr;
+	pt2_board_hdr board_hdr;
+	pt2_tttr_hdr tttr_hdr;
+	std::vector<pt2_record>* records;
+
+public:
+	pt2_file(std::istream& is) :
+		is(is), overflow_time(0), records_read(0), records(NULL) {
+		read_headers();
+	}
+
+	~pt2_file() {
+		if (records)
+			delete records;
+	}
+
+	pt2_record read_record();
+	void read_all_records();
+
+private:
+	void read_headers();
+	void check_text_header();
+	void check_binary_header();
 };
 
