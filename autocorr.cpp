@@ -38,5 +38,7 @@ int main(int argc, char** argv) {
 
 	for (uint64_t dt=0; dt < 100; dt++)
 		printf("%llu	%llu\n", dt, acorr(ch1, dt));
+
+	return 0;
 }
 
