@@ -26,11 +26,12 @@ pt2_record pt2_file::read_record() {
 	return r;
 }
 
-void pt2_file::read_all_records() {
+std::vector<pt2_record> pt2_file::read_all_records() {
 	int n = tttr_hdr.n_records;
-	records = new std::vector<pt2_record>(n);
+	std::vector<pt2_record> records(n);
 	for (int i=0; i < n; i++)
-		records->push_back(read_record());
+		records.push_back(read_record());
+	return records;
 }
 
 void pt2_file::read_headers() {

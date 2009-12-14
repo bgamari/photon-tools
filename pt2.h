@@ -119,21 +119,14 @@ public:
 	pt2_binary_hdr binary_hdr;
 	pt2_board_hdr board_hdr;
 	pt2_tttr_hdr tttr_hdr;
-	std::vector<pt2_record>* records;
 
 public:
-	pt2_file(std::istream& is) :
-		is(is), overflow_time(0), records_read(0), records(NULL) {
+	pt2_file(std::istream& is) : is(is), overflow_time(0), records_read(0) {
 		read_headers();
 	}
 
-	~pt2_file() {
-		if (records)
-			delete records;
-	}
-
 	pt2_record read_record();
-	void read_all_records();
+	std::vector<pt2_record> read_all_records();
 
 private:
 	void read_headers();
