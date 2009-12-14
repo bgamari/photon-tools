@@ -130,7 +130,5 @@ public:
 
 private:
 	void read_headers();
-	void check_text_header();
-	void check_binary_header();
 };
 

@@ -36,24 +36,17 @@ std::vector<pt2_record> pt2_file::read_all_records() {
 
 void pt2_file::read_headers() {
 	is.read((char*) &text_hdr, sizeof(pt2_text_hdr));
-	check_text_header();
+	if (strcmp(text_hdr.ident, "PicoHarp 300"))
+		throw new std::runtime_error("File identifier not found");
+	if (strncmp(text_hdr.format_version, "2.0", 3))
+		throw new std::runtime_error("Unsupported file format version");
+
 	is.read((char*) &binary_hdr, sizeof(pt2_binary_hdr));
-	check_binary_header();
+	if (binary_hdr.meas_mode != PT2_MEASMODE_T2)
+		throw new std::runtime_error("Unsupported measurement mode");
+
 	is.read((char*) &board_hdr, sizeof(pt2_board_hdr));
 	is.read((char*) &tttr_hdr, sizeof(pt2_tttr_hdr));
 	is.ignore(4*tttr_hdr.imaging_hdr_sz);
 }
 
-
-void pt2_file::check_text_header() {
-	if (strcmp(text_hdr.ident, "PicoHarp 300"))
-		throw new std::runtime_error("File identifier not found");
-
-	if (strncmp(text_hdr.format_version, "2.0", 3))
-		throw new std::runtime_error("Unsupported file format version");
-}
-
-void pt2_file::check_binary_header() {
-	if (binary_hdr.meas_mode != PT2_MEASMODE_T2)
-		throw new std::runtime_error("Unsupported measurement mode");
-}
