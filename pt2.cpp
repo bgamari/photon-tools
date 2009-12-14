@@ -6,9 +6,9 @@ pt2_record pt2_file::read_record() {
 	uint32_t rec;
 	pt2_record r;
 
-	if (records_read >= tttr_hdr.n_records)
-		throw new std::runtime_error("Read too many records");
 	records_read++;
+	if (records_read > tttr_hdr.n_records)
+		throw new std::runtime_error("Read too many records");
 
 	is.read((char*) &rec, 4);
 	r.time = 0x0fffffff & rec;
@@ -41,7 +41,6 @@ void pt2_file::read_headers() {
 	is.read((char*) &board_hdr, sizeof(pt2_board_hdr));
 	is.read((char*) &tttr_hdr, sizeof(pt2_tttr_hdr));
 	is.ignore(4*tttr_hdr.imaging_hdr_sz);
-	read_all_records();
 }
 
 
