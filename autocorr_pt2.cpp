@@ -19,21 +19,18 @@ uint64_t acorr(std::vector<uint64_t> v, uint64_t dt) {
 }
 
 int main(int argc, char** argv) {
-	std::vector<uint64_t> ch1, ch2;
+	std::vector<std::vector<uint64_t> > chans;
 	std::ifstream is(argv[1]);
 	pt2_file pt2(is);
 	double scale = PT2_TIME_UNIT / resolution;
+	unsigned int n_rec = pt2.tttr_hdr.n_records;
 
-	for (int i=0; i < pt2.tttr_hdr.n_records; i++) {
+	for (int i=0; i < n_rec; i++) {
 		pt2_record rec = pt2.read_record();
-		if (rec.special)
-			continue;
-
-		uint64_t time = (uint64_t) rec.time * scale;
-		if (rec.channel == 0)
-			ch1.push_back(time);
-		else if (rec.channel == 1) 
-			ch2.push_back(time);
+		if (!rec.special) {
+			uint64_t time = (uint64_t) rec.time * scale;
+			chans[rec.channel].push_back(time);
+		}
 	}
 
 	for (uint64_t dt=0; dt < 100; dt++)
