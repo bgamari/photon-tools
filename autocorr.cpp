@@ -1,4 +1,5 @@
-#include <cstdio>
+#include <cstdint>
+#include <iostream>
 #include <vector>
 
 const double resolution = 1e-7;
@@ -20,17 +21,17 @@ uint64_t acorr(std::vector<uint64_t>& v, uint64_t dt) {
 int main(int argc, char** argv) {
 	const unsigned int chunk_sz = 1024;
 	std::vector<uint64_t> timestamps;
-	unsigned int bytes, i=0;
+	unsigned int i=0;
 	do {
 		timestamps.resize(i + chunk_sz);
-		bytes = fread(&timestamps[i], chunk_sz, sizeof(uint64_t), stdin);
+		std::cin.read((char*) &timestamps[i], chunk_sz);
 		i += chunk_sz;
-	} while (bytes == chunk_sz*sizeof(uint64_t));
+	} while (!std::cin.eof() && !std::cin.fail());
 
 	for (uint64_t dt=0; dt < 100; dt++) {
 		double value = acorr(timestamps, dt);
-		fwrite(&dt, sizeof(uint64_t), 1, stdout);
-		fwrite(&value, sizeof(double), 1, stdout);
+		std::cout.write((char*) &dt, sizeof(uint64_t));
+		std::cout.write((char*) &value, sizeof(double));
 	}
 
 	return 0;

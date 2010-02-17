@@ -1,10 +1,10 @@
-CXXFLAGS = -ggdb
-PROGS = autocorr_pt2 dump_pt2
+CXXFLAGS = -ggdb -std=c++0x
+PROGS = autocorr dump_pt2 extract_pt2_timestamps
 
 all : ${PROGS}
 
-autocorr_pt2 : pt2.o
 dump_pt2 : pt2.o
+extract_pt2_timestamps : pt2.o
 
 clean : 
 	rm ${PROGS} *.o
