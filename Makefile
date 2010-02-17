@@ -8,7 +8,7 @@ dump_pt2 : pt2.o
 extract_pt2_timestamps : pt2.o
 
 clean : 
-	rm ${PROGS} *.o
+	rm -f ${PROGS} *.o
 
 # For automatic header dependencies
 .deps/%.d : %
