@@ -33,7 +33,9 @@ int main(int argc, char** argv) {
 		pt2_record rec = pt2.read_record();
 		if (!rec.special) {
 			uint64_t time = (uint64_t) rec.time * scale;
+			int count = 1;
 			std::cout.write((char*) &time, sizeof(uint64_t));
+			std::cout.write((char*) count, sizeof(int));
 		}
 	}
 
