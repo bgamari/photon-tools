@@ -30,7 +30,7 @@ struct daton {
 
 uint64_t acorr(std::vector<daton>& v, uint64_t start1, uint64_t start2) {
 	std::vector<daton>::iterator iter1 = v.begin(), iter2 = v.begin();
-	uint64_t res;
+	uint64_t res = 0;
 
 	while (iter1 != v.end() && iter2 != v.end()) {
                 if (iter1->abscissa - start1 < 0) continue;
