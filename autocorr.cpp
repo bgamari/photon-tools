@@ -28,16 +28,22 @@ struct daton {
   int ordinate;  
 };
 
-uint64_t acorr(std::vector<daton>& v, uint64_t start1, uint64_t start2) {
+/*
+ * acorr: Compute autocorrelation function a lag given by dt
+ *
+ * Data abscissae must be monotonic.
+ *
+ */
+uint64_t acorr(std::vector<daton>& v, uint64_t dt) {
 	std::vector<daton>::iterator iter1 = v.begin(), iter2 = v.begin();
 	uint64_t res = 0;
 
-	while (iter1 != v.end() && iter2 != v.end()) {
-                if (iter1->abscissa - start1 < 0) continue;
-                if (iter2->abscissa - start2 < 0) continue;
+        // Skip to beginning of shifted vector
+        while (iter2->abscissa < dt)
+                iter2++;
 
-                uint64_t diff = (iter1->abscissa - start1) -
-                                (iter2->abscissa - start2);
+	while (iter1 != v.end() && iter2 != v.end()) {
+                uint64_t diff = iter1->abscissa - (iter2->abscissa - dt);
 		if (diff == 0) res += iter1->ordinate * iter2->ordinate;
 		if (diff <= 0) iter1++;
 		if (diff >= 0) iter2++;
@@ -46,17 +52,18 @@ uint64_t acorr(std::vector<daton>& v, uint64_t start1, uint64_t start2) {
 }
 
 int main(int argc, char** argv) {
-	const unsigned int chunk_sz = 1024;
 	std::vector<daton> data;
 	unsigned int i=0;
 	do {
-		data.resize(i + chunk_sz);
-		std::cin.read((char*) &data[i], chunk_sz);
-		i += chunk_sz;
+                daton d;
+		std::cin.read((char*) &d.abscissa, sizeof(uint64_t));
+                std::cin.read((char*) &d.ordinate, sizeof(int));
+                data.push_back(d);
+//std::cerr << i << "\t" << data[i].abscissa << "\t" << data[i].ordinate << "\n";
 	} while (!std::cin.eof() && !std::cin.fail());
 
-	for (uint64_t dt=0; dt < 100; dt++) {
-		double value = acorr(data, 0, dt);
+	for (uint64_t dt=0; dt < 10000; dt++) {
+		double value = acorr(data, dt);
 		std::cout.write((char*) &dt, sizeof(uint64_t));
 		std::cout.write((char*) &value, sizeof(double));
                 std::cerr << dt << "\t" << value << "\n";
