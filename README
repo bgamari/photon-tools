@@ -1,0 +1,31 @@
+fcs-tools - Tools for analysis of single-photon measurement data
+
+These are a set of tools for manipulating and analysing data from single-photon
+experiments. 
+
+
+Work-flow:
+==========
+The following assumes that the data is being collected with the UMass FPGA
+timetagger.
+
+1) Collect data
+2) Bin the data using bin_photons
+3) Convert binned data into stripped format with strip_bins
+4) Generate autocorrelation function using autocorr
+5) Fit curves to data using fcs-fit
+
+Data formats:
+=============
+
+Stripped bin format:
+autocorr expects data in "stripped bin" format, consisting of 12 byte records
+in the following format,
+	bytes 7:0	Bin start time
+	bytes 8:11	Number of photons in bin
+
+Autocorrelation function format:
+autocorr produces its autocorrelation function in the following format,
+	bytes 7:0	Lag
+	bytes 8:15	Double-precision value
+
