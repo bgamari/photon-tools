@@ -23,36 +23,43 @@
 #include <iostream>
 #include <vector>
 
-const double resolution = 1e-7;
+struct daton {
+  uint64_t abscissa;
+  int ordinate;  
+};
 
-uint64_t acorr(std::vector<uint64_t>& v, uint64_t dt) {
-	std::vector<uint64_t>::iterator iter1 = v.begin();
-	std::vector<uint64_t>::iterator iter2 = v.begin() + dt;
-	uint64_t count;
+uint64_t acorr(std::vector<daton>& v, uint64_t start1, uint64_t start2) {
+	std::vector<daton>::iterator iter1 = v.begin(), iter2 = v.begin();
+	uint64_t res;
 
 	while (iter1 != v.end() && iter2 != v.end()) {
-		uint64_t diff = *iter2 - *iter1;
-		if (diff == 0) count++;
+                if (iter1->abscissa - start1 < 0) continue;
+                if (iter2->abscissa - start2 < 0) continue;
+
+                uint64_t diff = (iter1->abscissa - start1) -
+                                (iter2->abscissa - start2);
+		if (diff == 0) res += iter1->ordinate * iter2->ordinate;
 		if (diff <= 0) iter1++;
 		if (diff >= 0) iter2++;
 	}
-	return count;
+	return res;
 }
 
 int main(int argc, char** argv) {
 	const unsigned int chunk_sz = 1024;
-	std::vector<uint64_t> timestamps;
+	std::vector<daton> data;
 	unsigned int i=0;
 	do {
-		timestamps.resize(i + chunk_sz);
-		std::cin.read((char*) &timestamps[i], chunk_sz);
+		data.resize(i + chunk_sz);
+		std::cin.read((char*) &data[i], chunk_sz);
 		i += chunk_sz;
 	} while (!std::cin.eof() && !std::cin.fail());
 
 	for (uint64_t dt=0; dt < 100; dt++) {
-		double value = acorr(timestamps, dt);
+		double value = acorr(data, 0, dt);
 		std::cout.write((char*) &dt, sizeof(uint64_t));
 		std::cout.write((char*) &value, sizeof(double));
+                std::cerr << dt << "\t" << value << "\n";
 	}
 
 	return 0;
