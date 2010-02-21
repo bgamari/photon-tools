@@ -53,16 +53,25 @@ uint64_t acorr(std::vector<daton>& v, uint64_t dt) {
 
 int main(int argc, char** argv) {
 	std::vector<daton> data;
-	unsigned int i=0;
+        int min=0, step=1, max=100;
+
+	if (argc == 4) {
+		min = atoi(argv[1]);
+		max = atoi(argv[2]);
+		step = atoi(argv[3]);
+	} else {
+		printf("Usage: %s MIN MAX STEP\n", argv[0]);
+		return 1;
+	}
+
 	do {
                 daton d;
 		std::cin.read((char*) &d.abscissa, sizeof(uint64_t));
                 std::cin.read((char*) &d.ordinate, sizeof(int));
                 data.push_back(d);
-//std::cerr << i << "\t" << data[i].abscissa << "\t" << data[i].ordinate << "\n";
 	} while (!std::cin.eof() && !std::cin.fail());
 
-	for (uint64_t dt=0; dt < 10000; dt++) {
+	for (uint64_t dt=min; dt < max; dt += step) {
 		double value = acorr(data, dt);
 		std::cout.write((char*) &dt, sizeof(uint64_t));
 		std::cout.write((char*) &value, sizeof(double));
