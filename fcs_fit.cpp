@@ -22,6 +22,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <array>
 #include <utility>
 #include <cassert>
 
@@ -33,8 +34,12 @@
 
 using std::vector;
 using std::string;
+using std::array;
 
-typedef std::pair<uint64_t, double> point;
+struct point {
+	uint64_t time;
+	double value;
+};
 
 /*
  * data_set: Represents a dataset and its corresponding physical parameters
@@ -44,40 +49,86 @@ typedef std::pair<uint64_t, double> point;
  * despite diff_time and aspect_ratio being constant across sets.
  */
 struct data_set {
-	double num_density, diff_time, aspect_ratio;
+	// Number density (N)
+	double num_density;
+	// Characteristic diffusion time (tau)
+	double diff_time;
+	// Measurement volume aspect ratio (R)
+	double aspect_ratio;
+	// Measured correlation function
 	vector<point> points;
 };
 
 
-double diffusion_fit(const gsl_vector* x, void* params,
+/*
+ * diffusion_fit_f: Evaluate G(tau)
+ */
+double diffusion_fit_f(const gsl_vector* x, vector<point>& points,
 		double num_density, double diff_time, double aspect_ratio) {
 	double tau_taud = gsl_vector_get(x,0) / diff_time;
-	double a = (1 + tau_taud) / (1 + pow(aspect_ratio, -2) * tau_taud);
-	return (1 / num_density / sqrt(a));
+	double b = (1 + tau_taud) / (1 + pow(aspect_ratio, -2) * tau_taud);
+	return (1 / num_density / sqrt(b));
 }
+
+/*
+ * diffusion_fit_df: Evaluate (dG/dN, dG/dtau, dG/dR)
+ */
+array<double,3> diffusion_fit_df(const gsl_vector* x, vector<point>& points,
+		double num_density, double diff_time, double aspect_ratio) {
+	array<double,3> res;
+	// dG/dN
+	res[0] = 0;
+	// dG/dtau
+	res[1] = 0;
+	// dG/dR
+	res[2] = 0;
+}
+
 
 int fit_func_f(const gsl_vector* x, void* _data, gsl_vector* f) {
 	vector<data_set*>* data = (vector<data_set*>*) _data;
 	for (int i=0; i<data->size(); i++) {
 		data_set* ds = (*data)[i];
-		double v = diffusion_fit(x, data, ds->num_density, ds->diff_time, ds->aspect_ratio);
+		double v = diffusion_fit_f(x, ds->points,
+				ds->num_density, ds->diff_time, ds->aspect_ratio);
 		gsl_vector_set(f, i, v);
 	}
 	return GSL_SUCCESS;
 }
 
 int fit_func_df(const gsl_vector* x, void* _data, gsl_matrix* J) {
+	vector<data_set*>* data = (vector<data_set*>*) _data;
+	for (int i=0; i<data->size(); i++) {
+		data_set* ds = (*data)[i];
+		array<double,3> df = diffusion_fit_df(x, ds->points,
+				ds->num_density, ds->diff_time, ds->aspect_ratio);
+		for (int j=0; j<3; j++)
+			gsl_matrix_set(J, j, i, df[j]);
+	}
 	return GSL_SUCCESS;
 }
 
 int fit_func_fdf(const gsl_vector* x, void* _data, gsl_vector* f, gsl_matrix* J) {
+	vector<data_set*>* data = (vector<data_set*>*) _data;
+	for (int i=0; i<data->size(); i++) {
+		data_set* ds = (*data)[i];
+		double v = diffusion_fit_f(x, (*data)[i]->points,
+				ds->num_density, ds->diff_time, ds->aspect_ratio);
+		gsl_vector_set(f, i, v);
+
+		array<double,3> df = diffusion_fit_df(x, ds->points,
+				ds->num_density, ds->diff_time, ds->aspect_ratio);
+		for (int j=0; j<3; j++)
+			gsl_matrix_set(J, j, i, df[j]);
+
+	}
 	return GSL_SUCCESS;
 }
 
 void fit(vector<data_set*>& data) {
 	const size_t n_params = 3;
 	const size_t n_sets = data.size();
-	const double epsabs = 0, epsrel = 0;
+	const double epsabs = 1e-4, epsrel = 1e-4;
 
 	int res;
 	gsl_multifit_fdfsolver* solver = gsl_multifit_fdfsolver_alloc(gsl_multifit_fdfsolver_lmsder,
@@ -87,7 +138,7 @@ void fit(vector<data_set*>& data) {
 
 	gsl_multifit_function_fdf f;
 	f.f = &fit_func_f;
-	f.df =&fit_func_df;
+	f.df = &fit_func_df;
 	f.fdf = &fit_func_fdf;
 	f.n = n_sets;
 	f.p = n_params;
@@ -119,13 +170,12 @@ int main(int argc, char** argv) {
 		ds->diff_time = boost::lexical_cast<double>(*tok); tok++;
 		ds->aspect_ratio = boost::lexical_cast<double>(*tok);
 
-		std::ifstream f(argv[1]);
+		std::ifstream f(file);
 		while (!f.eof() && !f.fail()) {
-			uint64_t t;
-			double v;
-			std::cin.read((char*) &t, sizeof(uint64_t));
-			std::cin.read((char*) &v, sizeof(double));
-			ds->points.push_back(point(t,v));
+			point p;
+			std::cin.read((char*) &p.time, sizeof(uint64_t));
+			std::cin.read((char*) &p.value, sizeof(double));
+			ds->points.push_back(p);
 		}
 	} while (!std::cin.fail() && !std::cin.eof());
 
