@@ -63,11 +63,17 @@ struct data_set {
 /*
  * diffusion_fit_f: Evaluate G(tau)
  */
-double diffusion_fit_f(const gsl_vector* x, vector<point>& points,
-		double num_density, double diff_time, double aspect_ratio) {
-	double tau_taud = gsl_vector_get(x,0) / diff_time;
-	double b = (1 + tau_taud) / (1 + pow(aspect_ratio, -2) * tau_taud);
-	return (1 / num_density / sqrt(b));
+double diffusion_fit_f(vector<point>& points, double N_bar, double diff_time, double aspect_ratio) {
+	double res = 0;
+	for (auto p = points.begin(); p != points.end(); p++) {
+		uint64_t tau = p->time;
+		double tau_taud = tau / diff_time;
+		double b = 1.0 + tau_taud/pow(aspect_ratio,2);
+		double c = 1.0 / N_bar / (1.0 + tau_taud) / sqrt(b);
+		c -= p->value;
+		res += c*c;
+	}
+	return res;
 }
 
 /*
@@ -89,7 +95,7 @@ int fit_func_f(const gsl_vector* x, void* _data, gsl_vector* f) {
 	vector<data_set*>* data = (vector<data_set*>*) _data;
 	for (int i=0; i<data->size(); i++) {
 		data_set* ds = (*data)[i];
-		double v = diffusion_fit_f(x, ds->points,
+		double v = diffusion_fit_f(ds->points,
 				ds->num_density, ds->diff_time, ds->aspect_ratio);
 		gsl_vector_set(f, i, v);
 	}
