@@ -20,12 +20,13 @@
 
 
 #include <iostream>
+#include <fstream>
 #include "pt2.h"
 
 const double resolution = 1e-7;
 
-int main(int argc, char** argv) {
-	pt2_file pt2(std::cin);
+void dump(std::istream& is, std::ostream& os) {
+        pt2_file pt2(is);
 	double scale = PT2_TIME_UNIT / resolution;
 	unsigned int n_rec = pt2.tttr_hdr.n_records;
 
@@ -35,9 +36,18 @@ int main(int argc, char** argv) {
 			uint64_t time = (uint64_t) rec.time * scale;
 			int count = 1;
 			std::cout.write((char*) &time, sizeof(uint64_t));
-			std::cout.write((char*) count, sizeof(int));
 		}
 	}
+}
+
+int main(int argc, char** argv) {
+        if (argc > 1) {
+                std::string name = argv[1];
+                std::ifstream is(name);
+                std::ofstream os(name + ".times");
+                dump(is, os);
+        } else
+                dump(std::cin, std::cout);
 
 	return 0;
 }
