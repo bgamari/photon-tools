@@ -1,4 +1,4 @@
-PROGS = autocorr dump_pt2 extract_pt2_timestamps fcs_fit
+PROGS = autocorr dump_pt2 extract_pt2_timestamps #fcs_fit
 CXXFLAGS = -ggdb -std=c++0x
 CC=g++
 
