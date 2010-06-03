@@ -33,15 +33,18 @@ pt2_record pt2_file::read_record() {
 
 	is.read((char*) &rec, 4);
 	r.time = 0x0fffffff & rec;
-	r.channel = 0xf0000000 & rec;
+	r.channel = (0xf0000000 & rec) >> 28;
 	
 	if (r.channel == 0xf) {
 		r.special = true;
-		r.markers = r.time & 0xf;
+                r.time &= ~0xf; // the bottom 4 bits are markers in this case
+		r.markers = r.time & 0xfLL;
 		if (r.markers == 0) // overflow record
 			overflow_time += PT2_WRAPAROUND_TIME;
-	}
-
+	} else {
+                r.special = false;
+                r.markers = 0;
+        }
 	r.time += overflow_time;
 
 	return r;
