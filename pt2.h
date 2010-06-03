@@ -132,7 +132,7 @@ struct pt2_record {
 class pt2_file {
 private:
 	std::istream& is;
-	uint32_t overflow_time;
+	uint64_t overflow_time;
 	uint32_t records_read;
 
 public:
