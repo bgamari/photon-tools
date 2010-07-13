@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
                 }
 
                 std::ofstream os(out_name);
-                dump(is, os);
+                dump(is, os, chan);
         } else
                 dump(std::cin, std::cout);
 
