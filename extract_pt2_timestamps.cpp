@@ -23,18 +23,15 @@
 #include <fstream>
 #include "pt2.h"
 
-const double resolution = 1e-7;
-
 // channel=0xf dumps all channels
 void dump(std::istream& is, std::ostream& os, uint8_t channel=0xf) {
         pt2_file pt2(is);
-	double scale = PT2_TIME_UNIT / resolution;
 	unsigned int n_rec = pt2.tttr_hdr.n_records;
 
 	for (int i=0; i < n_rec; i++) {
 		pt2_record rec = pt2.read_record();
 		if (!rec.special && (channel == 0xf || channel == rec.channel)) {
-			uint64_t time = (uint64_t) rec.time * scale;
+			uint64_t time = rec.time;
 			int count = 1;
 			os.write((char*) &time, sizeof(uint64_t));
 		}
