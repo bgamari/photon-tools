@@ -36,7 +36,7 @@ void dump(std::istream& is, std::ostream& os, uint8_t channel=0xf) {
 		if (!rec.special && (channel == 0xf || channel == rec.channel)) {
 			uint64_t time = (uint64_t) rec.time * scale;
 			int count = 1;
-			std::cout.write((char*) &time, sizeof(uint64_t));
+			os.write((char*) &time, sizeof(uint64_t));
 		}
 	}
 }
