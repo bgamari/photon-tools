@@ -46,11 +46,11 @@ int main(int argc, char** argv) {
                 std::string name = argv[1];
                 std::ifstream is(name);
                 std::string out_name;
-                uint8_t chan;
+                int chan;
 
                 if (argc > 2) {
                         chan = atoi(argv[2]);
-                        out_name = (boost::format("%s-ch%d.times") % name % chan).str();
+                        out_name = (boost::format("%s.ch%d.times") % name % chan).str();
                 } else {
                         chan = 0xf;
                         out_name = (boost::format("%s.times") % name).str();
