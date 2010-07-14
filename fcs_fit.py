@@ -21,8 +21,6 @@
 # Author: Ben Gamari <bgamari@physics.umass.edu>
 #
 
-import pdb
-
 import sys
 import struct
 import scipy, numpy
@@ -31,9 +29,11 @@ import scipy.io.array_import
 from scipy.optimize import leastsq
 
 def load_data(file):
-        fmt = "Qd"
-        return numpy.fromfile(file)
-
+        data = []
+        for l in file:
+                d = map(float, l.split(',')[0:5])
+                data.append(d)
+        return numpy.array(data)
 
 def residuals(p, y, x):
 	err = y - peval(x, p)
@@ -43,9 +43,7 @@ def peval(x, p):
 	g = p[0]
 	tau_d = p[1]
 	a = p[2]
-	return g/((1 + (x/tau_d)) * (1 + (a**(-2))*(x/tau_d))**(1/2)) 
-
-
+	return g/((1 + (x/tau_d)) * (1 + a**-2 * (x/tau_d))**(1/2)) 
 
 def f(x, data):
         res = []
@@ -62,12 +60,13 @@ def f(x, data):
 
 data = load_data(sys.stdin)
 
-times = data[0]
-counts = data[1]
+times = data[:,0]
+counts = data[:,1]
 
-p0 = array([5.3, 1.0, 0.3])
+# Parameters: [ g, tau_d, a ]
+p0 = [5.3, 1.0, 0.3]
 
-params = leastsq(residuals, p0, args=(counts, times))
+params, _ = leastsq(residuals, p0, args=(counts, times))
 
 print params
 
