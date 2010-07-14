@@ -21,19 +21,35 @@
 # Author: Ben Gamari <bgamari@physics.umass.edu>
 #
 
+import pdb
 
 import sys
 import struct
 import scipy, numpy
+from scipy import *
+import scipy.io.array_import
 from scipy.optimize import leastsq
 
 def load_data(file):
         fmt = "Qd"
         return numpy.fromfile(file)
 
+
+def residuals(p, y, x):
+	err = y - peval(x, p)
+	return err
+
+def peval(x, p):
+	g = p[0]
+	tau_d = p[1]
+	a = p[2]
+	return g/((1 + (x/tau_d)) * (1 + (a**(-2))*(x/tau_d))**(1/2)) 
+
+
+
 def f(x, data):
         res = []
-        diff_time, aspect_ratio, *nbars = x
+        diff_time, aspect_ratio, nbars = x
         for nbar, (times,counts) in zip(data, nbars):
                 tau_taud = times / diff_time
                 b = 1.0 + (tau_taud / aspect_ratio**2)
@@ -49,8 +65,9 @@ data = load_data(sys.stdin)
 times = data[0]
 counts = data[1]
 
-p0 = [5.3, 1.0, 0.3, 0.4]
-params = leastsq(f, p0, args=(y_meas, x))
+p0 = array([5.3, 1.0, 0.3])
+
+params = leastsq(residuals, p0, args=(counts, times))
 
 print params
 
