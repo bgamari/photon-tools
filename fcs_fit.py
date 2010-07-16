@@ -4,7 +4,6 @@
 # fcs-tools - Tools for FCS data analysis
 #
 # Copyright © 2010 Ben Gamari
-#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -21,7 +20,7 @@
 # Author: Ben Gamari <bgamari@physics.umass.edu>
 #
 
-import sys
+import sys 
 import struct
 import scipy, numpy
 from scipy import *
@@ -40,33 +39,81 @@ def residuals(p, y, x):
 	return err
 
 def peval(x, p):
-	g = p[0]
+	n = p[0]
 	tau_d = p[1]
 	a = p[2]
-	return g/((1 + (x/tau_d)) * (1 + a**-2 * (x/tau_d))**(1/2)) 
 
-def f(x, data):
-        res = []
-        diff_time, aspect_ratio, nbars = x
-        for nbar, (times,counts) in zip(data, nbars):
-                tau_taud = times / diff_time
-                b = 1.0 + (tau_taud / aspect_ratio**2)
-                c = 1.0 / N_bar / (1.0 + tau_taud) / sqrt(b)
-                d = abs(counts - c)
-                #d /= weight
-                res.extend(d)
 
-        return res
+	tau_taud = x / tau_d
+
+	b = 1.0 / (1.0 + tau_taud)
+	c = 1.0 / (1.0 + (tau_taud / a**2))
+	
+
+	return (1.0 / n) * b * sqrt(c)
+
+def derivatives(x, p):
+	return [derivativeN(x, p), derivativeTau(x, p), derivativeA(x, p)]
+
+def derivativeN(x, p):
+	n = p[0]
+	tau_d = p[1]
+	a = p[2]
+
+	tau_taud = x / tau_d
+
+	b = 1.0 / (1.0 + tau_taud)
+	c = 1.0 / (1.0 + (tau_taud / a**2))
+	
+
+	return -(1.0 / n**2) * b * sqrt(c)
+
+
+def derivativeTau(x, p):
+	n = p[0]
+	tau_d = p[1]
+	a = p[2]
+
+	tau_taud = x / tau_d
+
+	b = 1.0 / (1.0 + tau_taud)
+	c = 1.0 / (1.0 + (tau_taud / a**2))
+	
+	d = b**2 * x / (tau_d**2)
+	
+	e = sqrt(c**3) * x / (a**2 * tau_d**2)
+
+
+	return (1.0 / n) * ( (d * sqrt(c)) + (b * e))
+
+
+def derivativeA(x, p):
+	n = p[0]
+	tau_d = p[1]
+	a = p[2]
+
+	tau_taud = x / tau_d
+
+
+	b = 1.0 / (1.0 + tau_taud)
+	
+	c = 1.0 / (1.0 + (tau_taud / a**2))
+	
+	d = sqrt(c**3) * x / (a**3 * taud)
+
+	return (1.0 / n) *  b * d
+
+
+
 
 data = load_data(sys.stdin)
 
 times = data[:,0]
-counts = data[:,1]
+counts = data[:,3]
 
 # Parameters: [ g, tau_d, a ]
-p0 = [5.3, 1.0, 0.3]
+p0 = [0.4, 475.0, 14.0]
 
-params, _ = leastsq(residuals, p0, args=(counts, times))
+params, _ = leastsq(residuals, p0, args=(counts, times), maxfev=2000)
 
 print params
-
