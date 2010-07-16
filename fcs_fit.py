@@ -115,5 +115,7 @@ counts = data[:,3]
 p0 = [0.4, 475.0, 14.0]
 
 params, _ = leastsq(residuals, p0, args=(counts, times), maxfev=2000)
-
 print params
+
+print residuals(params, counts, times)
+
