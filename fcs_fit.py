@@ -23,9 +23,9 @@
 import sys 
 import struct
 import scipy, numpy
-from scipy import *
-import scipy.io.array_import
+from scipy import sqrt
 from scipy.optimize import leastsq
+from numpy import min, max, linspace
 
 def load_data(file):
         data = []
@@ -35,75 +35,21 @@ def load_data(file):
         return numpy.array(data)
 
 def residuals(p, y, x):
-	err = y - peval(x, p)
+	err = y - model(p, x)
 	return err
 
-def peval(x, p):
+def model(p, x):
 	n = p[0]
 	tau_d = p[1]
 	a = p[2]
-
+        offset = p[3]
 
 	tau_taud = x / tau_d
 
 	b = 1.0 / (1.0 + tau_taud)
-	c = 1.0 / (1.0 + (tau_taud / a**2))
+	c = 1.0 / (1.0 + tau_taud * a**-2)
 	
-
-	return (1.0 / n) * b * sqrt(c)
-
-def derivatives(x, p):
-	return [derivativeN(x, p), derivativeTau(x, p), derivativeA(x, p)]
-
-def derivativeN(x, p):
-	n = p[0]
-	tau_d = p[1]
-	a = p[2]
-
-	tau_taud = x / tau_d
-
-	b = 1.0 / (1.0 + tau_taud)
-	c = 1.0 / (1.0 + (tau_taud / a**2))
-	
-
-	return -(1.0 / n**2) * b * sqrt(c)
-
-
-def derivativeTau(x, p):
-	n = p[0]
-	tau_d = p[1]
-	a = p[2]
-
-	tau_taud = x / tau_d
-
-	b = 1.0 / (1.0 + tau_taud)
-	c = 1.0 / (1.0 + (tau_taud / a**2))
-	
-	d = b**2 * x / (tau_d**2)
-	
-	e = sqrt(c**3) * x / (a**2 * tau_d**2)
-
-
-	return (1.0 / n) * ( (d * sqrt(c)) + (b * e))
-
-
-def derivativeA(x, p):
-	n = p[0]
-	tau_d = p[1]
-	a = p[2]
-
-	tau_taud = x / tau_d
-
-
-	b = 1.0 / (1.0 + tau_taud)
-	
-	c = 1.0 / (1.0 + (tau_taud / a**2))
-	
-	d = sqrt(c**3) * x / (a**3 * taud)
-
-	return (1.0 / n) *  b * d
-
-
+	return (1.0 / n) * b * sqrt(c) + offset
 
 
 data = load_data(sys.stdin)
@@ -111,11 +57,19 @@ data = load_data(sys.stdin)
 times = data[:,0]
 counts = data[:,3]
 
-# Parameters: [ g, tau_d, a ]
-p0 = [0.4, 475.0, 14.0]
+# Parameters: [ g, tau_d, a, offset ]
+p0 = [1,1,1,0.1]
 
-params, _ = leastsq(residuals, p0, args=(counts, times), maxfev=2000)
-print params
+params, cov_x, infodict, mesg, ier = leastsq(residuals, p0, args=(counts, times), full_output=True)
+print params, mesg, ier
 
-print residuals(params, counts, times)
+resid = residuals(params, counts, times)
+rel = resid / counts
+
+from matplotlib import pyplot as pl
+x = linspace(min(times), max(times))
+pl.plot(times, counts, label='Data')
+pl.plot(x, model(params, x), label='Model')
+pl.legend()
+pl.show()
 
