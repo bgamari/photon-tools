@@ -25,7 +25,7 @@ import struct
 import scipy, numpy
 from scipy import sqrt
 from scipy.optimize import leastsq
-from numpy import min, max, linspace
+from numpy import min, max, linspace, mean
 
 def load_data(file):
         data = []
@@ -34,42 +34,50 @@ def load_data(file):
                 data.append(d)
         return numpy.array(data)
 
-def residuals(p, y, x):
+def residuals(p, y, x, var):
 	err = y - model(p, x)
-	return err
+	return err / var
 
 def model(p, x):
 	n = p[0]
 	tau_d = p[1]
 	a = p[2]
-        offset = p[3]
 
 	tau_taud = x / tau_d
 
 	b = 1.0 / (1.0 + tau_taud)
 	c = 1.0 / (1.0 + tau_taud * a**-2)
 	
-	return (1.0 / n) * b * sqrt(c) + offset
+	return (1.0 / n) * b * sqrt(c)
 
 
 data = load_data(sys.stdin)
 
 times = data[:,0]
-counts = data[:,3]
+counts = data[:,3] - 1
+var = data[:,4]
 
-# Parameters: [ g, tau_d, a, offset ]
-p0 = [1,1,1,0.1]
+# Eliminate early data
+low_time = 1e-6
+var = var[times > low_time]
+counts = counts[times > low_time]
+times = times[times > low_time]
 
-params, cov_x, infodict, mesg, ier = leastsq(residuals, p0, args=(counts, times), full_output=True)
-print params, mesg, ier
+# Parameters: [ N, tau_d, a ]
+amp = mean(counts[:5])
+p0 = [ 1/(amp-1), 200e-6, 10 ]
 
-resid = residuals(params, counts, times)
+params, cov_x, infodict, mesg, ier = leastsq(residuals, p0, args=(counts, times, var), full_output=True)
+print params, mesg
+
+resid = residuals(params, counts, times, var)
 rel = resid / counts
 
 from matplotlib import pyplot as pl
-x = linspace(min(times), max(times))
-pl.plot(times, counts, label='Data')
-pl.plot(x, model(params, x), label='Model')
+x = linspace(min(times), max(times), 1e6)
+pl.semilogx(times, counts, label='Data', linestyle='None', marker='+')
+pl.semilogx(x, model(params, x), label='Model')
 pl.legend()
 pl.show()
+
 
