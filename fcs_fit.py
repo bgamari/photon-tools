@@ -43,9 +43,9 @@ def fitfunc(p, y, x, var):
 	return err / var
 
 def model(p, x):
-	n = p[0]
-	tau_d = p[1]
-	a = p[2]
+	tau_d = p[0]
+	a = p[1]
+	n = p[2]
 
 	tau_taud = x / tau_d
 
@@ -56,13 +56,12 @@ def model(p, x):
 
 
 def fit(times, counts, var):
-        # Parameters: [ N, tau_d, a ]
+        # Parameters: [ tau_d, a, N ]
         amp = mean(counts[:5])
-        p0 = [ 1/(amp-1), 200e-6, 10 ]
+        p0 = [ 200e-6, 10, 1/(amp-1) ]
 
         params, cov_x, infodict, mesg, ier = leastsq(fitfunc, p0, args=(counts, times, var), full_output=True)
         return params
-
 
 def fit_single(data):
         times, counts, var = load_favia(data)
@@ -94,9 +93,9 @@ def fit_single(data):
         ax.legend()
 
         text = [
-                r'$N = \mathrm{%1.3e}$' % params[0],
-                r'$\tau_d = \mathrm{%1.3e}$' % params[1],
-                r'$a = \mathrm{%1.3e}$' % params[2],
+                r'$\tau_d = \mathrm{%1.3e}$' % params[0],
+                r'$a = \mathrm{%1.3e}$' % params[1],
+                r'$N = \mathrm{%1.3e}$' % params[2],
         ]
         pl.figtext(0.70, 0.40, "\n".join(text))
 
