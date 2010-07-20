@@ -83,23 +83,24 @@ def fit_single(data):
 
         # Plot results
         from matplotlib import pyplot as pl
-        from mpl_toolkits.axes_grid1 import AxesGrid
-
-        fig = pl.figure(1, (5.,5.))
-        grid = AxesGrid(fig, 111, nrows_ncols=(2,1), 
-                        axes_pad=0.1, share_all=True, label_mode='L')
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        ax = pl.subplot(111)
 
         x = linspace(min(times), max(times), 1e6)
-        grid[0].semilogx(x, model(params, x), label='Model')
-        grid[0].semilogx(times, counts, label='Data', linestyle='None', marker='+')
-        grid[0].set_xlabel(r'$\tau$')
-        grid[0].set_ylabel(r'$G$')
-        grid[0].legend()
+        ax.semilogx(x, model(params, x), label='Model')
+        ax.semilogx(times, counts, label='Data', linestyle='None', marker='+')
 
-        grid[1].errorbar(times, resid, yerr=var)
-        grid[1].set_ylabel(r'Fit Residuals')
+        ax.set_xlabel(r'$\tau$')
+        ax.set_ylabel(r'$G$')
+        ax.legend()
+
+        divider = make_axes_locatable(ax)
+        ax_resid = divider.append_axes("top", 1.4, pad=0.0, sharex=ax)
+        ax_resid.axhline(0, color='black')
+        ax_resid.errorbar(times, resid, yerr=var, linestyle='None', marker='x')
+        pl.setp(ax_resid.get_xticklabels(), visible=False)
+        ax_resid.set_ylabel(r'Fit Residuals')
        
-        fig.subplots_adjust(left=0.05, right=0.98)
         pl.draw()
         pl.show()
 
