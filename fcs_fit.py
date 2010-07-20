@@ -26,6 +26,8 @@ import scipy, numpy
 from scipy import sqrt
 from scipy.optimize import leastsq
 from numpy import min, max, linspace, mean
+import collections
+DataSet = collections.namedtuple('DataSet', 'name times counts var')
 
 def load_favia(file):
         data = []
@@ -112,7 +114,62 @@ def fit_single(data):
 
         return params
 
-if __name__ == '__main__':
-        print fit_single(sys.stdin)
+def global_fitfunc(p, data):
+        res = []
+        for d, n in zip(data, p[2:]):
+                p1 = list(p[0:2]) + [n]
+                err = d.counts - model(p1, d.times)
+                res.extend(err / d.var)
+	return numpy.array(res)
+
+def global_fit(data):
+        est_n = lambda d: 1/(mean(d.counts[:5]) - 1)
+        p0 = [ 200e-6, 10 ] + map(est_n, data)
+        params, cov_x, infodict, mesg, ier = leastsq(global_fitfunc, p0, args=(data), full_output=True)
+        return params
+
+data = []
+for f in sys.argv[1:]:
+        times, counts, var = load_favia(open(f))
+
+        # Subtract out offset
+        counts -= 1.0
+
+        # Eliminate early data
+        low_time = 1e-6
+        var = var[times > low_time]
+        counts = counts[times > low_time]
+        times = times[times > low_time]
+
+        data.append(DataSet(f, times, counts, var))
+
+# Run fit
+params = global_fit(data)
+resid = counts - model(params, times)
+print params
+
+# Plot results
+from matplotlib import pyplot as pl
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+ax = pl.subplot(111)
+
+x = linspace(min(times), max(times), 1e6)
+
+for d,n in zip(data, params[2:]):
+        p1 = list(params[0:2]) + [n]
+        ax.semilogx(x, model(p1, x), label='%s (fit, N=%f)' % (d.name, n))
+        ax.semilogx(d.times, d.counts, label=d.name, linestyle='None', marker='+')
+
+ax.set_xlabel(r'$\tau$')
+ax.set_ylabel(r'$G$')
+ax.legend()
+
+ax.autoscale_view(tight=True, scalex=True)
+pl.draw()
+pl.show()
+
+
+#if __name__ == '__main__':
+#        print fit_single(sys.stdin)
 
 
