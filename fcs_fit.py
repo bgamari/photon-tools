@@ -38,7 +38,7 @@ def load_favia(file):
         var = data[:,4]
         return times, counts, var
 
-def residuals(p, y, x, var):
+def fitfunc(p, y, x, var):
 	err = y - model(p, x)
 	return err / var
 
@@ -60,7 +60,7 @@ def fit(times, counts, var):
         amp = mean(counts[:5])
         p0 = [ 1/(amp-1), 200e-6, 10 ]
 
-        params, cov_x, infodict, mesg, ier = leastsq(residuals, p0, args=(counts, times, var), full_output=True)
+        params, cov_x, infodict, mesg, ier = leastsq(fitfunc, p0, args=(counts, times, var), full_output=True)
         return params
 
 
@@ -78,8 +78,7 @@ def fit_single(data):
 
         # Run fit
         params = fit(times, counts, var)
-        resid = residuals(params, counts, times, var)
-        rel = resid / counts
+        resid = counts - model(params, times)
 
         # Plot results
         from matplotlib import pyplot as pl
@@ -101,6 +100,7 @@ def fit_single(data):
         pl.setp(ax_resid.get_xticklabels(), visible=False)
         ax_resid.set_ylabel(r'Fit Residuals')
        
+        ax.autoscale_view(tight=True, scalex=True)
         pl.draw()
         pl.show()
 
