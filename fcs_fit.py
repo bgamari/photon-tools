@@ -27,12 +27,16 @@ from scipy import sqrt
 from scipy.optimize import leastsq
 from numpy import min, max, linspace, mean
 
-def load_data(file):
+def load_favia(file):
         data = []
         for l in file:
                 d = map(float, l.split(',')[0:5])
                 data.append(d)
-        return numpy.array(data)
+        data = numpy.array(data)
+        times = data[:,0]
+        counts = data[:,3]
+        var = data[:,4]
+        return times, counts, var
 
 def residuals(p, y, x, var):
 	err = y - model(p, x)
@@ -51,11 +55,18 @@ def model(p, x):
 	return (1.0 / n) * b * sqrt(c)
 
 
-data = load_data(sys.stdin)
+def fit(times, counts, var):
+        # Parameters: [ N, tau_d, a ]
+        amp = mean(counts[:5])
+        p0 = [ 1/(amp-1), 200e-6, 10 ]
 
-times = data[:,0]
-counts = data[:,3] - 1
-var = data[:,4]
+        params, cov_x, infodict, mesg, ier = leastsq(residuals, p0, args=(counts, times, var), full_output=True)
+        return params
+
+times, counts, var = load_favia(sys.stdin)
+
+# Subtract out offset
+counts -= 1.0
 
 # Eliminate early data
 low_time = 1e-6
@@ -63,16 +74,12 @@ var = var[times > low_time]
 counts = counts[times > low_time]
 times = times[times > low_time]
 
-# Parameters: [ N, tau_d, a ]
-amp = mean(counts[:5])
-p0 = [ 1/(amp-1), 200e-6, 10 ]
-
-params, cov_x, infodict, mesg, ier = leastsq(residuals, p0, args=(counts, times, var), full_output=True)
-print params, mesg
-
+# Run fit
+params = fit(times, counts, var)
 resid = residuals(params, counts, times, var)
 rel = resid / counts
 
+# Plot results
 from matplotlib import pyplot as pl
 x = linspace(min(times), max(times), 1e6)
 pl.semilogx(times, counts, label='Data', linestyle='None', marker='+')
