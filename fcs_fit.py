@@ -63,28 +63,47 @@ def fit(times, counts, var):
         params, cov_x, infodict, mesg, ier = leastsq(residuals, p0, args=(counts, times, var), full_output=True)
         return params
 
-times, counts, var = load_favia(sys.stdin)
 
-# Subtract out offset
-counts -= 1.0
+def fit_single(data):
+        times, counts, var = load_favia(data)
 
-# Eliminate early data
-low_time = 1e-6
-var = var[times > low_time]
-counts = counts[times > low_time]
-times = times[times > low_time]
+        # Subtract out offset
+        counts -= 1.0
 
-# Run fit
-params = fit(times, counts, var)
-resid = residuals(params, counts, times, var)
-rel = resid / counts
+        # Eliminate early data
+        low_time = 1e-6
+        var = var[times > low_time]
+        counts = counts[times > low_time]
+        times = times[times > low_time]
 
-# Plot results
-from matplotlib import pyplot as pl
-x = linspace(min(times), max(times), 1e6)
-pl.semilogx(times, counts, label='Data', linestyle='None', marker='+')
-pl.semilogx(x, model(params, x), label='Model')
-pl.legend()
-pl.show()
+        # Run fit
+        params = fit(times, counts, var)
+        resid = residuals(params, counts, times, var)
+        rel = resid / counts
+
+        # Plot results
+        from matplotlib import pyplot as pl
+        from mpl_toolkits.axes_grid1 import AxesGrid
+
+        fig = pl.figure(1, (5.,5.))
+        grid = AxesGrid(fig, 111, nrows_ncols=(2,1), 
+                        axes_pad=0.1, share_all=True, label_mode='L')
+
+        x = linspace(min(times), max(times), 1e6)
+        grid[0].semilogx(x, model(params, x), label='Model')
+        grid[0].semilogx(times, counts, label='Data', linestyle='None', marker='+')
+        grid[0].set_xlabel(r'$\tau$')
+        grid[0].set_ylabel(r'$G$')
+        grid[0].legend()
+
+        grid[1].errorbar(times, resid, yerr=var)
+        grid[1].set_ylabel(r'Fit Residuals')
+       
+        fig.subplots_adjust(left=0.05, right=0.98)
+        pl.draw()
+        pl.show()
+
+if __name__ == '__main__':
+        fit_single(sys.stdin)
 
 
