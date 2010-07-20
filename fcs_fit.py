@@ -87,8 +87,8 @@ def fit_single(data):
         ax = pl.subplot(111)
 
         x = linspace(min(times), max(times), 1e6)
-        ax.semilogx(x, model(params, x), label='Model')
-        ax.semilogx(times, counts, label='Data', linestyle='None', marker='+')
+        ax.semilogx(x, model(params, x), label='Fit')
+        ax.semilogx(times, counts, label=data.name, linestyle='None', marker='+')
         ax.set_xlabel(r'$\tau$')
         ax.set_ylabel(r'$G$')
         ax.legend()
