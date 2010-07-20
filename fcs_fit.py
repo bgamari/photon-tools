@@ -83,15 +83,22 @@ def fit_single(data):
         # Plot results
         from matplotlib import pyplot as pl
         from mpl_toolkits.axes_grid1 import make_axes_locatable
+        pl.title(data.name)
         ax = pl.subplot(111)
 
         x = linspace(min(times), max(times), 1e6)
         ax.semilogx(x, model(params, x), label='Model')
         ax.semilogx(times, counts, label='Data', linestyle='None', marker='+')
-
         ax.set_xlabel(r'$\tau$')
         ax.set_ylabel(r'$G$')
         ax.legend()
+
+        text = [
+                r'$N = \mathrm{%1.3e}$' % params[0],
+                r'$\tau_d = \mathrm{%1.3e}$' % params[1],
+                r'$a = \mathrm{%1.3e}$' % params[2],
+        ]
+        pl.figtext(0.70, 0.40, "\n".join(text))
 
         divider = make_axes_locatable(ax)
         ax_resid = divider.append_axes("top", 1.4, pad=0.0, sharex=ax)
@@ -104,7 +111,9 @@ def fit_single(data):
         pl.draw()
         pl.show()
 
+        return params
+
 if __name__ == '__main__':
-        fit_single(sys.stdin)
+        print fit_single(sys.stdin)
 
 
