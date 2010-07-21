@@ -6,8 +6,6 @@ all : ${PROGS}
 
 dump_pt2 : pt2.o
 extract_pt2_timestamps : pt2.o
-fcs_fit : fcs_fit.o
-	g++ -o $@ -lblas -lgsl $+
 
 clean : 
 	rm -f ${PROGS} *.o
