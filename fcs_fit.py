@@ -145,20 +145,35 @@ for f in sys.argv[1:]:
 
 # Run fit
 params = global_fit(data)
-resid = counts - model(params, times)
-print params
 
 # Plot results
 from matplotlib import pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-ax = pl.subplot(111)
 
+ax = pl.subplot(111)
 x = linspace(min(times), max(times), 1e6)
 
 for d,n in zip(data, params[2:]):
         p1 = list(params[0:2]) + [n]
         ax.semilogx(x, model(p1, x), label='%s (fit, N=%f)' % (d.name, n))
         ax.semilogx(d.times, d.counts, label=d.name, linestyle='None', marker='+')
+
+divider = make_axes_locatable(ax)
+for d,n in zip(data, params[2:]):
+        p1 = list(params[0:2]) + [n]
+        resid = model(p1, d.times) - d.counts
+
+        ax_resid = divider.append_axes("top", 1.4, pad=0.0, sharex=ax)
+        ax_resid.axhline(0, color='black')
+        ax_resid.errorbar(times, resid, yerr=var, linestyle='None', marker='x')
+        pl.setp(ax_resid.get_xticklabels(), visible=False)
+        ax_resid.set_ylabel(r'Fit Residuals')
+
+text = [
+        r'$\tau_d = \mathrm{%1.3e}$' % params[0],
+        r'$a = \mathrm{%1.3e}$' % params[1],
+]
+pl.figtext(0.70, 0.40, "\n".join(text))
 
 ax.set_xlabel(r'$\tau$')
 ax.set_ylabel(r'$G$')
