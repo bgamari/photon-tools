@@ -28,9 +28,6 @@ from scipy import sqrt
 from scipy.optimize import leastsq
 from numpy import min, max, linspace, mean
 
-from matplotlib import pyplot as pl
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 DataSet = namedtuple('DataSet', 'name times counts var')
 FitParams = namedtuple('FitParams', 'taud a ns')
 
@@ -74,7 +71,12 @@ def fit(data):
         ns = params[2:]
         return FitParams(taud, a, ns)
 
-def plot_data(data, fit_params=None, fig=pl.figure()):
+def plot_data(data, fit_params=None, fig=None):
+        from matplotlib import pyplot as pl
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+        if not fig:
+                fig = pl.figure()
         ax = fig.add_subplot(111)
         divider = make_axes_locatable(ax)
 
@@ -140,10 +142,11 @@ if __name__ == '__main__':
                 print 'n%d' % i, n
 
         # Plot
-        if opts.plot and opts.output:
-                fig = plot_data(data, params)
-                fig.savefig(opts.output)
-        elif opts.plot:
-                plot_data(data, params).show()
+        if opts.plot:
+                if opts.output:
+                        fig = plot_data(data, params)
+                        fig.savefig(opts.output)
+                else:
+                        plot_data(data, params).show()
 
 
