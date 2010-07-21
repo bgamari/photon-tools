@@ -107,8 +107,18 @@ def plot_data(data, fit_params=None, fig=pl.figure()):
         return fig
 
 if __name__ == '__main__':
+        from optparse import OptionParser
+        parser = OptionParser()
+        parser.add_option('-e', '--early-cutoff', dest='early_cutoff',
+                          help='Early lag cutoff time')
+        parser.add_option('-p', '--plot', action='store_true', dest='plot',
+                          help='Produce plot of data and fits')
+        parser.add_option('-o', '--output', dest='output', metavar='FILE',
+                          help='Save plot to FILE')
+        opts, args = parser.parse_args()
+
         data = []
-        for f in sys.argv[1:]:
+        for f in args:
                 times, counts, var = load_favia(open(f))
 
                 # Subtract out offset
@@ -122,8 +132,18 @@ if __name__ == '__main__':
 
                 data.append(DataSet(f, times, counts, var))
 
-        # Run fit
+        # Run fit and print fit parameters
         params = fit(data)
-        fig = plot_data(data, params)
-        fig.savefig('fit.png')
+        print 'tau_d', params.taud
+        print 'a', params.a
+        for i,n in enumerate(params.ns):
+                print 'n%d' % i, n
+
+        # Plot
+        if opts.plot and opts.output:
+                fig = plot_data(data, params)
+                fig.savefig(opts.output)
+        elif opts.plot:
+                plot_data(data, params).show()
+
 
