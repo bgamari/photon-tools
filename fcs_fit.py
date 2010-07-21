@@ -26,8 +26,9 @@ import scipy, numpy
 from scipy import sqrt
 from scipy.optimize import leastsq
 from numpy import min, max, linspace, mean
-import collections
-DataSet = collections.namedtuple('DataSet', 'name times counts var')
+from collections import namedtuple
+DataSet = namedtuple('DataSet', 'name times counts var')
+FitParams = namedtuple('FitParams', 'taud a ns')
 
 def load_favia(file):
         data = []
@@ -62,9 +63,12 @@ def fitfunc(p, data):
 
 def fit(data):
         est_n = lambda d: 1/(mean(d.counts[:5]) - 1)
+        # Parameters: tau_d, a, N1, N2, ...
         p0 = [ 200e-6, 10 ] + map(est_n, data)
         params, cov_x, infodict, mesg, ier = leastsq(fitfunc, p0, args=(data), full_output=True)
-        return params
+        taud, a = params[:2]
+        ns = params[2:]
+        return FitParams(taud, a, ns)
 
 data = []
 for f in sys.argv[1:]:
@@ -89,18 +93,15 @@ from matplotlib import pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 ax = pl.subplot(111)
-x = linspace(min(times), max(times), 1e6)
+divider = make_axes_locatable(ax)
 
-for d,n in zip(data, params[2:]):
-        p1 = list(params[0:2]) + [n]
+for d,n in zip(data, params.ns):
+        p1 = (params.taud, params.a, n)
+        x = linspace(min(times), max(times), 1e6)
         ax.semilogx(x, model(p1, x), label='%s (fit, N=%f)' % (d.name, n))
         ax.semilogx(d.times, d.counts, label=d.name, linestyle='None', marker='+')
 
-divider = make_axes_locatable(ax)
-for d,n in zip(data, params[2:]):
-        p1 = list(params[0:2]) + [n]
         resid = model(p1, d.times) - d.counts
-
         ax_resid = divider.append_axes("top", 1.4, pad=0.0, sharex=ax)
         ax_resid.axhline(0, color='black')
         ax_resid.errorbar(times, resid, yerr=var, linestyle='None', marker='x')
@@ -108,8 +109,8 @@ for d,n in zip(data, params[2:]):
         ax_resid.set_ylabel(r'Fit Residuals')
 
 text = [
-        r'$\tau_d = \mathrm{%1.3e}$' % params[0],
-        r'$a = \mathrm{%1.3e}$' % params[1],
+        r'$\tau_d = \mathrm{%1.3e}$' % params.taud,
+        r'$a = \mathrm{%1.3e}$' % params.a,
 ]
 pl.figtext(0.70, 0.40, "\n".join(text))
 
@@ -120,9 +121,4 @@ ax.legend()
 ax.autoscale_view(tight=True, scalex=True)
 pl.draw()
 pl.show()
-
-
-#if __name__ == '__main__':
-#        print fit_single(sys.stdin)
-
 
