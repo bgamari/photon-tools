@@ -106,23 +106,24 @@ def plot_data(data, fit_params=None, fig=pl.figure()):
         ax.autoscale_view(tight=True, scalex=True)
         return fig
 
-data = []
-for f in sys.argv[1:]:
-        times, counts, var = load_favia(open(f))
+if __name__ == '__main__':
+        data = []
+        for f in sys.argv[1:]:
+                times, counts, var = load_favia(open(f))
 
-        # Subtract out offset
-        counts -= 1.0
+                # Subtract out offset
+                counts -= 1.0
 
-        # Eliminate early data
-        low_time = 1e-6
-        var = var[times > low_time]
-        counts = counts[times > low_time]
-        times = times[times > low_time]
+                # Eliminate early data
+                low_time = 1e-6
+                var = var[times > low_time]
+                counts = counts[times > low_time]
+                times = times[times > low_time]
 
-        data.append(DataSet(f, times, counts, var))
+                data.append(DataSet(f, times, counts, var))
 
-# Run fit
-params = fit(data)
-fig = plot_data(data, params)
-fig.savefig('fit.png')
+        # Run fit
+        params = fit(data)
+        fig = plot_data(data, params)
+        fig.savefig('fit.png')
 
