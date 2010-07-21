@@ -111,8 +111,8 @@ def plot_data(data, fit_params=None, fig=None):
 if __name__ == '__main__':
         from optparse import OptionParser
         parser = OptionParser()
-        parser.add_option('-e', '--early-cutoff', dest='early_cutoff',
-                          help='Early lag cutoff time')
+        parser.add_option('-e', '--early-cutoff', dest='early_cutoff', metavar='LAG',
+                          help='Early lag cutoff time', default=0, type="float")
         parser.add_option('-p', '--plot', action='store_true', dest='plot',
                           help='Produce plot of data and fits')
         parser.add_option('-o', '--output', dest='output', metavar='FILE',
@@ -127,10 +127,9 @@ if __name__ == '__main__':
                 counts -= 1.0
 
                 # Eliminate early data
-                low_time = 1e-6
-                var = var[times > low_time]
-                counts = counts[times > low_time]
-                times = times[times > low_time]
+                var = var[times > opts.early_cutoff]
+                counts = counts[times > opts.early_cutoff]
+                times = times[times > opts.early_cutoff]
 
                 data.append(DataSet(f, times, counts, var))
 
