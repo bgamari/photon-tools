@@ -114,6 +114,8 @@ if __name__ == '__main__':
         parser = OptionParser()
         parser.add_option('-e', '--early-cutoff', dest='early_cutoff', metavar='LAG',
                           help='Early lag cutoff time', default=0, type="float")
+        parser.add_option('-n', '--no-fit', action='store_true', dest='no_fit',
+                          help="Don't attempt to fit data; to be used with --plot")
         parser.add_option('-p', '--plot', action='store_true', dest='plot',
                           help='Produce plot of data and fits')
         parser.add_option('-o', '--output', dest='output', metavar='FILE',
@@ -134,12 +136,14 @@ if __name__ == '__main__':
 
                 data.append(DataSet(f, times, counts, var))
 
-        # Run fit and print fit parameters
-        params = fit(data)
-        print 'tau_d', params.taud
-        print 'a', params.a
-        for i,n in enumerate(params.ns):
-                print 'n%d' % i, n
+        params = None
+        if not opts.no_fit:
+                # Run fit and print fit parameters
+                params = fit(data)
+                print 'tau_d', params.taud
+                print 'a', params.a
+                for i,n in enumerate(params.ns):
+                        print 'n%d' % i, n
 
         # Plot
         if opts.plot:
