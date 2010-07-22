@@ -61,7 +61,7 @@ def fitfunc(p, data):
                 res.extend(err / d.var)
 	return numpy.array(res)
 
-def fit(data, taud0=None, a=None, n0=None):
+def fit(data, taud0=None, a0=None, n0=None):
         est_n = lambda d: 1/mean(d.counts[:5])
         # Parameters: tau_d, a, N1, N2, ...
         if taud0 is not None: taud0 = 200e-6
