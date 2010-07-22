@@ -80,7 +80,8 @@ def plot_data(data, fit_params=None, fig=None):
         ax = fig.add_subplot(111)
         divider = make_axes_locatable(ax)
 
-        for d,n in zip(data, fit_params.ns):
+        ns = fit_params.ns if fit_params else [0]*len(data)
+        for d,n in zip(data, ns):
                 ax.semilogx(d.times, d.counts, label=d.name, linestyle='None', marker='+')
                 if fit_params is None: continue
 
