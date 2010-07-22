@@ -1,0 +1,19 @@
+#!/usr/bin/python
+
+import sys
+import numpy as np
+from matplotlib import pyplot as pl
+
+if len(sys.argv) < 3 or '-h' in sys.argv or '--help' in sys.argv:
+        print "Usage: %s [input-file] [nbins]" % sys.argv[0]
+        print 
+        print "Utility to plot a binned series of timestamps"
+        print "Times are given in seconds"
+        sys.exit(0)
+
+jiffy = 1e-7
+times = np.fromfile(sys.argv[1], np.uint64)
+nbins = int(sys.argv[2])
+pl.hist(times, nbins)
+pl.show()
+
