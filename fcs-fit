@@ -46,7 +46,6 @@ def model(p, x):
 	tau_d = p[0]
 	a = p[1]
 	n = p[2]
-
 	tau_taud = x / tau_d
 
 	b = 1.0 / (1.0 + tau_taud)
@@ -63,7 +62,7 @@ def fitfunc(p, data):
 	return numpy.array(res)
 
 def fit(data):
-        est_n = lambda d: 1/(mean(d.counts[:5]) - 1)
+        est_n = lambda d: 1/mean(d.counts[:5])
         # Parameters: tau_d, a, N1, N2, ...
         p0 = [ 200e-6, 10 ] + map(est_n, data)
         params, cov_x, infodict, mesg, ier = leastsq(fitfunc, p0, args=(data), full_output=True)
