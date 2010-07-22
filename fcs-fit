@@ -61,10 +61,15 @@ def fitfunc(p, data):
                 res.extend(err / d.var)
 	return numpy.array(res)
 
-def fit(data):
+def fit(data, taud0=None, a=None, n0=None):
         est_n = lambda d: 1/mean(d.counts[:5])
         # Parameters: tau_d, a, N1, N2, ...
-        p0 = [ 200e-6, 10 ] + map(est_n, data)
+        if taud0 is not None: taud0 = 200e-6
+        if a0 is not None: a0 = 10
+        if n0 is not None: n0 = map(est_n, data)
+        if len(n0) != len(data):
+                raise ValueError("length of n0 must equal length of data")
+        p0 = [ taud0, a0 ] + n0
         params, cov_x, infodict, mesg, ier = leastsq(fitfunc, p0, args=(data), full_output=True)
         taud, a = params[:2]
         ns = params[2:]
