@@ -12,7 +12,7 @@ if len(sys.argv) < 3 or '-h' in sys.argv or '--help' in sys.argv:
         sys.exit(0)
 
 jiffy = 4e-12
-times = np.fromfile(sys.argv[1], np.uint64)
+times = np.fromfile(sys.argv[1], np.uint64) * jiffy
 nbins = int(sys.argv[2])
 pl.hist(times, nbins)
 pl.show()
