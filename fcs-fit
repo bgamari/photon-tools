@@ -147,6 +147,8 @@ if __name__ == '__main__':
                         fig = plot_data(data, params)
                         fig.savefig(opts.output)
                 else:
-                        plot_data(data, params).show()
+                        import matplotlib.pyplot as pl
+                        plot_data(data, params)
+                        pl.show()
 
 
