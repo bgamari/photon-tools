@@ -152,7 +152,11 @@ if __name__ == '__main__':
         # Plot
         if opts.plot:
                 if opts.output:
-                        fig = plot_data(data, params)
+                        from matplotlib.figure import Figure
+                        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+                        fig = Figure()
+                        canvas = FigureCanvas(fig)
+                        fig = plot_data(data, params, fig)
                         fig.savefig(opts.output)
                 else:
                         import matplotlib.pyplot as pl
