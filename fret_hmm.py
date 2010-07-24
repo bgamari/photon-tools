@@ -1,8 +1,10 @@
+#!/usr/bin/python
+
 from collections import namedtuple
 import random
-from numpy import array
+from numpy import array, sum, mean, std
 from numpy.random import random_sample, randint, poisson
-#from hmm import HMM, baum_welsh, viterebi
+from hmm import HMM, baum_welch, viterbi
 
 def weighted_choice(choices, probs):
         #assert sum(probs) == 1
@@ -54,6 +56,6 @@ pl.plot(data)
 pl.plot(seq)
 pl.show()
 
-hmm = HMM(n_states)
-baum_welsh(hmm, data, graph=True)
+hmm = HMM(n_states, B=model.emission)
+baum_welch(hmm, data, graph=True)
 
