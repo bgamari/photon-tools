@@ -4,7 +4,7 @@ from collections import namedtuple
 import random
 from numpy import array, sum, mean, std
 from numpy.random import random_sample, randint, poisson
-from hmm import HMM, baum_welch, viterbi
+import ghmm
 
 def weighted_choice(choices, probs):
         #assert sum(probs) == 1
@@ -54,8 +54,16 @@ data, seq = random_data(model, 100)
 from matplotlib import pyplot as pl
 pl.plot(data)
 pl.plot(seq)
-pl.show()
+#pl.show()
 
-hmm = HMM(n_states, B=model.emission)
-baum_welch(hmm, data, graph=True)
-
+new = random_model(n_states, 1)
+dom = ghmm.Float()
+B = [ [float(e[0]), float(e[0])] for e in model.emission ]
+hmm = ghmm.HMMFromMatrices(dom, ghmm.GaussianDistribution(dom),
+                           new.trans_prob, B, new.start_prob)
+print hmm.getTransition(0, 1)
+seq = ghmm.EmissionSequence(dom, data)
+hmm.baumWelch(seq, 50, 0.1)
+print hmm.getTransition(0, 1)
+hmm.baumWelch(seq, 5, 0.1)
+print hmm.getTransition(0, 1)
