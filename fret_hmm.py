@@ -19,7 +19,7 @@ def random_model(n_states, n_obs):
         start_prob = random_sample(n_states)
         start_prob /= sum(start_prob)
 
-        emission = randint(0, 150, (n_states, n_obs))
+        emission = randint(0, 1500, (n_states, n_obs))
 
         transition_prob = []
         for i in xrange(n_states):
@@ -46,24 +46,47 @@ def random_data(model, length, noise=True):
 
         return data, state_seq
 
+def transition_matrix(hmm):
+        get_row = lambda row : [ hmm.getTransition(row,col) for col in range(hmm.N) ]
+        return array([ get_row(row) for row in range(hmm.N) ])
 
+# Generate a model to pull data from
 n_states = 6
 model = random_model(n_states, 1)
-data, seq = random_data(model, 100)
+print "Model:"
+print model.trans_prob[0,:]
 
-from matplotlib import pyplot as pl
-pl.plot(data)
-pl.plot(seq)
-#pl.show()
+# Optional: Plot a sample of data
+if False:
+        data, seq = random_data(model, 100000)
+        from matplotlib import pyplot as pl
+        pl.plot(data)
+        pl.plot(seq)
+        pl.show()
 
-new = random_model(n_states, 1)
-dom = ghmm.Float()
-B = [ [float(e[0]), float(e[0])] for e in model.emission ]
-hmm = ghmm.HMMFromMatrices(dom, ghmm.GaussianDistribution(dom),
-                           new.trans_prob, B, new.start_prob)
-print hmm.getTransition(0, 1)
-seq = ghmm.EmissionSequence(dom, data)
-hmm.baumWelch(seq, 50, 0.1)
-print hmm.getTransition(0, 1)
-hmm.baumWelch(seq, 5, 0.1)
-print hmm.getTransition(0, 1)
+
+def teach(hmm):
+        tm = transition_matrix(hmm)
+        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2)
+        for i in range(10):
+                data, seq = random_data(model, 100000)
+                seq = ghmm.EmissionSequence(dom, data)
+                hmm.baumWelch(seq, 50, 0.1)
+
+        tm = transition_matrix(hmm)
+        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2)
+
+# Try teaching with several random models
+print
+print "Learn:"
+for i in range(5):
+        # Setup HMM with a new random model
+        new = random_model(n_states, 1)
+        dom = ghmm.Float()
+        B = [ [float(e[0]), float(e[0])] for e in model.emission ]
+        hmm = ghmm.HMMFromMatrices(dom, ghmm.GaussianDistribution(dom),
+                                   new.trans_prob, B, new.start_prob)
+
+        teach(hmm)
+        print
+
