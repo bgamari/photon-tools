@@ -65,16 +65,10 @@ if False:
         pl.show()
 
 
-def teach(hmm):
-        tm = transition_matrix(hmm)
-        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2)
-        for i in range(10):
-                data, seq = random_data(model, 100000)
-                seq = ghmm.EmissionSequence(dom, data)
-                hmm.baumWelch(seq, 50, 0.1)
-
-        tm = transition_matrix(hmm)
-        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2)
+# Generate a data set to track our convergence with
+dom = ghmm.Float()
+data, seq = random_data(model, 100000)
+test_data = ghmm.EmissionSequence(dom, data)
 
 # Try teaching with several random models
 print
@@ -82,11 +76,23 @@ print "Learn:"
 for i in range(5):
         # Setup HMM with a new random model
         new = random_model(n_states, 1)
-        dom = ghmm.Float()
         B = [ [float(e[0]), float(e[0])] for e in model.emission ]
         hmm = ghmm.HMMFromMatrices(dom, ghmm.GaussianDistribution(dom),
                                    new.trans_prob, B, new.start_prob)
 
-        teach(hmm)
+        tm = transition_matrix(hmm)
+        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
+
+        for i in range(10):
+                data, seq = random_data(model, 100000)
+                seq = ghmm.EmissionSequence(dom, data)
+                hmm.baumWelch(seq, 50, 0.1)
+
+                if False:
+                        tm = transition_matrix(hmm)
+                        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
+
+        tm = transition_matrix(hmm)
+        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
         print
 
