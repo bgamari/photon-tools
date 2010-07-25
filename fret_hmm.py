@@ -7,7 +7,7 @@ from numpy.random import random_sample, randint, poisson
 import ghmm
 from matplotlib import pyplot as pl
 
-Model = namedtuple('Model', 'n_states n_obs start_prob trans_prob emission')
+Model = namedtuple('Model', 'n_states n_obs start_prob trans_prob emissions')
 
 def weighted_choice(choices, probs):
         #assert sum(probs) == 1
@@ -47,7 +47,7 @@ def random_data(model, length, noise=True):
         data = []
         for i in xrange(length):
                 state_seq.append(state)
-                datum = model.emission[state]
+                datum = model.emissions[state]
                 if noise:
                         datum = poisson(datum) 
                 data.append(datum)
@@ -72,14 +72,17 @@ if False:
         pl.plot(data)
         pl.plot(seq)
         pl.show()
+        pl.clf()
 
 # Optional: Plot FPT distribution
 if True:
         data, seq = random_data(model, 100000)
-        fig = pl.figure()
-        fig.suptitle("Original Model")
-        fig.add_subplot(111).hist(data, 100)
-        fig.show()
+        pl.suptitle("Original Model")
+        pl.hist(data, 100)
+        text = "State Emissions:\n" + '\n'.join( ['%d:  %d' % (s, model.emissions[s]) for s in range(n_states)] )
+        pl.figtext(0.7, 0.6, text)
+        pl.savefig('model.png')
+        pl.clf()
 
 # Generate a data set with which to track our convergence
 # This will not be learned from, only tested for likelihood
@@ -93,22 +96,22 @@ print "Learn:"
 for i in range(5):
         # Setup HMM with a new random model
         new = random_model(n_states, 1)
-        B = [ [float(e[0]), float(e[0])] for e in model.emission ]  # mu, sigma
+        B = [ [float(e[0]), float(e[0])] for e in model.emissions ]  # mu, sigma
         hmm = ghmm.HMMFromMatrices(dom, ghmm.GaussianDistribution(dom),
                                    new.trans_prob, B, new.start_prob)
 
         if False:
                 data = hmm.sampleSingle(100000)
-                fig = pl.figure()
-                fig.suptitle("Initial Training Model %d" % i)
-                fig.add_subplot(111).hist(data, 100)
-                fig.show()
+                pl.suptitle("Initial Training Model %d" % i)
+                pl.hist(data, 100)
+                pl.savefig('initial-%d.png' % i)
+                pl.clf()
 
         tm = transition_matrix(hmm)
         print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
 
         # Training iterations
-        for i in range(10):
+        for j in range(10):
                 data, seq = random_data(model, 100000)
                 seq = ghmm.EmissionSequence(dom, data)
                 hmm.baumWelch(seq, 50, 0.1)
@@ -123,9 +126,9 @@ for i in range(5):
 
         if True:
                 data = hmm.sampleSingle(100000)
-                fig = pl.figure()
-                fig.suptitle("Training Model %d" % i)
-                fig.add_subplot(111).hist(data, 100)
-                fig.show()
+                pl.suptitle("Training Model %d" % i)
+                pl.hist(data, 100)
+                pl.savefig('trained-%d.png' % i)
+                pl.clf()
 
 pl.show()
