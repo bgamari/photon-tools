@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 import random
+import numpy
 from numpy import array, sum, mean, std
 from numpy.random import random_sample, randint, poisson
 import ghmm
@@ -25,6 +26,8 @@ def random_model(n_states, n_obs):
 def random_model_from_emissions(emissions):
         """ Create a random model using a given set of emission parameters.
             emissions should be an MxN matrix (M=number of states, N=number of observables) """
+        if len(emissions.shape) == 1:
+                emissions = emissions.reshape((len(emissions), 1))
         n_states, n_obs = emissions.shape
         start_prob = random_sample(n_states)
         start_prob /= sum(start_prob)
@@ -62,7 +65,8 @@ def transition_matrix(hmm):
 
 # Generate a model to pull data from
 n_states = 6
-model = random_model(n_states, 1)
+emissions = array([ 342, 541, 280, 844, 772, 300 ])
+model = random_model_from_emissions(emissions)
 print "Model:"
 print model.trans_prob[0,:]
 
@@ -79,8 +83,9 @@ if True:
         data, seq = random_data(model, 100000)
         pl.suptitle("Original Model")
         pl.hist(data, 100)
-        text = "State Emissions:\n" + '\n'.join( ['%d:  %d' % (s, model.emissions[s]) for s in range(n_states)] )
-        pl.figtext(0.7, 0.6, text)
+        text = "States:\n" + '\n'.join( ['%d:  %d' % i for i in enumerate(model.emissions)] )
+        pl.figtext(0.8, 0.6, text)
+        pl.figtext(0.3, 0.6, numpy.array_str(model.trans_prob, precision=2))
         pl.savefig('model.png')
         pl.clf()
 
@@ -93,22 +98,23 @@ test_data = ghmm.EmissionSequence(dom, data)
 # Try teaching several randomly initialized models
 print
 print "Learn:"
+numpy.set_printoptions(suppress=True)
 for i in range(5):
         # Setup HMM with a new random model
         new = random_model(n_states, 1)
-        B = [ [float(e[0]), float(e[0])] for e in model.emissions ]  # mu, sigma
+        B = [ [float(e[0]), float(e[0])] for e in model.emissions[0:n_states] ]  # mu, sigma
         hmm = ghmm.HMMFromMatrices(dom, ghmm.GaussianDistribution(dom),
                                    new.trans_prob, B, new.start_prob)
-
-        if False:
+        if True:
                 data = hmm.sampleSingle(100000)
-                pl.suptitle("Initial Training Model %d" % i)
+                pl.suptitle("Initial Model %d" % i)
                 pl.hist(data, 100)
+                text = "States:\n" + '\n'.join( ['%d:  %d' % (j, hmm.getEmission(j)[0]) for j in range(n_states)] )
+                pl.figtext(0.8, 0.6, text)
+                pl.figtext(0.3, 0.6, numpy.array_str(transition_matrix(hmm), precision=2))
+                pl.figtext(0.3, 0.5, "Test Likelihood: %e" % hmm.loglikelihoods(test_data)[0])
                 pl.savefig('initial-%d.png' % i)
                 pl.clf()
-
-        tm = transition_matrix(hmm)
-        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
 
         # Training iterations
         for j in range(10):
@@ -120,15 +126,14 @@ for i in range(5):
                         tm = transition_matrix(hmm)
                         print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
 
-        tm = transition_matrix(hmm)
-        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
-        print
-
         if True:
                 data = hmm.sampleSingle(100000)
-                pl.suptitle("Training Model %d" % i)
+                pl.suptitle("Trained Model %d" % i)
                 pl.hist(data, 100)
+                text = "States:\n" + '\n'.join( ['%d:  %d' % (j, hmm.getEmission(j)[0]) for j in range(n_states)] )
+                pl.figtext(0.8, 0.6, text)
+                pl.figtext(0.3, 0.6, numpy.array_str(transition_matrix(hmm), precision=2))
+                pl.figtext(0.3, 0.5, "Test Likelihood: %e" % hmm.loglikelihoods(test_data)[0])
                 pl.savefig('trained-%d.png' % i)
                 pl.clf()
 
-pl.show()
