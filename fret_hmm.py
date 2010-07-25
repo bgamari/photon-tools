@@ -7,6 +7,8 @@ from numpy.random import random_sample, randint, poisson
 import ghmm
 from matplotlib import pyplot as pl
 
+Model = namedtuple('Model', 'n_states n_obs start_prob trans_prob emission')
+
 def weighted_choice(choices, probs):
         #assert sum(probs) == 1
         r = random.random()
@@ -15,12 +17,17 @@ def weighted_choice(choices, probs):
                 r -= p
         raise RuntimeError()
 
-Model = namedtuple('Model', 'n_states n_obs start_prob trans_prob emission')
 def random_model(n_states, n_obs):
+        """ Create a ranodm model with the given number of states and observables """
+        emissions = randint(0, 1500, (n_states, n_obs))
+        return random_model_from_emissions(emissions)
+
+def random_model_from_emissions(emissions):
+        """ Create a random model using a given set of emission parameters.
+            emissions should be an MxN matrix (M=number of states, N=number of observables) """
+        n_states, n_obs = emissions.shape
         start_prob = random_sample(n_states)
         start_prob /= sum(start_prob)
-
-        emission = randint(0, 1500, (n_states, n_obs))
 
         transition_prob = []
         for i in xrange(n_states):
@@ -31,9 +38,10 @@ def random_model(n_states, n_obs):
                 transition_prob.append(t)
 
         transition_prob = array(transition_prob)
-        return Model(n_states, n_obs, start_prob, transition_prob, emission)
+        return Model(n_states, n_obs, start_prob, transition_prob, emissions)
 
 def random_data(model, length, noise=True):
+        """ Generate emissions data from the given model """
         state_seq = []
         state = weighted_choice(xrange(model.n_states), model.start_prob)
         data = []
@@ -48,6 +56,7 @@ def random_data(model, length, noise=True):
         return data, state_seq
 
 def transition_matrix(hmm):
+        """ Get the transition matrix from a ghmm.HMM as a numpy array """
         get_row = lambda row : [ hmm.getTransition(row,col) for col in range(hmm.N) ]
         return array([ get_row(row) for row in range(hmm.N) ])
 
