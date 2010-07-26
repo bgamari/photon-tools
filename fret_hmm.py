@@ -44,19 +44,35 @@ def random_model_from_emissions(emissions):
         return Model(n_states, n_obs, start_prob, transition_prob, emissions)
 
 def random_data(model, length, noise=True):
-        """ Generate emissions data from the given model """
+        """ Generate emissions data from the given model.
+            Returns:
+                    data: Emission stream
+                    state_seq: Sequence of states
+                    dwells: A list of lists of dwell times
+        """
         state_seq = []
         state = weighted_choice(xrange(model.n_states), model.start_prob)
         data = []
+        dwells = [ [] for s in range(model.n_states) ]
+        dwell = 0
         for i in xrange(length):
                 state_seq.append(state)
                 datum = model.emissions[state]
                 if noise:
                         datum = poisson(datum) 
                 data.append(datum)
+
+                old_state = state
                 state = weighted_choice(xrange(model.n_states), model.trans_prob[state])
 
-        return data, state_seq
+                if state != old_state:
+                        dwells[old_state].append(dwell)
+                        dwell = 0
+                
+                dwell += 1
+
+
+        return data, state_seq, dwells
 
 def transition_matrix(hmm):
         """ Get the transition matrix from a ghmm.HMM as a numpy array """
@@ -70,30 +86,36 @@ model = random_model_from_emissions(emissions)
 print "Model:"
 print model.trans_prob[0,:]
 
-# Optional: Plot a sample of data
-if False:
-        data, seq = random_data(model, 100000)
+# Generate a data set with which to track our convergence
+# This will not be learned from, only tested for likelihood
+data, seq, dwells = random_data(model, 100000)
+dom = ghmm.Float()
+test_data = ghmm.EmissionSequence(dom, data)
+
+# Plot a sample of data
+if True:
         pl.plot(data)
         pl.plot(seq)
-        pl.show()
+        pl.savefig('model-photons.png')
         pl.clf()
 
-# Optional: Plot FPT distribution
+# Plot bin count distribution
 if True:
-        data, seq = random_data(model, 100000)
-        pl.suptitle("Original Model")
+        pl.suptitle("Original Model (Bin Count)")
         pl.hist(data, 100)
         text = "States:\n" + '\n'.join( ['%d:  %d' % i for i in enumerate(model.emissions)] )
         pl.figtext(0.8, 0.6, text)
         pl.figtext(0.3, 0.6, numpy.array_str(model.trans_prob, precision=2))
-        pl.savefig('model.png')
+        pl.savefig('model-bins.png')
         pl.clf()
 
-# Generate a data set with which to track our convergence
-# This will not be learned from, only tested for likelihood
-dom = ghmm.Float()
-data, seq = random_data(model, 100000)
-test_data = ghmm.EmissionSequence(dom, data)
+if True:
+        for i in range(n_states):
+                pl.suptitle("Original Model (FPT)")
+                pl.hist(dwells[i], 100)
+                pl.savefig('model-dwells-state%d.png' % i)
+                pl.clf()
+
 
 # Try teaching several randomly initialized models
 print
@@ -107,6 +129,7 @@ for i in range(5):
                                    new.trans_prob, B, new.start_prob)
         if True:
                 data = hmm.sampleSingle(100000)
+                print data.getStateLabel()
                 pl.suptitle("Initial Model %d" % i)
                 pl.hist(data, 100)
                 text = "States:\n" + '\n'.join( ['%d:  %d' % (j, hmm.getEmission(j)[0]) for j in range(n_states)] )
@@ -118,13 +141,9 @@ for i in range(5):
 
         # Training iterations
         for j in range(10):
-                data, seq = random_data(model, 100000)
+                data, seq, dwells = random_data(model, 100000)
                 seq = ghmm.EmissionSequence(dom, data)
                 hmm.baumWelch(seq, 50, 0.1)
-
-                if False:
-                        tm = transition_matrix(hmm)
-                        print tm[0,:], '%e' % mean((tm - model.trans_prob)**2), '%e' % hmm.loglikelihoods(test_data)[0]
 
         if True:
                 data = hmm.sampleSingle(100000)
@@ -134,6 +153,6 @@ for i in range(5):
                 pl.figtext(0.8, 0.6, text)
                 pl.figtext(0.3, 0.6, numpy.array_str(transition_matrix(hmm), precision=2))
                 pl.figtext(0.3, 0.5, "Test Likelihood: %e" % hmm.loglikelihoods(test_data)[0])
-                pl.savefig('trained-%d.png' % i)
+                pl.savefig('trained%d-bins.png' % i)
                 pl.clf()
 
