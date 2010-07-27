@@ -89,7 +89,8 @@ print model.trans_prob[0,:]
 # Generate a data set with which to track our convergence
 # This will not be learned from, only tested for likelihood
 data, seq, dwells = random_data(model, 100000)
-dom = ghmm.Float()
+dom = ghmm.IntegerRange(0,10000)
+distr = ghmm.DiscreteDistribution(dom)
 test_data = ghmm.EmissionSequence(dom, data)
 
 # Plot a sample of data
@@ -125,8 +126,8 @@ for i in range(5):
         # Setup HMM with a new random model
         new = random_model(n_states, 1)
         B = [ [float(e[0]), float(e[0])] for e in model.emissions[0:n_states] ]  # mu, sigma
-        hmm = ghmm.HMMFromMatrices(dom, ghmm.GaussianDistribution(dom),
-                                   new.trans_prob, B, new.start_prob)
+        hmm = ghmm.HMMFromMatrices(dom, distr, new.trans_prob, B, new.start_prob)
+
         if True:
                 data = hmm.sampleSingle(100000)
                 print data.getStateLabel()
