@@ -17,6 +17,7 @@ from numpy import mean, array
 from numpy.lib.recfunctions import stack_arrays 
 
 logging.basicConfig(level=logging.DEBUG)
+plot_iterations = True
 plot_len = 4000
 
 dtype = np.dtype({'names': ['A','D'], 'formats': [np.uint32,np.uint32]})
@@ -44,9 +45,10 @@ class fret_trajectory:
                     and background regions """
                 bgA = np.mean(bg_bins.A)
                 bgD = np.mean(bg_bins.D)
-                px = fret_bins.A - bgA
-                pd = fret_bins.D - bgD + px
+                px = ct_bins.A - bgA
+                pd = ct_bins.D - bgD + px
                 ct_param = np.mean(px / pd)
+                logging.debug("Cross-talk parameter=%f" % ct_param)
                 return klass(fret_bins, bgA, bgD, ct_param)
 
         def prior_NB_prob(self, Na):
@@ -88,7 +90,7 @@ class fret_trajectory:
                         B = self.post_B_prob(PB, PNB, self.fret_bins.A)
                         NB = self.post_NB_prob(PB, PNB, self.fret_bins.A)
                         bayes = B / NB
-                        if True:
+                        if plot_iterations:
                                 from matplotlib import pyplot as pl
                                 from mpl_toolkits.axes_grid1 import make_axes_locatable
                                 pl.clf()
@@ -105,7 +107,7 @@ class fret_trajectory:
                                 x = range(len(bayes[:plot_len]))
                                 cax.fill_between(x, bayes[:plot_len], color='b')
                                 cax.axhline(bayes_thresh, color='r')
-                                #cax.set_ylim(0, 8*bayes_thresh)
+                                cax.set_ylim(0, 8*bayes_thresh)
                                 pl.savefig('iter%d.png' % i)
 
                         blinks = bayes > bayes_thresh
@@ -206,7 +208,7 @@ def test_data(transitions=1e3, bg_flux=10, flux=(220, 10), fret_eff1=0.40, fret_
         return fret_bins, ct_bins, bg_bins
 
 if __name__ == '__main__':
-        bayes_thresh = 1e2
+        bayes_thresh = 10
 
         from matplotlib import pyplot as pl
         fret,ct,bg = test_data(transitions=1e3)
