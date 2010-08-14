@@ -6,7 +6,6 @@ Ben Gamari, 2010
 
 This follows the work of Taylor, et al.
 (Biophysical Journal, Vol 98, January 2010, pp. 164-173)
-
 """
 
 import logging
@@ -72,6 +71,7 @@ class fret_trajectory:
                 return self.prior_NB_prob(Na) * PNB / y
 
         def find_D_blinks(self):
+                """ Simple heuristic to identify donor blinks """
                 Dmax = max(self.fret_bins.D)
                 Dmin = min(self.fret_bins.D)
                 Dcenter = (Dmax - Dmin)/2 + Dmin
@@ -82,6 +82,7 @@ class fret_trajectory:
                 return blinks
 
         def find_A_blinks(self, bayes_thresh=2.0):
+                """ Identify acceptor channel blinking with Bayesian inference """
                 old_PB = None
                 PB = 0.001
                 PNB = 1 - PB
@@ -121,8 +122,8 @@ class fret_trajectory:
 
         def find_blinks(self, bayes_thresh=2.0):
                 blinksA,_,_ = self.find_A_blinks(bayes_thresh)
-                blinksD = self.find_D_blinks()
-                return blinksA | blinksD
+                #blinksD = self.find_D_blinks()
+                return blinksA #| blinksD
 
         def remove_blinks(self, bayes_thresh=2.0):
                 return self.fret_bins[~self.find_blinks()]
@@ -131,8 +132,38 @@ class fret_trajectory:
 ###
 ### Test Code
 ###
+
+def kinetic_mc(states, steps):
+        """ Kinetic Monte Carlo simulation.
+        
+            States are specified as a dictionary in the form of,
+              states = { 'state_name': (rate, event_func), ... }
+         
+            For every step, a state is chosen and the corresponding event_func
+            is called. The state trajectory is returned as a list of state names.
+        """
+        state_traj = []
+        total_rate = sum(rate for rate,f in states.values())
+        for i in range(steps):
+                s = random.random()*total_rate
+                for state, (rate,f) in states.items():
+                        if rate > s:
+                                state_traj.append(state)
+                                dt = int(round(-log(random.random()) / total_rate))
+                                f(dt)
+                                break
+                        else:
+                                s -= rate
+
+        return state_traj
+
 def test_data(transitions=1e3, bg_flux=10, flux=(220, 10), fret_eff1=0.40, fret_eff2=0.7, ct_prob=0.005):
-        """ Produce fake FRET data. """
+        """ Produce fake FRET data.
+        
+            We generate data for each of the three regions of the experiment
+            (FRET, crosstalk, background). The FRET region data is generated
+            with two FRET states of the given efficiencies.
+        """
         fret_length = int(round(transitions*0.75))
         ct_length = int(round(transitions*0.25))
         bg_length = 10000
@@ -148,24 +179,6 @@ def test_data(transitions=1e3, bg_flux=10, flux=(220, 10), fret_eff1=0.40, fret_
                 np.place(bins.A, bins.A<0, 0)
                 np.place(bins.D, bins.D<0, 0)
 
-        def kinetic_mc(states, steps):
-                state_traj = []
-                total_rate = sum(rate for rate,f in states.values())
-                for i in range(steps):
-                        s = random.random()*total_rate
-                        for state, (rate,f) in states.items():
-                                if rate > s:
-                                        state_traj.append(state)
-                                        dt = int(round(-log(random.random()) / total_rate))
-                                        #print state, dt
-                                        f(dt)
-                                        break
-                                else:
-                                        s -= rate
-
-
-                return state_traj
-
 
         bins = []
         add_bins = lambda a,d: bins.append(np.rec.fromarrays((a,d), names='A,D'))
@@ -177,7 +190,7 @@ def test_data(transitions=1e3, bg_flux=10, flux=(220, 10), fret_eff1=0.40, fret_
                                                     np.random.normal(flux[0], flux[1], l).round())),
                 'Dblink': (2e-3, lambda l: add_bins(np.zeros(l),
                                                     np.zeros(l))),
-                'fret1' : (8e-3, lambda l: add_bins(np.random.normal((1-fret_eff1)*flux[0], flux[1], l).round(),
+                'fret1' : (6e-3, lambda l: add_bins(np.random.normal((1-fret_eff1)*flux[0], flux[1], l).round(),
                                                     np.random.normal(fret_eff1*flux[0], flux[1], l).round())),
                 'fret2' : (8e-3, lambda l: add_bins(np.random.normal((1-fret_eff2)*flux[0], flux[1], l).round(),
                                                     np.random.normal(fret_eff2*flux[0], flux[1], l).round())),
@@ -209,10 +222,13 @@ def test_data(transitions=1e3, bg_flux=10, flux=(220, 10), fret_eff1=0.40, fret_
 
 if __name__ == '__main__':
         bayes_thresh = 10
+        transitions = 1e4
 
+        logging.info("Generating test data")
         from matplotlib import pyplot as pl
-        fret,ct,bg = test_data(transitions=1e3)
+        fret,ct,bg = test_data(transitions=transitions)
         bins = stack_arrays((fret,ct,bg))
+        logging.info("Generated %d time steps" % len(bins))
 
         pl.clf()
         pl.plot(fret.D[:plot_len], label='Donor')
@@ -220,19 +236,16 @@ if __name__ == '__main__':
         pl.legend()
         pl.savefig('initial.png')
 
+        logging.info("Finding acceptor blinks")
         traj = fret_trajectory.from_bins(fret, ct, bg)
-        blinksA,_,_ = traj.find_A_blinks(bayes_thresh)
-        blinksD = traj.find_D_blinks()
-        deblinked = fret[~blinksA & ~blinksD]
-        #deblinked = fret[~blinksA]
+        blinks,_,_ = traj.find_A_blinks(bayes_thresh)
+        deblinked = fret[~blinks]
 
         pl.clf()
         pl.plot(fret.D[:plot_len], label='Donor')
         pl.plot(fret.A[:plot_len], label='Acceptor')
         ymin, ymax = pl.ylim()
-        b = np.nonzero(blinksD)[0]
-        pl.vlines(b[b<plot_len], ymin, ymax, alpha=0.1, color='y', label='Donor blinks')
-        b = np.nonzero(blinksA)[0]
+        b = np.nonzero(blinks)[0]
         pl.vlines(b[b<plot_len], ymin, ymax, alpha=0.1, color='r', label='Acceptor blinks')
         pl.legend()
         pl.savefig('fret.png')
