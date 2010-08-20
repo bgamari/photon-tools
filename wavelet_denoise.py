@@ -20,8 +20,7 @@ def hard_threshold(bins, cutoff, level=1):
         np.place(coeffs[1:], abs(coeffs[1:]) > cutoff, 0)
         return pywt.waverec([a,d], 'haar')
 
-def soft_threshold(bins, tau, level=1):
-        plot=True
+def soft_threshold(bins, tau, level=1, plot=False):
         coeffs = pywt.wavedec(bins, 'haar', level=level)
         old_coeffs = copy.deepcopy(coeffs) if plot else None
         coeffs[1:] = [sign(a) * np.maximum(0, abs(a)-tau) for a in coeffs[1:] ]
