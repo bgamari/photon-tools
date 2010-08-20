@@ -51,10 +51,10 @@ def soft_threshold(bins, tau, level=1, plot=False):
         return filtered
 
 
-def denoise(bins, level=1):
+def denoise(bins, level=1, plot=False):
         sigma = np.mean(bins)**0.5 # Poisson shot noise
         tau = sigma * (2*log(len(bins)))**0.5
-        return soft_threshold(bins, tau, level)
+        return soft_threshold(bins, tau, level, plot)
 
 def test_data(transitions=100):
         states = [ 163, 220, 230, 100, 40, 45 ]
