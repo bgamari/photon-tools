@@ -46,7 +46,7 @@ def soft_threshold(bins, tau, level=1, plot=False):
                         ax.axhline(-tau, color='g'); ax.axhline(+tau, color='g')
                         ax.set_title("Level %d detail coefficients" % l)
 
-                fig.savefig('wavelet-analysis.png')
+                fig.savefig('wavelet-analysis.pdf')
 
         return filtered
 
@@ -69,7 +69,7 @@ def test_data(transitions=100):
         return np.hstack(clean), np.hstack(noisy)
 
 if __name__ == "__main__":
-        level = 4
+        level = 3
 
         noisy = np.random.normal(163, 17, 500)
         denoised = denoise(noisy, level)
