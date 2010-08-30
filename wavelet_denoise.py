@@ -13,14 +13,14 @@ from numpy import abs, mean, std, sign
 import pywt
 from math import log
 import copy
+import random
 
 def hard_threshold(bins, cutoff, level=1):
         coeffs = pywt.wavedec(bins, 'haar', level=level)
         np.place(coeffs[1:], abs(coeffs[1:]) > cutoff, 0)
         return pywt.waverec([a,d], 'haar')
 
-def soft_threshold(bins, tau, level=1):
-        plot=True
+def soft_threshold(bins, tau, level=1, plot=False):
         coeffs = pywt.wavedec(bins, 'haar', level=level)
         old_coeffs = copy.deepcopy(coeffs) if plot else None
         coeffs[1:] = [sign(a) * np.maximum(0, abs(a)-tau) for a in coeffs[1:] ]
@@ -46,29 +46,45 @@ def soft_threshold(bins, tau, level=1):
                         ax.axhline(-tau, color='g'); ax.axhline(+tau, color='g')
                         ax.set_title("Level %d detail coefficients" % l)
 
-                pl.savefig('wavelet-analysis.png')
+                fig.savefig('wavelet-analysis.pdf')
 
         return filtered
 
 
-def denoise(bins, level=1):
+def denoise(bins, level=1, plot=False):
         sigma = np.mean(bins)**0.5 # Poisson shot noise
         tau = sigma * (2*log(len(bins)))**0.5
-        return soft_threshold(bins, tau, level)
+        return soft_threshold(bins, tau, level, plot)
+
+def test_data(transitions=100):
+        states = [ 163, 220, 230, 100, 40, 45 ]
+
+        clean, noisy = [], []
+        for i in range(transitions):
+                length = random.randint(10, 100)
+                state = random.choice(states)
+                clean.append([state] * length)
+                noisy.append(np.random.normal(state, 17, length))
+                
+        return np.hstack(clean), np.hstack(noisy)
 
 if __name__ == "__main__":
-        level = 4
-        bins = np.random.normal(163, 17, 500)
-        denoised = denoise(bins, level)
-        err = (bins - denoised)**2
+        level = 3
 
-        print 'raw', mean(bins), std(bins)
+        noisy = np.random.normal(163, 17, 500)
+        denoised = denoise(noisy, level)
+        print 'raw', mean(noisy), std(noisy)
         print 'denoised', mean(denoised), std(denoised)
+
+        clean, noisy = test_data()
+        denoised = denoise(noisy, level)
+        #err = (noisy - denoised)**2
 
         from matplotlib import pyplot as pl
         pl.clf()
-        pl.plot(bins, label='raw')
+        pl.plot(noisy, label='noisy', alpha=0.3)
         pl.plot(denoised, label='denoised')
+        pl.plot(clean, label='clean')
         pl.legend()
         pl.show()
 
