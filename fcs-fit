@@ -26,10 +26,12 @@ from collections import namedtuple
 import scipy, numpy
 from scipy import sqrt
 from scipy.optimize import leastsq
-from numpy import min, max, linspace, mean
+from numpy import min, max, linspace, mean, exp, power
 
 DataSet = namedtuple('DataSet', 'name times counts var')
-FitParams = namedtuple('FitParams', 'taud a ns')
+FitParams = namedtuple('FitParams', 'chisquared taud a ns')
+FitParamsTwoComponent = namedtuple('FitParamsTwoComponent', 'chisquared taud a taur f ns')
+FitParamsThree = namedtuple('FitParamsThree', 'chisquared tau1 a tau2 tr taux f1 ns')
 
 def load_favia(file):
         data = []
@@ -41,6 +43,7 @@ def load_favia(file):
         counts = data[:,3]
         var = data[:,4]
         return times, counts, var
+
 
 def model(p, x):
 	tau_d = p[0]
@@ -73,9 +76,121 @@ def fit(data, taud0=None, a0=None, n0=None):
         params, cov_x, infodict, mesg, ier = leastsq(fitfunc, p0, args=(data), full_output=True)
         taud, a = params[:2]
         ns = params[2:]
-        return FitParams(taud, a, ns)
+        chisquared = sum(power(fitfunc(params, data), 2))
+        return FitParams(chisquared, taud, a, ns)
 
-def plot_data(data, fit_params=None, fig=None):
+
+
+def modelTwoComponent(p, x):
+	tau_d = p[0]
+	a = p[1]
+	tau_r = p[2]
+	F = p[3]
+	n = p[4]
+	
+
+	tau_taud = x / tau_d
+
+	tau_taur = x / tau_r
+
+
+	b = 1.0 / (1.0 + tau_taud)
+	c = 1.0 / (1.0 + tau_taud * a**-2)
+
+	d = (1.0 - F + F * exp(-tau_taur)) / (1 - F)
+
+	return (d / n) * b * sqrt(c)
+
+def fitfuncTwoComponent(p, data):
+	res = []
+	for d, n in zip(data, p[4:]):
+		p1 = list(p[0:4]) + [n]
+		err = d.counts - modelTwoComponent(p1, d.times)
+		res.extend(err / d.var)
+	return numpy.array(res)
+
+def fitTwoComponent(data, taud0=None, a0=None, taur0=None, F0=None, n0=None):
+        est_n = lambda d: 1/mean(d.counts[:5])
+        # Parameters: tau_d, a, N1, N2, ...
+        if taud0 is None: taud0 = 200e-6
+        if a0 is None: a0 = 10
+        if n0 is None: n0 = map(est_n, data)
+	if taur0 is None: taur0 = 10e-8
+	if F0 is None: F0 = 0.5
+ 
+        if len(n0) != len(data):
+                raise ValueError("length of n0 must equal length of data")
+        p0 = [ taud0, a0, taur0, F0 ] + n0
+	
+        params, cov_x, infodict, mesg, ier = leastsq(fitfuncTwoComponent, p0, args=(data), full_output=True)
+        taud, a, taur, F = params[:4]
+        ns = params[4:]
+        chisquared = sum(power(fitfuncTwoComponent(params, data), 2))
+        return FitParamsTwoComponent(chisquared, taud, a, taur, F, ns)
+
+
+
+def modelThree(p, x):
+	tau_1 = p[0]
+	a = p[1]
+	tau_2 = p[2]
+	t_r = p[3]
+	tau_x = p[4]
+	f_1 = p[5]
+	n = p[6]
+
+	tau_tau1 = x / tau_1
+
+	tau_tau2 = x / tau_2
+
+	tau_taux = x / tau_x
+
+	g_t = (1.0 + (t_r * exp(-tau_taux)) / (1.0 - t_r))
+
+	b_1 = 1.0 / (1.0 + tau_tau1)
+	c_1 = 1.0 / (1.0 + tau_taud * a**-2)
+
+	d_1 = (f_1 * b_1 * sqrt(c_1))
+
+	b_2 = 1.0 / (1.0 + tau_tau2)
+	c_2 = 1.0 / (1.0 + tau_tau2 * a**-2)
+
+	d_2 = (1.0 - f_1) * b_2 * sqrt(c_2)
+
+	return (g_t / n) * (d_1 + d_2)
+
+def fitfuncThree(p, data):
+	res = []
+	for d, n in zip(data, p[6:]):
+		p1 = list(p[0:6]) + [n]
+		err = d.counts - modelThree(p1, d.times)
+		res.extend(err / d.var)
+	return numpy.array(res)
+
+def fitThree(data, tau10=None, a0=None, tau20=None, tr0=None, taux0=None, f10=None, n0=None):
+        est_n = lambda d: 1/mean(d.counts[:5])
+        # Parameters: tau_d, a, N1, N2, ...
+        if tau10 is None: taud0 = 200e-6
+        if a0 is None: a0 = 10
+        if tau20 is None: tau20 = 200e-6
+        if tr0 is None: tr0 = 0.5
+	if taux0 is None: taux0 = 10e-8
+	if f10 is None: f10 = 0.5
+	if n0 is None: n0 = map(est_n, data)
+	
+        if len(n0) != len(data):
+                raise ValueError("length of n0 must equal length of data")
+        p0 = [ tau10, a0, tau20, tr0, taux0, f10] + n0
+	
+        params, cov_x, infodict, mesg, ier = leastsq(fitfuncThree, p0, args=(data), full_output=True)
+        tau1, a, tau2, tr, taux, f1 = params[:6]
+        ns = params[6:]
+        chisquared = sum(power(fitfuncThree(params, data), 2))
+        return FitParamsThree(chisquared, tau1, a, tau2, tr, taux, f1, ns)
+
+
+
+def plot_data(fittingequation, data, fit_params=None, fig=None):
         from matplotlib import pyplot as pl
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -89,11 +204,32 @@ def plot_data(data, fit_params=None, fig=None):
                 ax.semilogx(d.times, d.counts, label=d.name, linestyle='None', marker='+')
                 if fit_params is None: continue
 
-                p1 = (fit_params.taud, fit_params.a, n)
-                x = linspace(min(times), max(times), 1e6)
-                ax.semilogx(x, model(p1, x), label='%s (fit, N=%f)' % (d.name, n))
+		if(fittingequation == 'fcs'):
 
-                resid = model(p1, d.times) - d.counts
+			p1 = (fit_params.taud, fit_params.a, n)
+			x = linspace(min(times), max(times), 1e6)
+		
+			ax.semilogx(x, model(p1, x), label='%s (fit, N=%f)' % (d.name, n))
+
+			resid = model(p1, d.times) - d.counts
+		elif(fittingequation == 'fcsTwoComponent'):
+			
+			p1 = (fit_params.taud, fit_params.a, fit_params.taur, fit_params.f, n)
+			x = linspace(min(times), max(times), 1e6)
+			
+			ax.semilogx(x, modelTwoComponent(p1, x), label='%s (fit, N=%f)' % (d.name, n))
+
+			resid = modelTwoComponent(p1, d.times) - d.counts
+		elif(fittingequation == 'fcsThree'):
+			
+			p1 = (fit_params.taud, fit_params.a, fit_params.taur, fit_params.f, n)
+			x = linspace(min(times), max(times), 1e6)
+			
+			ax.semilogx(x, modelThree(p1, x), label='%s (fit, N=%f)' % (d.name, n))
+
+			resid = modelThree(p1, d.times) - d.counts
+
+
                 ax_resid = divider.append_axes("top", 1.4, pad=0.0, sharex=ax)
                 ax_resid.axhline(0, color='black')
                 ax_resid.errorbar(times, resid, yerr=var, linestyle='None', marker='x')
@@ -101,10 +237,34 @@ def plot_data(data, fit_params=None, fig=None):
                 ax_resid.set_ylabel(r'Fit Residuals')
 
         if fit_params is not None:
-                text = [
-                        r'$\tau_d = \mathrm{%1.3e}$' % fit_params.taud,
-                        r'$a = \mathrm{%1.3e}$' % fit_params.a,
-                ]
+		if(fittingequation == 'fcs'):
+			text = [
+				r'$\tau_d = \mathrm{%1.3e}$' % fit_params.taud,
+				r'$a = \mathrm{%1.3e}$' % fit_params.a,
+				r'$X^2 = \mathrm{%1.3e}$' % fit_params.chisquared
+			
+				]
+		elif(fittingequation == 'fcsTwoComponent'):
+			text = [
+				r'$\tau_d = \mathrm{%1.3e}$' % fit_params.taud,
+				r'$a = \mathrm{%1.3e}$' % fit_params.a,
+				r'$\tau_r = \mathrm{%1.3e}$' % fit_params.taur,
+				r'$f = \mathrm{%1.3e}$' % fit_params.f,
+				r'$X^2 = \mathrm{%1.3e}$' % fit_params.chisquared
+			
+				]
+		elif(fittingequation == 'fcsThree'):
+			text = [
+				r'$\tau_1 = \mathrm{%1.3e}$' % fit_params.tau1,
+				r'$a = \mathrm{%1.3e}$' % fit_params.a,
+				r'$\tau_2 = \mathrm{%1.3e}$' % fit_params.tau2,
+				r'$tr = \mathrm{%1.3e}$' % fit_params.tr,
+				r'$\tau_x = \mathrm{%1.3e}$' % fit_params.taux,
+				r'$f1 = \mathrm{%1.3e}$' % fit_params.f1,
+				r'$X^2 = \mathrm{%1.3e}$' % fit_params.chisquared
+			
+				]
+                
                 fig.text(0.70, 0.40, "\n".join(text))
 
         ax.set_xlabel(r'$\tau$')
@@ -112,6 +272,7 @@ def plot_data(data, fit_params=None, fig=None):
         ax.legend()
         ax.autoscale_view(tight=True, scalex=True)
         return fig
+
 
 if __name__ == '__main__':
         from optparse import OptionParser
@@ -124,7 +285,21 @@ if __name__ == '__main__':
                           help='Produce plot of data and fits')
         parser.add_option('-o', '--output', dest='output', metavar='FILE',
                           help='Save plot to FILE')
+	parser.add_option('-f', '--fit', dest='fit', metavar='FIT',
+			  help='Fit using a different equation (fcs, fcsTwoComponent)')
         opts, args = parser.parse_args()
+
+	fittingequation = 'fcs'
+
+	if opts.fit:
+		if(opts.fit == 'fcs'):
+			fittingequation = 'fcs'
+		elif(opts.fit == 'fcsTwoComponent'):
+			fittingequation = 'fcsTwoComponent'
+		elif(opts.fit == 'fcsThree'):
+			fittingequation = 'fcsThree'
+		else:
+			fittingequation = 'fcs'
 
         data = []
         for f in args:
@@ -143,20 +318,42 @@ if __name__ == '__main__':
         params = None
         if not opts.no_fit:
                 # Run fit and print fit parameters
-                params = fit(data)
-                print 'tau_d', params.taud
-                print 'a', params.a
-                for i,n in enumerate(params.ns):
-                        print 'n%d' % i, n
+		if(fittingequation == 'fcs'):
+			params = fit(data)
+			print 'tau_d', params.taud
+			print 'a', params.a
+			print 'X^2', params.chisquared
+			for i,n in enumerate(params.ns):
+				print 'n%d' % i, n
+		elif(fittingequation == 'fcsTwoComponent'):
+			params = fitTwoComponent(data)
+			print 'tau_d', params.taud
+			print 'a', params.a
+			print 'tau_r', params.taur
+			print 'f', params.f
+			print 'X^2', params.chisquared
+			for i,n in enumerate(params.ns):
+				print 'n%d' % i, n
+		elif(fittingequation == 'fcsThree'):
+			params = fitThree(data)
+			print 'tau_1', params.tau1
+			print 'a', params.a
+			print 'tau_2', params.tau2
+			print 'tr', params.tr
+			print 'tau_x', params.taux
+			print 'f1', params.f1
+			print 'X^2', params.chisquared
+			for i,n in enumerate(params.ns):
+				print 'n%d' % i, n
 
         # Plot
         if opts.plot:
                 if opts.output:
-                        fig = plot_data(data, params)
+                        fig = plot_data(fittingequation, data, params)
                         fig.savefig(opts.output)
                 else:
                         import matplotlib.pyplot as pl
-                        plot_data(data, params)
+                        plot_data(fittingequation, data, params)
                         pl.show()
 
 
