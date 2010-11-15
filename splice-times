@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 
-if len(sys.argv) < 4 or '-h' in sys.argv or '--help' in sys.argv:
+if len(sys.argv) < 3 or '-h' in sys.argv or '--help' in sys.argv:
         print "Usage: %s [input-file] ..." % sys.argv[0]
         print 
         print "Utility to splice a set of timestamp files."
