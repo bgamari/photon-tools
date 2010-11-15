@@ -9,15 +9,24 @@ if len(sys.argv) < 3 or '-h' in sys.argv or '--help' in sys.argv:
         print "Utility to splice a set of timestamp files."
         sys.exit(0)
 
-jiffy = 4e-12
-files = []
-offset = 0
-for f in sys.argv:
-        d = np.fromfile(f, np.uint64)
-        d += offset
-        offset = d[-1] - offset
-        files.append(d)
+# First find length of all data
+size = 0
+for f in sys.argv[1:]:
+	size += len(np.fromfile(f, np.uint64))
+size -= len(sys.argv[1:])
 
-times = np.hstack(files)
-times.tofile(sys.argv[1] + '.new')
+offset = 0
+out = np.memmap('spliced', dtype=np.uint64, mode='w+', shape=size)
+i = 0
+
+# We drop the first photon in every file with an offset of the arrival time of
+# the last photon in the last file
+for f in sys.argv[1:]:
+        d = np.fromfile(f, np.uint64)
+	scaled = d[1:] - d[0] + offset
+	out[i:i+len(d)-1] = scaled
+        offset = scaled[-1]
+	print f, out[i+len(d)-2],
+	i += len(d) - 1
+	print i
 
