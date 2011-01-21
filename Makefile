@@ -9,6 +9,9 @@ dump_pt2 : pt2.o
 extract_pt2_timestamps : pt2.o
 bin_photons : LIBS=-lboost_program_options
 
+test : ${PROGS}
+	./test_bin_photons.py
+
 clean : 
 	rm -f ${PROGS} *.o
 
