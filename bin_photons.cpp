@@ -1,4 +1,4 @@
-/* timetag-tools - Tools for UMass FPGA timetagger
+/* photon-tools - Tools for data analysis of photon counting data
  *
  * Copyright © 2010 Ben Gamari
  *
@@ -38,12 +38,11 @@
  *   A binary photon stream
  *
  * Output:
- *   A binary stream of bin_records
+ *   A binary stream of bins. These are represented as a 64-bit integer bin
+ *   start time followed by a 16-bit count
  *
  * Notes:
- *   We handle wrap-around here by simply keeping all times as 64-bit and
- *   assume that we wrap-around at most once.  With 1 nanosecond clock units,
- *   this gives us 500 years of acquisition time.
+ *   Note that we drop the last bin if it is not complete.   
  *
  */
 
