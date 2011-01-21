@@ -1,31 +1,69 @@
-fcs-tools - Tools for analysis of single-photon measurement data
+photon-tools - Tools for analysis of single-photon measurement data
 
-These are a set of tools for manipulating and analysing data from single-photon
-experiments. 
+
+photon-tools are a set of tools for manipulating and analysing data from
+single-photon, particularly FRET and FCS, experiments.
 
 
 Work-flow:
 ==========
-The following assumes that the data is being collected with the UMass FPGA
-timetagger.
+These tools are meant to examine input data of 64-bit unsigned integer
+timestamps.
+
+For example, a simple FCS analysis of data from the Goldner group's FPGA
+timetagger might consist of,
 
 1) Collect data
-2) Bin the data using bin_photons
-3) Convert binned data into stripped format with strip_bins
+2) Extract timestamps from data stream with extract_timestamps
+3) Bin data
 4) Generate autocorrelation function using autocorr
 5) Fit curves to data using fcs-fit
+
+
+Tools:
+======
+
+  == General ==
+
+  dump_pt2: Output Picoharp PT2 records in human-readable format
+  extract_pt2_timestamps: Export timestamps from Picoharp PT2 file
+  plot-photons: Plot binned photon time series
+  rm-times: Crop out a region of timestamps
+  splice-times: Splice together a set of timestamp files
+
+  == FCS ==
+
+  fcs-fit: A simple-minded tool for fitting models to FCS correlation functions
+
+  == FRET ==
+
+  fret_hmm: Hidden Markov Model analysis of FRET trajectory
+  wavelet_denoise: Wavelet denoising
+
 
 Data formats:
 =============
 
-Stripped bin format:
-autocorr expects data in "stripped bin" format, consisting of 12 byte records
-in the following format,
-	bytes 7:0	Bin start time
+  == Picoharp PT2 ==
+
+This package includes utilities for exporting timestamps from Picoharp's PT2
+file format. See picoharp documentation for details on this format.
+
+  == Timestamps ==
+
+Timestamp data is represented by 64-bit integer timestamps, one file per
+channel.
+
+  == Binned data ==
+
+Photon bin data consists of 12 byte records in the following format,
+	bytes 7:0	Integer start time of bin
 	bytes 8:11	Number of photons in bin
 
-Autocorrelation function format:
-autocorr produces its autocorrelation function in the following format,
-	bytes 7:0	Lag
-	bytes 8:15	Double-precision value
+  == Correlation function ==
+
+A correlation function is represented by 16 byte records of the following
+format,
+	bytes 7:0	Integer lag
+	bytes 8:15	Double-precision floating point function value
 
