@@ -26,7 +26,12 @@ print '1..3'
 
 di = np.arange(1001, dtype='u8')
 do = bin_data(di, 10)
-result(len(do) == 100 and all(do['counts'][0:99] == 10), 'basic binning')
+result(len(do) == 100 and all(do['counts'][0:100] == 10), 'basic binning')
+
+# Check that partial bins are thrown away
+di = np.arange(101, dtype='u8')
+do = bin_data(di, 10)
+result(len(do) == 10 and all(do['counts'][0:10] == 10), 'partial bins')
 
 di = np.array([0, 100, 110], dtype='u8')
 do = bin_data(di, 10)

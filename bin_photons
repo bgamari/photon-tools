@@ -1,0 +1,44 @@
+#!/usr/bin/python
+
+import sys
+import optparse
+import numpy as np
+import suffix_parse
+
+usage = 'usage: %prog [options] (bin width) [input] [output]'
+parser = optparse.OptionParser(usage=usage)
+parser.add_option('-b', '--no-buffer', help='disable buffering of output (for realtime use)')
+parser.add_option('-z', '--no-zeros', help='disable output of bins containing no photons')
+parser.add_option('-p', '--no-params', help='disable generation of parameter file')
+opts, args = parser.parse_args()
+
+if len(args) > 3:
+        parser.error('incorrect number of arguments')
+
+clockrate = 1
+bin_time = suffix_parse.parse(args.pop())       # bin width in real time
+if len(args) > 0:
+        a = args.pop()
+        infile = open(a, 'r')
+        pname = a.replace('.timetag', '.params')
+        if os.path.exists(pname):
+                params = dict([ l.split() for l in open(pname) ])
+                clockrate = params.get('clockrate')
+else:
+        infile = sys.stdin
+
+if len(args) > 0:
+        outfile = args.pop()
+elif infile == sys.stdin:
+        outfile = sys.stdout
+else:
+        outfile = open(infile.name + '.bins', 'w')
+
+d = np.fromfile(infile, dtype='u8')
+bin_width = int(bin_time * clockrate)           # bin width in clocks
+max_t = int(np.max(d))
+bins = xrange(0, max_t+2*bin_width, bin_width)
+counts, edges = np.histogram(d, bins)
+out = np.core.records.fromarrays([edges[:-2],counts[:-1]], dtype='u8,u2')
+out.tofile(outfile)
+
