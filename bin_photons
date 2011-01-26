@@ -2,9 +2,10 @@
 
 import sys
 import argparse
-import numpy as np
 import suffix_parse
 import json
+import numpy as np
+from _bin_photons import bin_photons
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--no-params', action='store_true',
@@ -33,12 +34,12 @@ if infile != sys.stdin:
         except: pass
         outfile = open(infile.name + '.bins', 'w')
 
-d = np.memmap(infile, mode='r', dtype='u8')
+times = np.memmap(infile, mode='r', dtype='u8')
 bin_width = int(bin_time * clockrate)           # bin width in clocks
-max_t = int(np.max(d))
-bins = xrange(0, max_t+2*bin_width, bin_width)
-counts, edges = np.histogram(d, bins)
-out = np.core.records.fromarrays([edges[:-2],counts[:-1]], dtype='u8,u2')
+bins = bin_photons(times, bin_width, False)
+starts = np.arange(times[0], times[-1], bin_width)
+out = np.core.records.fromarrays((starts, bins), dtype='u8,u2')
+np.savetxt('hi', out, '%d\t%d')
 out.tofile(outfile)
 
 if args.output != sys.stdout and not args.no_params:
