@@ -40,11 +40,11 @@ out = np.core.records.fromarrays([edges[:-2],counts[:-1]], dtype='u8,u2')
 out.tofile(outfile)
 
 if args.output != sys.stdout and not args.no_params:
-        params = {
+        out_params = {
                 'original name': args.input,
                 'bin width': args.bin_width,
                 'data params': params
         }
         pname = args.output + '.params'
-        json.encode(params, open(pname, 'w'))
+        json.encode(out_params, open(pname, 'w'))
 
