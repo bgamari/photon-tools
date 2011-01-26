@@ -7,41 +7,31 @@ import suffix_parse
 import json
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--no-params',
+parser.add_argument('-p', '--no-params', action='store_true',
                     help='disable generation of parameter file')
-parser.add_argument('bin-width', metavar='TIME', type=str,
+parser.add_argument('binwidth', metavar='TIME', type=str,
                     help='Length of bins')
-parser.add_argument('input', metavar='FILE', type=argparse.FileType('r'),
+parser.add_argument('input', metavar='FILE', nargs='?', type=argparse.FileType('r'),
                     help='Input timetag file', default=sys.stdin)
-parser.add_argument('output', metavar='FILE', type=argparse.argparse.FileType('w'),
+parser.add_argument('output', metavar='FILE', nargs='?', type=argparse.FileType('w'),
                     help='Binned data output', default=sys.stdout)
 args = parser.parse_args()
-bin_time = suffix_parse.parse(args.pop())       # bin width in real time
+bin_time = suffix_parse.parse(args.binwidth)       # bin width in real time
 
 clockrate = 1
 params = {}
-infile = None
-out_file = None
+infile = args.input
+outfile = args.output
 
-if args.input:
-        infile = open(args.input, 'r')
-        pname = args.input + '.params'
+if infile != sys.stdin:
+        pname = infile.name + '.params'
         try:
                 params = json.decode(open(pname))
                 clockrate = params['clockrate']
         except: pass
-else:
-        infile = sys.stdin
-
-if args.output:
-        outfile = args.output
-elif infile == sys.stdin:
-        outfile = sys.stdout
-else:
-        args.output = infile.name + '.bins'
         outfile = open(infile.name + '.bins', 'w')
 
-d = np.fromfile(infile, dtype='u8')
+d = np.memmap(infile, dtype='u8')
 bin_width = int(bin_time * clockrate)           # bin width in clocks
 max_t = int(np.max(d))
 bins = xrange(0, max_t+2*bin_width, bin_width)
