@@ -11,14 +11,16 @@ parser.add_argument('-p', '--no-params', action='store_true',
                     help='disable generation of parameter file')
 parser.add_argument('binwidth', metavar='TIME', type=str,
                     help='Length of bins')
-parser.add_argument('input', metavar='FILE', nargs='?', type=argparse.FileType('r'),
+parser.add_argument('input', metavar='INPUT', nargs='?', type=argparse.FileType('r'),
                     help='Input timetag file', default=sys.stdin)
-parser.add_argument('output', metavar='FILE', nargs='?', type=argparse.FileType('w'),
+parser.add_argument('output', metavar='OUTPUT', nargs='?', type=argparse.FileType('w'),
                     help='Binned data output', default=sys.stdout)
+parser.add_argument('-c', '--clockrate', metavar='RATE',
+                    help='Override clockrate (usually specified in parameters file)', default=1)
 args = parser.parse_args()
 bin_time = suffix_parse.parse(args.binwidth)       # bin width in real time
 
-clockrate = 1
+clockrate = suffix_parse.parse(args.clockrate)
 params = {}
 infile = args.input
 outfile = args.output
@@ -31,7 +33,7 @@ if infile != sys.stdin:
         except: pass
         outfile = open(infile.name + '.bins', 'w')
 
-d = np.memmap(infile, dtype='u8')
+d = np.memmap(infile, mode='r', dtype='u8')
 bin_width = int(bin_time * clockrate)           # bin width in clocks
 max_t = int(np.max(d))
 bins = xrange(0, max_t+2*bin_width, bin_width)
