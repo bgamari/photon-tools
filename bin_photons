@@ -47,7 +47,6 @@ starts = np.arange(times[0], times[0]+nbins*bin_width, bin_width)
 # Write output
 out = np.core.records.fromarrays((starts, bins), dtype='u8,u2')
 out.tofile(outfile)
-np.savetxt('hi', out, '%d\t%d')
 
 if args.output != sys.stdout and not args.no_params:
         out_params = {
