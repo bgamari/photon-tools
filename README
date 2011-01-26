@@ -5,8 +5,26 @@ photon-tools are a set of tools for manipulating and analysing data from
 single-photon, particularly FRET and FCS, experiments.
 
 
+Requirements:
+=============
+
+Many of these utilities are written in Python and generally require Python 2.6
+or greater along with numpy. In particular, bin_photons requires Cython for the
+optimized binning implementation. Utilities capable of producing plots require
+the matplotlib python plotting library.
+
+ - Gnu make
+ - Python 2.6+
+ - Numpy
+ - Scipy
+ - Matplotlib
+ - Cython
+ - Boost
+
+
 Work-flow:
 ==========
+
 These tools are meant to examine input data of 64-bit unsigned integer
 timestamps.
 
@@ -25,20 +43,20 @@ Tools:
 
   == General ==
 
-  dump_pt2: Output Picoharp PT2 records in human-readable format
-  extract_pt2_timestamps: Export timestamps from Picoharp PT2 file
-  plot-photons: Plot binned photon time series
-  rm-times: Crop out a region of timestamps
-  splice-times: Splice together a set of timestamp files
+  - dump_pt2: Output Picoharp PT2 records in human-readable format
+  - extract_pt2_timestamps: Export timestamps from Picoharp PT2 file
+  - plot-photons: Plot binned photon time series
+  - rm-times: Crop out a region of timestamps
+  - splice-times: Splice together a set of timestamp files
 
   == FCS ==
 
-  fcs-fit: A simple-minded tool for fitting models to FCS correlation functions
+  - fcs-fit: A simple-minded tool for fitting models to FCS correlation functions
 
   == FRET ==
 
-  fret_hmm: Hidden Markov Model analysis of FRET trajectory
-  wavelet_denoise: Wavelet denoising
+  - fret_hmm: Hidden Markov Model analysis of FRET trajectory
+  - wavelet_denoise: Wavelet denoising
 
 
 Data formats:
