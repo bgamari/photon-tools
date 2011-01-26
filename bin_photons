@@ -39,13 +39,14 @@ times = np.memmap(infile, mode='r', dtype='u8')
 bin_width = int(bin_time * clockrate)           # bin width in clocks
 dt = times[-1] - times[0]
 nbins = dt / bin_width
+npartial = dt % bin_width != 0
 # Truncate partial bin
-if dt % bin_width != 0:
+if npartial:
         times = times[:nbins*bin_width]
 
 # Do binning
 bins = bin_photons(times, bin_width)
-starts = np.arange(times[0], times[0]+nbins*bin_width, bin_width)
+starts = np.arange(times[0], times[0]+(nbins-npartial)*bin_width, bin_width)
 
 # Write output
 out = np.core.records.fromarrays((starts, bins), dtype='u8,u2')
