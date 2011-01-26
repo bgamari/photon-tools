@@ -11,7 +11,7 @@ suffixes = {
 }
 
 def parse(v):
-        if v[-1] in suffixes:
+        if v.__class__ is str and v[-1] in suffixes:
                 return float(v[:-1]) * suffixes[v[-1]]
         return float(v)
 
