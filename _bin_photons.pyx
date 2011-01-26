@@ -4,8 +4,7 @@ cimport numpy as np
 
 ctypedef unsigned long long uint64_t
 def bin_photons(np.ndarray[np.uint64_t, ndim=1] times, int bin_width):
-        """ Expects times[-1]-times[0] to be a multiple of bin_width """
-        cdef nbins = (times[-1] - times[0]) / bin_width
+        cdef int nbins = (times[-1] - times[0]) / bin_width
         cdef np.ndarray[np.uint16_t, ndim=1] bins = np.empty(nbins, dtype=np.uint16)
         cdef Py_ssize_t i, j
         cdef uint64_t new_start
@@ -21,11 +20,14 @@ def bin_photons(np.ndarray[np.uint64_t, ndim=1] times, int bin_width):
 
                         # Account for zero bins
                         for j in range(bin_start+bin_width, new_start, bin_width):
+                                if bin >= nbins: break
                                 bins[bin] = 0
                                 bin += 1
                         
+                        if bin >= nbins: break
                         bin_count = 0
                         bin_start = new_start
+
                 bin_count += 1
 
         return bins

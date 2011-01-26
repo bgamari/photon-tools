@@ -22,7 +22,7 @@ def result(result, description):
         print test_n, '-', description
         test_n += 1
 
-print '1..4'
+print '1..3'
 
 di = np.arange(1001, dtype='u8')
 do = bin_data(di, 10)
@@ -30,9 +30,11 @@ good = len(do) == 100 and all(do['counts'][0:100] == 10)
 result(good, 'basic binning')
 
 # Check that partial bins are thrown away
-di = np.arange(101, dtype='u8')
-do = bin_data(di, 10)
-good = len(do) == 10 and all(do['counts'][0:10] == 10)
+di = np.arange(1000, 1555, dtype='u8')
+do = bin_data(di, 100)
+good = len(do) == 5 \
+        and all(do['counts'] == 100) \
+        and all(do['time'] == np.arange(1000,1500,100))
 result(good, 'partial bins')
 
 di = np.array([0, 100, 110], dtype='u8')
@@ -42,11 +44,4 @@ good = len(do) == 11 \
         and all(do['counts'][1:9] == 0) \
         and do['counts'][10] == 1
 result(good, 'bin_photons zero bins test')
-
-di = np.arange(1000, 1555, dtype='u8')
-do = bin_data(di, 100)
-good = len(do) == 5 \
-        and all(do['counts'] == 100) \
-        and all(do['time'] == np.arange(1000,1500,100))
-result(good, 'partial bins 2')
 
