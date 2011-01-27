@@ -29,7 +29,7 @@ outfile = args.output
 if infile != sys.stdin:
         mname = infile.name + '.meta'
         try:
-                meta = json.decode(open(pname))
+                meta = json.load(open(pname))
                 clockrate = meta['clockrate']
         except: pass
         outfile = open(infile.name + '.bins', 'w')
@@ -51,12 +51,13 @@ starts = np.arange(times[0], times[0]+nbins*bin_width, bin_width)
 out = np.core.records.fromarrays((starts, bins), dtype='u8,u2')
 out.tofile(outfile)
 
-if args.output != sys.stdout and not args.no_meta:
+if outfile != sys.stdout and not args.no_meta:
         out_meta = {
                 'bin width': args.bin_width,
-                'input name': args.input,
+                'input name': args.input.name,
+                'clockrate': clockrate,
                 'input metadata': meta
         }
-        mname = args.output + '.meta'
-        json.encode(out_meta, open(mname, 'w'))
+        mname = outfile.name + '.meta'
+        json.dump(out_meta, open(mname, 'w'), indent=2)
 
