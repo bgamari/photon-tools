@@ -39,10 +39,10 @@ void dump(std::istream& is, std::ostream& os, uint8_t channel=0xf) {
 }
 
 int main(int argc, char** argv) {
+        std::string out_name;
         if (argc > 1) {
                 std::string name = argv[1];
                 std::ifstream is(name);
-                std::string out_name;
                 int chan;
 
                 if (argc > 2) {
@@ -55,6 +55,12 @@ int main(int argc, char** argv) {
 
                 std::ofstream os(out_name);
                 dump(is, os, chan);
+
+                std::ofstream pos(out_name + ".meta");
+                pos << (boost::format("{\n"
+                                        "\"clockrate\": %f\n"
+                                        "\"date\": \"%s\"\n"
+                                      "}") % (1.0/PT2_TIME_UNIT));
         } else
                 dump(std::cin, std::cout);
 
