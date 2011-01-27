@@ -8,8 +8,8 @@ import numpy as np
 from _bin_photons import bin_photons
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--no-params', action='store_true',
-                    help='disable generation of parameter file')
+parser.add_argument('-m', '--no-meta', action='store_true',
+                    help='disable generation of metadata file')
 parser.add_argument('-w', '--bin-width', metavar='TIME', type=str, required=True,
                     help='Width of bins')
 parser.add_argument('input', metavar='INPUT', nargs='?', type=argparse.FileType('r'),
@@ -22,15 +22,15 @@ args = parser.parse_args()
 bin_time = suffix_parse.parse(args.bin_width)       # bin width in real time
 
 clockrate = suffix_parse.parse(args.clockrate)
-params = {}
+meta = {}
 infile = args.input
 outfile = args.output
 
 if infile != sys.stdin:
-        pname = infile.name + '.params'
+        mname = infile.name + '.meta'
         try:
-                params = json.decode(open(pname))
-                clockrate = params['clockrate']
+                meta = json.decode(open(pname))
+                clockrate = meta['clockrate']
         except: pass
         outfile = open(infile.name + '.bins', 'w')
 
@@ -51,12 +51,12 @@ starts = np.arange(times[0], times[0]+nbins*bin_width, bin_width)
 out = np.core.records.fromarrays((starts, bins), dtype='u8,u2')
 out.tofile(outfile)
 
-if args.output != sys.stdout and not args.no_params:
-        out_params = {
-                'original name': args.input,
+if args.output != sys.stdout and not args.no_meta:
+        out_meta = {
                 'bin width': args.bin_width,
-                'data params': params
+                'input name': args.input,
+                'input metadata': meta
         }
-        pname = args.output + '.params'
-        json.encode(out_params, open(pname, 'w'))
+        mname = args.output + '.meta'
+        json.encode(out_meta, open(mname, 'w'))
 
