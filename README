@@ -62,6 +62,13 @@ Tools:
 Data formats:
 =============
 
+  == Metadata files ==
+
+Many of the utilities in this package produce and consume metadata files
+which describe various aspects of the actual data stream. These files are
+standard JSON formatted text files and are named after the file which they 
+describe with the extension '.meta' appended.
+
   == Picoharp PT2 ==
 
 This package includes utilities for exporting timestamps from Picoharp's PT2
