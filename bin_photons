@@ -10,8 +10,8 @@ from _bin_photons import bin_photons
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--no-params', action='store_true',
                     help='disable generation of parameter file')
-parser.add_argument('binwidth', metavar='TIME', type=str,
-                    help='Length of bins')
+parser.add_argument('-w', '--bin-width', metavar='TIME', type=str, required=True,
+                    help='Width of bins')
 parser.add_argument('input', metavar='INPUT', nargs='?', type=argparse.FileType('r'),
                     help='Input timetag file', default=sys.stdin)
 parser.add_argument('output', metavar='OUTPUT', nargs='?', type=argparse.FileType('w'),
@@ -19,7 +19,7 @@ parser.add_argument('output', metavar='OUTPUT', nargs='?', type=argparse.FileTyp
 parser.add_argument('-c', '--clockrate', metavar='RATE',
                     help='Override clockrate (usually specified in parameters file)', default=1)
 args = parser.parse_args()
-bin_time = suffix_parse.parse(args.binwidth)       # bin width in real time
+bin_time = suffix_parse.parse(args.bin_width)       # bin width in real time
 
 clockrate = suffix_parse.parse(args.clockrate)
 params = {}
