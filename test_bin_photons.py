@@ -11,7 +11,7 @@ def bin_data(data, bin_len):
         fi.seek(0)
 
         fo = tempfile.TemporaryFile('rw+b')
-        subprocess.check_call(['./bin_photons', str(bin_len)], stdin=fi, stdout=fo)
+        subprocess.check_call(['./bin_photons', '-w %d' % bin_len], stdin=fi, stdout=fo)
         dt = np.dtype([('time', 'u8'), ('counts','u2')])
         return np.fromfile(fo, dtype=dt)
 
