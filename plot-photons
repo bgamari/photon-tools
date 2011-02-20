@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib import pyplot as pl
 import argparse
 import json
+import os
 
 description = 'Utility to plot a binned series of timestamps. X axis values are given in seconds'
 parser = argparse.ArgumentParser(description=description)
@@ -13,8 +14,12 @@ parser.add_argument('input', metavar='FILE', type=argparse.FileType('r'),
 parser.add_argument('nbins', metavar='N', type=int, help='Number of bins')
 args = parser.parse_args()
 
-params = json.decode(args.input + '.params')
-jiffy = 1.0 / params['clockrate']
+meta_name = '%s.meta' % args.input.name
+params = {}
+if os.path.isfile(meta_name):
+        params = json.load(open(meta_name))
+
+jiffy = 1.0 / params.get('clockrate', 1)
 times = np.fromfile(args.input, np.uint64) * jiffy
 pl.hist(times, args.nbins, histtype='step')
 pl.show()
