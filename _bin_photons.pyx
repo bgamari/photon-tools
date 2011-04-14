@@ -3,9 +3,12 @@ import numpy as np
 cimport numpy as np
 
 ctypedef unsigned long long uint64_t
+
 def bin_photons(np.ndarray[np.uint64_t, ndim=1] times, int bin_width):
-        cdef int nbins = (times[-1] - times[0]) / bin_width
-        cdef np.ndarray[np.uint16_t, ndim=1] bins = np.empty(nbins, dtype=np.uint16)
+        cdef unsigned int chunk_sz = 10000
+        cdef np.ndarray[np.uint16_t, ndim=1] chunk = np.empty(chunk_sz, dtype=np.uint16)
+        chunks = []
+
         cdef Py_ssize_t i, j
         cdef uint64_t new_start
         cdef uint64_t bin_start = times[0]
@@ -15,20 +18,27 @@ def bin_photons(np.ndarray[np.uint64_t, ndim=1] times, int bin_width):
         for i in range(times.shape[0]):
                 if times[i] >= bin_start + bin_width:
                         new_start = (times[i] / bin_width) * bin_width
-                        bins[bin] = bin_count
+                        chunk[bin] = bin_count
                         bin += 1
+                        if bin == chunk_sz:
+                                chunks.append(chunk)
+                                chunk = np.empty(chunk_sz, dtype=np.uint16)
+                                bin = 0
 
                         # Account for zero bins
                         for j in range(bin_start+bin_width, new_start, bin_width):
-                                if bin >= nbins: break
-                                bins[bin] = 0
+                                chunk[bin] = 0
                                 bin += 1
-                        
-                        if bin >= nbins: break
+                                if bin == chunk_sz:
+                                        chunks.append(chunk)
+                                        chunk = np.empty(chunk_sz, dtype=np.uint16)
+                                        bin = 0
+
                         bin_count = 0
                         bin_start = new_start
 
                 bin_count += 1
 
-        return bins
+        chunks.append(chunk[:bin])
+        return np.hstack(chunks)
 
