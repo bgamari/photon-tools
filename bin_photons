@@ -45,11 +45,7 @@ nbins = int(dt / bin_width)
 
 # Do binning
 bins = bin_photons(times, bin_width)
-starts = np.arange(times[0], times[0]+nbins*bin_width, bin_width)
-
-# Write output
-out = np.core.records.fromarrays((starts, bins), dtype='u8,u2')
-out.tofile(outfile)
+bins.tofile(outfile)
 
 if outfile != sys.stdout and not args.no_meta:
         out_meta = {
