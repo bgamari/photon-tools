@@ -24,340 +24,374 @@ import sys
 from collections import namedtuple
 
 import scipy, numpy
-from scipy import sqrt
 from scipy.optimize import leastsq
-from numpy import min, max, linspace, mean, exp, power
+from numpy import min, max, linspace, mean, exp, power, sqrt
+import suffix_parse
 
-DataSet = namedtuple('DataSet', 'name times counts var')
-FitParams = namedtuple('FitParams', 'chisquared taud a ns')
-FitParamsTwoComponent = namedtuple('FitParamsTwoComponent', 'chisquared taud a taur f ns')
-FitParamsThree = namedtuple('FitParamsThree', 'chisquared tau1 a tau2 tr taux f1 ns')
+"""
+fcs-fit: Multiple-curve non-linear regression framework for fitting of FCS
+correlation functions
+
+This is a framework for "global" analysis of FCS correlation functions.
+"""
+
+models = {}
+def register_model(*names):
+        def reg(cls):
+                if not issubclass(cls, Model):
+                        raise Exception("Registering model that doesn't inherit from model")
+                for n in names:
+                        models[n] = cls
+                return cls
+        return reg
+
+class Parameter(object):
+        def __init__(self, name, description, def_value=None, def_scope=None):
+                self.name = name
+                self.description = description
+                self.def_value = def_value
+                self.def_scope = def_scope
+
+class Parameters(dict):
+        def __init__(self, model, curves):
+                from copy import copy
+                assert(len(curves) > 0)
+                self.curves = curves
+                
+                for p in model.params:
+                        a = copy(p)
+                        a.scope = p.def_scope
+                        a.value = p.def_value
+                        self[p.name] = a
+
+        def validate(self):
+                """ Needs to be called before pack or unpack are used """
+                self._fitted = []
+                self._fixed = []
+                for p in self.values():
+                        if p.scope == 'fitted':
+                                self._fitted.append(p.name)
+                        elif p.scope == 'fixed':
+                                self._fixed.append(p.name)
+                        else:
+                                raise RuntimeError('Invalid scope')
+
+        def _unpack(self, packed):
+                """ Unpack parameters from vector from leastsq """
+                n = len(self.curves)
+                i = 0
+                for k in self._fitted:
+                        if isinstance(self[k], list):
+                                self[k].value = packed[i:i+n]
+                                i += n
+                        else:
+                                self[k].value = packed[i]
+                                i += 1
+
+        def _pack(self):
+                """ Pack fitted parameters into vector for leastsq """
+                packed = []
+                for k in self._fitted:
+                        if isinstance(self[k].value, list):
+                                packed.extend(self[k].value)
+                        else:
+                                packed.append(self[k].value)
+                return numpy.array(packed)
+
+        def _curve_params(self, curve):
+                """ Generate full parameters dict from fixed and fitted parameters """
+                params = {}
+                for k in self:
+                        v = self[k].value
+                        params[k] = v[i] if isinstance(v, list) else v
+                return params
+
+class Model(object):
+        """
+        Represents a fitting model for a multi-curve non-linear regression
+ 
+        A model has parameters, which can be either fixed or chosen for
+        optimization. In the latter case, the parameter can be taken as
+        determined by the fit, or fixed per-curve. In either case, the parameter
+        can be set independently for each curve, or homogenous across all
+        curves. Each parameter is set to be fixed/fitted and (in)homogenous at
+        model creation.
+
+        To implement a new fit function, one must inherit from the Model class,
+        providing a class member 'params' list giving the parameters supported by
+        the model and their default scope. The fit function itself is given by
+        the compute_G function.
+        """
+
+        # Override this in subclasses
+        params = []
+
+        @classmethod
+        def param(cls, name):
+                for p in cls.params:
+                        if p.name == name: return p
+                
+        def compute_G(self, params, x):
+                """ Compute the value of the fit function with the given
+                    parameters on the given domain """
+                pass
+
+def _compute_error(p, curves, params, model):
+        err = []
+        params._unpack(p)
+        for i,c in enumerate(curves):
+                cparams = params._curve_params(i)
+                G = model.compute_G(cparams, c['lag'])
+                err.extend(c['G'] - G)
+                #err.extend((c['G'] - G) / c['err'])
+
+        return numpy.array(err)
+
+def fit(curves, model, params):
+        """ Run the regression. Returns a new Model object with optimized
+            parameters. One can then evaluate the optimized fit
+            functions using this new object's G function. """
+        from copy import deepcopy
+        params = deepcopy(params)
+        params.validate()
+        p0 = params._pack()
+        print p0
+        res = scipy.optimize.leastsq(_compute_error, p0, args=(curves, params, model), full_output=True)
+        p, cov_x, infodict, mesg, ier = res
+        params._unpack(p)
+
+        err = _compute_error(p, curves, params, model)
+        chi_squared = sum(err**2)
+        return (params, chi_squared)
+
+@register_model('3d_diff')
+class DiffusionModel(Model):
+        """ Three-dimensional diffusion model. This includes the anamalous diffusion
+            exponent alpha, which can be set to 1 for normal diffusion. """
+        params = [
+                Parameter('tau_d',      'Diffusion time constant', def_scope='fitted'),
+                Parameter('a',          'Aspect ratio', def_value=3, def_scope='fitted'),
+                Parameter('n',          'Concentration', def_scope='fitted'),
+                Parameter('alpha',      'Anamalous diffusion exponent (1=normal diffusion)', def_value=1, def_scope='fixed'),
+        ]
+
+        def compute_G(self, p, x):
+                a = p['a']
+                n = p['n']
+                tau_taud = (x / p['tau_d'])**p['alpha']
+
+                b = 1. / (1. + tau_taud)
+                c = 1. / (1. + tau_taud * a**-2)
+                return (1. / n) * b * sqrt(c)
+
+@register_model('3d_diff_triplet')
+class NormalDiffusionTripletModel(Model):
+        """ Three-dimensional diffusion model with triplet correction """
+        params = [
+                Parameter('tau_d',      'Diffusion time constants', def_scope='fitted'),
+                Parameter('tau_F',      'Triplet state relaxation time', def_scope='fitted'),
+                Parameter('a',          'Aspect ratio', def_value=3, def_scope='fitted'),
+                Parameter('n',          'Concentration', def_scope='fitted'),
+                Parameter('F',          'Fraction of particles in triplet state'),
+        ]
+
+        def compute_G(self, p, x):
+                a = p['a']
+                F = p['F']
+                n = p['n']
+                tau_taud = x / p['tau_d']
+                tau_tauF = x / p['tau_F']
+
+                b = 1. / (1. + tau_taud)
+                c = 1. / (1. + tau_taud * a**-2)
+                d = (1. - F + F * exp(-tau_tauF)) / (1. - F)
+                return d * b * sqrt(c) / n
 
 def load_favia(file):
-        data = []
-        for l in file:
-                d = map(float, l.split(',')[0:5])
-                data.append(d)
-        data = numpy.array(data)
-        times = data[:,0]
-        counts = data[:,3]
-        var = data[:,4]
-        return times, counts, var
+        dt = [('lag','f'), ('G','f'), ('var','f')]
+        d = numpy.genfromtxt(file, dtype=dt, usecols=(0,3,4))
+        d['G'] -= 1.0   # Subtract out offset
+        return d
 
+def plot_model(ax, model, curve_names, npts=1e3):
+        for curve,name in zip(model.curves, curve_names):
+                x = linspace(min(curve['lag']), max(curve['lag']), npts)
+                m = model.G(curve, x)
+                ax.semilogx(x, m, label='%s (fit)' % name)
+                # TODO: Add parameters to plot
 
-def model(p, x):
-	tau_d = p[0]
-	a = p[1]
-	n = p[2]
-	tau_taud = x / tau_d
+import cmd
+class ParamConfig(cmd.Cmd):
+        def __init__(self, params):
+                self.params = params
+                cmd.Cmd.__init__(self)
 
-	b = 1.0 / (1.0 + tau_taud)
-	c = 1.0 / (1.0 + tau_taud * a**-2)
-	
-	return (1.0 / n) * b * sqrt(c)
-
-def fitfunc(p, data):
-        res = []
-        for d, n in zip(data, p[2:]):
-                p1 = list(p[0:2]) + [n]
-                err = d.counts - model(p1, d.times)
-                res.extend(err / d.var)
-	return numpy.array(res)
-
-def fit(data, taud0=None, a0=None, n0=None):
-        est_n = lambda d: 1/mean(d.counts[:5])
-        # Parameters: tau_d, a, N1, N2, ...
-        if taud0 is None: taud0 = 200e-6
-        if a0 is None: a0 = 10
-        if n0 is None: n0 = map(est_n, data)
-        if len(n0) != len(data):
-                raise ValueError("length of n0 must equal length of data")
-        p0 = [ taud0, a0 ] + n0
-        params, cov_x, infodict, mesg, ier = leastsq(fitfunc, p0, args=(data), full_output=True)
-        taud, a = params[:2]
-        ns = params[2:]
-        chisquared = sum(power(fitfunc(params, data), 2))
-        return FitParams(chisquared, taud, a, ns)
-
-
-
-def modelTwoComponent(p, x):
-	tau_d = p[0]
-	a = p[1]
-	tau_r = p[2]
-	F = p[3]
-	n = p[4]
-	
-
-	tau_taud = x / tau_d
-
-	tau_taur = x / tau_r
-
-
-	b = 1.0 / (1.0 + tau_taud)
-	c = 1.0 / (1.0 + tau_taud * a**-2)
-
-	d = (1.0 - F + F * exp(-tau_taur)) / (1 - F)
-
-	return (d / n) * b * sqrt(c)
-
-def fitfuncTwoComponent(p, data):
-	res = []
-	for d, n in zip(data, p[4:]):
-		p1 = list(p[0:4]) + [n]
-		err = d.counts - modelTwoComponent(p1, d.times)
-		res.extend(err / d.var)
-	return numpy.array(res)
-
-def fitTwoComponent(data, taud0=None, a0=None, taur0=None, F0=None, n0=None):
-        est_n = lambda d: 1/mean(d.counts[:5])
-        # Parameters: tau_d, a, N1, N2, ...
-        if taud0 is None: taud0 = 200e-6
-        if a0 is None: a0 = 10
-        if n0 is None: n0 = map(est_n, data)
-	if taur0 is None: taur0 = 10e-8
-	if F0 is None: F0 = 0.5
- 
-        if len(n0) != len(data):
-                raise ValueError("length of n0 must equal length of data")
-        p0 = [ taud0, a0, taur0, F0 ] + n0
-	
-        params, cov_x, infodict, mesg, ier = leastsq(fitfuncTwoComponent, p0, args=(data), full_output=True)
-        taud, a, taur, F = params[:4]
-        ns = params[4:]
-        chisquared = sum(power(fitfuncTwoComponent(params, data), 2))
-        return FitParamsTwoComponent(chisquared, taud, a, taur, F, ns)
-
-
-
-def modelThree(p, x):
-	tau_1 = p[0]
-	a = p[1]
-	tau_2 = p[2]
-	t_r = p[3]
-	tau_x = p[4]
-	f_1 = p[5]
-	n = p[6]
-
-	tau_tau1 = x / tau_1
-
-	tau_tau2 = x / tau_2
-
-	tau_taux = x / tau_x
-
-	g_t = (1.0 + (t_r * exp(-tau_taux)) / (1.0 - t_r))
-
-	b_1 = 1.0 / (1.0 + tau_tau1)
-	c_1 = 1.0 / (1.0 + tau_taud * a**-2)
-
-	d_1 = (f_1 * b_1 * sqrt(c_1))
-
-	b_2 = 1.0 / (1.0 + tau_tau2)
-	c_2 = 1.0 / (1.0 + tau_tau2 * a**-2)
-
-	d_2 = (1.0 - f_1) * b_2 * sqrt(c_2)
-
-	return (g_t / n) * (d_1 + d_2)
-
-def fitfuncThree(p, data):
-	res = []
-	for d, n in zip(data, p[6:]):
-		p1 = list(p[0:6]) + [n]
-		err = d.counts - modelThree(p1, d.times)
-		res.extend(err / d.var)
-	return numpy.array(res)
-
-def fitThree(data, tau10=None, a0=None, tau20=None, tr0=None, taux0=None, f10=None, n0=None):
-        est_n = lambda d: 1/mean(d.counts[:5])
-        # Parameters: tau_d, a, N1, N2, ...
-        if tau10 is None: taud0 = 200e-6
-        if a0 is None: a0 = 10
-        if tau20 is None: tau20 = 200e-6
-        if tr0 is None: tr0 = 0.5
-	if taux0 is None: taux0 = 10e-8
-	if f10 is None: f10 = 0.5
-	if n0 is None: n0 = map(est_n, data)
-	
-        if len(n0) != len(data):
-                raise ValueError("length of n0 must equal length of data")
-        p0 = [ tau10, a0, tau20, tr0, taux0, f10] + n0
-	
-        params, cov_x, infodict, mesg, ier = leastsq(fitfuncThree, p0, args=(data), full_output=True)
-        tau1, a, tau2, tr, taux, f1 = params[:6]
-        ns = params[6:]
-        chisquared = sum(power(fitfuncThree(params, data), 2))
-        return FitParamsThree(chisquared, tau1, a, tau2, tr, taux, f1, ns)
-
-
-
-def plot_data(fittingequation, data, fit_params=None, fig=None):
-        from matplotlib import pyplot as pl
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-        if not fig:
-                fig = pl.figure()
-        ax = fig.add_subplot(111)
-        divider = make_axes_locatable(ax)
-
-        ns = fit_params.ns if fit_params else [0]*len(data)
-        for d,n in zip(data, ns):
-                ax.semilogx(d.times, d.counts, label=d.name, linestyle='None', marker='+')
-                if fit_params is None: continue
-
-		if(fittingequation == 'fcs'):
-
-			p1 = (fit_params.taud, fit_params.a, n)
-			x = linspace(min(times), max(times), 1e6)
-		
-			ax.semilogx(x, model(p1, x), label='%s (fit, N=%f)' % (d.name, n))
-
-			resid = model(p1, d.times) - d.counts
-		elif(fittingequation == 'fcsTwoComponent'):
-			
-			p1 = (fit_params.taud, fit_params.a, fit_params.taur, fit_params.f, n)
-			x = linspace(min(times), max(times), 1e6)
-			
-			ax.semilogx(x, modelTwoComponent(p1, x), label='%s (fit, N=%f)' % (d.name, n))
-
-			resid = modelTwoComponent(p1, d.times) - d.counts
-		elif(fittingequation == 'fcsThree'):
-			
-			p1 = (fit_params.taud, fit_params.a, fit_params.taur, fit_params.f, n)
-			x = linspace(min(times), max(times), 1e6)
-			
-			ax.semilogx(x, modelThree(p1, x), label='%s (fit, N=%f)' % (d.name, n))
-
-			resid = modelThree(p1, d.times) - d.counts
-
-
-                ax_resid = divider.append_axes("top", 1.4, pad=0.0, sharex=ax)
-                ax_resid.axhline(0, color='black')
-                ax_resid.errorbar(times, resid, yerr=var, linestyle='None', marker='x')
-                pl.setp(ax_resid.get_xticklabels(), visible=False)
-                ax_resid.set_ylabel(r'Fit Residuals')
-
-        if fit_params is not None:
-		if(fittingequation == 'fcs'):
-			text = [
-				r'$\tau_d = \mathrm{%1.3e}$' % fit_params.taud,
-				r'$a = \mathrm{%1.3e}$' % fit_params.a,
-				r'$X^2 = \mathrm{%1.3e}$' % fit_params.chisquared
-			
-				]
-		elif(fittingequation == 'fcsTwoComponent'):
-			text = [
-				r'$\tau_d = \mathrm{%1.3e}$' % fit_params.taud,
-				r'$a = \mathrm{%1.3e}$' % fit_params.a,
-				r'$\tau_r = \mathrm{%1.3e}$' % fit_params.taur,
-				r'$f = \mathrm{%1.3e}$' % fit_params.f,
-				r'$X^2 = \mathrm{%1.3e}$' % fit_params.chisquared
-			
-				]
-		elif(fittingequation == 'fcsThree'):
-			text = [
-				r'$\tau_1 = \mathrm{%1.3e}$' % fit_params.tau1,
-				r'$a = \mathrm{%1.3e}$' % fit_params.a,
-				r'$\tau_2 = \mathrm{%1.3e}$' % fit_params.tau2,
-				r'$tr = \mathrm{%1.3e}$' % fit_params.tr,
-				r'$\tau_x = \mathrm{%1.3e}$' % fit_params.taux,
-				r'$f1 = \mathrm{%1.3e}$' % fit_params.f1,
-				r'$X^2 = \mathrm{%1.3e}$' % fit_params.chisquared
-			
-				]
+        def do_scope(self, line):
+                """ Sets the scope of a parameter """
+                name, scope = line.split()
+                name = name.strip()
+                if name not in self.params:
+                        print 'Invalid parameter %s' % name
+                        return
+                if scope not in ['fitted', 'fixed']:
+                        print 'Invalid scope %s' % scope
+                        return
+                self.params[name].scope = scope
                 
-                fig.text(0.70, 0.40, "\n".join(text))
+        def do_initial(self, line):
+                """ Sets the initial value of a parameter """
+                name, value = line.split()
+                name = name.strip()
+                if name not in self.params:
+                        print 'Invalid parameter %s' % name
+                        return
+                try:
+                        a = value.split(',')
+                        if len(a) == 1:
+                                self.params[name].value = suffix_parse.parse(value)
+                        elif len(a) == len(params.curves):
+                                self.params[name].value = [suffix_parse.parse(v) for v in a]
+                        else:
+                                print 'Not enough values (expected %d)' % len(params.curves)
+                except:
+                        print 'Invalid value %s' % value
+                        pass
 
-        ax.set_xlabel(r'$\tau$')
-        ax.set_ylabel(r'$G$')
-        ax.legend()
-        ax.autoscale_view(tight=True, scalex=True)
-        return fig
+        def do_done(self, line):
+                """ Finished editing parameters """
+                return True
 
+        def do_help(self, line):
+                """ Help """
+                print """
+Commands:
+============
+scope [param] fixed|fitted
+    Set the scope of a parameter
+initial [param] [value]
+    Set the initial value of a parameter
+done
+    Stop modifying parameters
+"""
+
+        def postcmd(self, stop, line):
+                print 'Parameters:'
+                print_parameters(self.params)
+                return stop
+
+        def preloop(self):
+                print 'Parameters:'
+                print_parameters(self.params)
+
+def print_parameters(params):
+        for p in params.values():
+                v = suffix_parse.format(p.value) if p.value is not None else 'not set'
+                print '%15s  (%6s)   =   %s' % (p.name, p.scope, v)
+
+def print_models():
+        print 'Known models:'
+        for k,m in models.items():
+                print '  %s : %s' % (k, m.__doc__)
+                print '     Parameters:'
+                print '          name\tdefault scope\tdefault value\tdescription'
+                for p in m.params:
+                        print '    %10s\t%13s\t%13s\t%s' % (p.name, p.def_scope, p.def_value, p.description)
+                print
 
 if __name__ == '__main__':
-        from optparse import OptionParser
-        parser = OptionParser()
-        parser.add_option('-e', '--early-cutoff', dest='early_cutoff', metavar='LAG',
-                          help='Early lag cutoff time', default=0, type="float")
-        parser.add_option('-n', '--no-fit', action='store_true', dest='no_fit',
-                          help="Don't attempt to fit data; to be used with --plot")
-        parser.add_option('-p', '--plot', action='store_true', dest='plot',
-                          help='Produce plot of data and fits')
-        parser.add_option('-o', '--output', dest='output', metavar='FILE',
-                          help='Save plot to FILE')
-	parser.add_option('-f', '--fit', dest='fit', metavar='FIT',
-			  help='Fit using a different equation (fcs, fcsTwoComponent)')
-        opts, args = parser.parse_args()
-
-	fittingequation = 'fcs'
-
-	if opts.fit:
-		if(opts.fit == 'fcs'):
-			fittingequation = 'fcs'
-		elif(opts.fit == 'fcsTwoComponent'):
-			fittingequation = 'fcsTwoComponent'
-		elif(opts.fit == 'fcsThree'):
-			fittingequation = 'fcsThree'
-		else:
-			fittingequation = 'fcs'
+        import argparse
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-e', '--early-cutoff', metavar='LAG', default=0,
+                            help='Early lag cutoff time')
+        parser.add_argument('-n', '--no-fit', action='store_true',
+                            help="Don't attempt to fit data; to be used with --plot")
+        parser.add_argument('-p', '--plot', action='store_true',
+                            help='Produce plot of data and fits')
+        parser.add_argument('-o', '--output', metavar='FILE',
+                            help='Save plot to FILE')
+        parser.add_argument('-m', '--model', metavar='MODEL', required=True,
+                            help='Specify a fit function to use (options: %s)' % ', '.join(models.keys()))
+        parser.add_argument('-s', '--set', metavar='SCOPE:PARAM=VALUE', action='append', dest='params',
+                            help='Set an initial fit parameter')
+        parser.add_argument('-f', '--file', metavar='FILE', dest='params_file',
+                            help='Specify parameters file for initial fit parameters')
+        parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
+                            help='Correlation functions to plot')
+        args = parser.parse_args()
 
         data = []
-        for f in args:
-                times, counts, var = load_favia(open(f))
+        for f in args.curves:
+                datum = load_favia(f)
+                take = datum['lag'] > args.early_cutoff
+                data.append(datum[take])
 
-                # Subtract out offset
-                counts -= 1.0
+        if args.model == 'help':
+                print_models()
+                sys.exit(0)
+        elif args.model not in models:
+                parser.error('Error: Unknown fitting model "%s"' % args.model)
 
-                # Eliminate early data
-                var = var[times > opts.early_cutoff]
-                counts = counts[times > opts.early_cutoff]
-                times = times[times > opts.early_cutoff]
+        model = models[args.model]()
+        params = Parameters(model, data)
+        print 'Fitting %d curves against model %s' % (len(data), args.model)
 
-                data.append(DataSet(f, times, counts, var))
+        if args.params_file is not None:
+                # TODO
+                pass
 
-        params = None
-        if not opts.no_fit:
-                # Run fit and print fit parameters
-		if(fittingequation == 'fcs'):
-			params = fit(data)
-			print 'tau_d', params.taud
-			print 'a', params.a
-			print 'X^2', params.chisquared
-			for i,n in enumerate(params.ns):
-				print 'n%d' % i, n
-		elif(fittingequation == 'fcsTwoComponent'):
-			params = fitTwoComponent(data)
-			print 'tau_d', params.taud
-			print 'a', params.a
-			print 'tau_r', params.taur
-			print 'f', params.f
-			print 'X^2', params.chisquared
-			for i,n in enumerate(params.ns):
-				print 'n%d' % i, n
-		elif(fittingequation == 'fcsThree'):
-			params = fitThree(data)
-			print 'tau_1', params.tau1
-			print 'a', params.a
-			print 'tau_2', params.tau2
-			print 'tr', params.tr
-			print 'tau_x', params.taux
-			print 'f1', params.f1
-			print 'X^2', params.chisquared
-			for i,n in enumerate(params.ns):
-				print 'n%d' % i, n
+        # Load parameters from arguments
+        if args.params is not None:
+                for s in args.params:
+                        scope,pv = s.split(':')
+                        p,v = pv.split('=')
+                        if scope not in ['fitted', 'fixed']:
+                                parser.error('Invalid scope %s' % scope)
+                        if p not in params:
+                                parser.error('Unknown parameters %s' % p)
+
+                        v = suffix_parse.parse(v)
+                        params[p].scope = scope
+                        params[p].value = v
+
+        # Start prompt
+        c = ParamConfig(params)
+        c.cmdloop()
+
+        print 'Initial Parameters:'
+        print_parameters(params)
+
+        new, chi_squared = fit(data, model, params)
+        print 'Chi^2 = %e' % chi_squared
+        print 'Fitted Parameters:'
+        print_parameters(new)
 
         # Plot
-        if opts.plot:
-                if opts.output:
-                        from matplotlib.figure import Figure
+        if args.plot:
+                from matplotlib.figure import Figure
+                fig = Figure()
+                if args.output:
                         from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-                        fig = Figure()
                         canvas = FigureCanvas(fig)
-                        fig = plot_data(fit_eq, data, params, fig)
-                        fig.savefig(opts.output)
+                        fig.savefig(args.output)
+
+                ax = fig.add_subplot(111)
+                ax.set_xlabel(r'$\tau$')
+                ax.set_ylabel(r'$G$')
+                ax.legend()
+                ax.autoscale_view(tight=True, scalex=True)
+                
+                for curve,name in zip(data, args.curves):
+                        ax.semilogx(curve['lag'], curve['G'], label=name,
+                                    linestyle='None', marker='+')
+
+                if not args.no_fit:
+                        from mpl_toolkits.axes_grid1 import make_axes_locatable
+                        divider = make_axes_locatable(ax)
+                        plot_model(fig, model)
+
+                print 'saved to', args.output
+                if args.output:
+                        fig.savefig(args.output)
                 else:
-                        import matplotlib.pyplot as pl
-                        plot_data(fittingequation, data, params, fig)
-                        pl.show()
-
-
+                        fig.show()
+                
