@@ -3,7 +3,6 @@ suffixes = {
         'G': 1e+9,
         'M': 1e+6,
         'k': 1e+3,
-        'c': 1e-2,
         'm': 1e-3,
         'u': 1e-6,
         'n': 1e-9,
@@ -17,8 +16,8 @@ def parse(v):
         return float(v)
 
 def format(v, prec=8):
-        """ Format a floating point number formatted with a suffix """
-        # Dumb brute force
+        """ Format a floating point number with a suffix """
+        # Dumb brute force method
         for suf,val in suffixes.items():
                 if v/val > 1 and v/val < 1000:
                         fmt = '%%1.%df%s' % (prec, suf)
