@@ -134,7 +134,7 @@ class fret_trajectory:
 ###
 
 def kinetic_mc(states, steps):
-        """ Kinetic Monte Carlo simulation.
+        """ Generate simulated FRET trajectory by Kinetic Monte Carlo method
         
             States are specified as a dictionary in the form of,
               states = { 'state_name': (rate, event_func), ... }
