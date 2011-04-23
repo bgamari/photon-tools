@@ -261,7 +261,6 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                         horizontalalignment='left',
                         verticalalignment='top',
                         transform=ax.transAxes)
-
         ax.text(1.07, 0.90, text,
                         fontsize=8,
                         family='monospace',
@@ -270,7 +269,7 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                         transform=ax.transAxes)
 
 import cmd
-class ParamConfig(cmd.Cmd):
+class ParamEditor(cmd.Cmd):
         def __init__(self, params):
                 self.params = params
                 cmd.Cmd.__init__(self)
@@ -403,7 +402,7 @@ if __name__ == '__main__':
                         params[p].value = v
 
         # Start prompt
-        c = ParamConfig(params)
+        c = ParamEditor(params)
         c.cmdloop()
 
         print 'Initial Parameters:'
@@ -436,13 +435,15 @@ if __name__ == '__main__':
                                     linestyle='None', marker='+')
 
                 if not args.no_fit:
-                        fig.subplots_adjust(right=0.7)
+                        fig.subplots_adjust(right=0.7, left=0.1)
                         plot_model(fig, ax, new, model, args.curves)
 
                 ax.set_xlabel(r'$\tau$')
                 ax.set_ylabel(r'$G$')
                 ax.autoscale_view(tight=True, scalex=True)
-                ax.legend()
+                leg = ax.legend()
+                for t in leg.get_texts():
+                        t.set_fontsize('small')
 
                 print 'saved to', args.output
                 if args.output:
