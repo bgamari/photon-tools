@@ -23,9 +23,10 @@
 import sys 
 from collections import namedtuple
 
-import scipy, numpy
+import numpy as np
+import scipy
 from scipy.optimize import leastsq
-from numpy import min, max, linspace, mean, exp, power, sqrt
+from numpy import min, max, mean, exp, power, sqrt, log10, sum
 import suffix_parse
 
 """
@@ -96,7 +97,7 @@ class Parameters(dict):
                                 packed.extend(self[k].value)
                         else:
                                 packed.append(self[k].value)
-                return numpy.array(packed)
+                return np.array(packed)
 
         def _curve_params(self, curve):
                 """ Generate full parameters dict from fixed and fitted parameters """
@@ -142,10 +143,11 @@ def _compute_error(p, curves, params, model):
         for i,c in enumerate(curves):
                 cparams = params._curve_params(i)
                 G = model.compute_G(cparams, c['lag'])
-                err.extend(c['G'] - G)
-                #err.extend((c['G'] - G) / c['err'])
+                #err.extend(c['G'] - G)
+                err.extend((c['G'] - G) / c['var']**2)
 
-        return numpy.array(err)
+        err = np.array(err)
+        return err
 
 def fit(curves, model, params):
         """ Run the regression. Returns a new Model object with optimized
@@ -155,34 +157,34 @@ def fit(curves, model, params):
         params = deepcopy(params)
         params.validate()
         p0 = params._pack()
-        print p0
-        res = scipy.optimize.leastsq(_compute_error, p0, args=(curves, params, model), full_output=True)
+        # Not sure why epsfcn needs to be changed
+        res = scipy.optimize.leastsq(_compute_error, p0, args=(curves, params, model), full_output=True, epsfcn=1e-7)
         p, cov_x, infodict, mesg, ier = res
+        print cov_x, mesg
+        #if cov_x is None: raise RuntimeError('Fit failed to converge (flat axis)')
         params._unpack(p)
-
-        err = _compute_error(p, curves, params, model)
-        chi_squared = sum(err**2)
-        return (params, chi_squared)
+        return params
 
 @register_model('3d_diff')
 class DiffusionModel(Model):
         """ Three-dimensional diffusion model. This includes the anamalous diffusion
             exponent alpha, which can be set to 1 for normal diffusion. """
         params = [
-                Parameter('tau_d',      'Diffusion time constant', def_scope='fitted'),
+                Parameter('tau_d',      'Diffusion time (microseconds)', def_scope='fitted'),
                 Parameter('a',          'Aspect ratio', def_value=3, def_scope='fitted'),
                 Parameter('n',          'Concentration', def_scope='fitted'),
                 Parameter('alpha',      'Anamalous diffusion exponent (1=normal diffusion)', def_value=1, def_scope='fixed'),
+                Parameter('offset',     'Offset', def_value=0, def_scope='fixed'),
         ]
 
         def compute_G(self, p, x):
                 a = p['a']
                 n = p['n']
-                tau_taud = (x / p['tau_d'])**p['alpha']
+                tau_taud = (x / (p['tau_d']*1e-6))**p['alpha']
 
                 b = 1. / (1. + tau_taud)
                 c = 1. / (1. + tau_taud * a**-2)
-                return (1. / n) * b * sqrt(c)
+                return (1. / n) * b * sqrt(c) + p['offset']
 
 @register_model('3d_diff_triplet')
 class NormalDiffusionTripletModel(Model):
@@ -209,16 +211,46 @@ class NormalDiffusionTripletModel(Model):
 
 def load_favia(file):
         dt = [('lag','f'), ('G','f'), ('var','f')]
-        d = numpy.genfromtxt(file, dtype=dt, usecols=(0,3,4))
+        d = np.genfromtxt(file, dtype=dt, usecols=(0,3,4))
         d['G'] -= 1.0   # Subtract out offset
         return d
 
-def plot_model(ax, model, curve_names, npts=1e3):
-        for curve,name in zip(model.curves, curve_names):
-                x = linspace(min(curve['lag']), max(curve['lag']), npts)
-                m = model.G(curve, x)
-                ax.semilogx(x, m, label='%s (fit)' % name)
-                # TODO: Add parameters to plot
+def plot_model(fig, ax, params, model, curve_names, npts=1e3):
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        divider = make_axes_locatable(ax)
+        i = 0
+        for curve,name in zip(params.curves, curve_names):
+                start = log10(min(curve['lag']))
+                stop = log10(max(curve['lag']))
+                x = np.logspace(start, stop, npts)
+                p = params._curve_params(i)
+                m = model.compute_G(p, x)
+                ax.semilogx(x, m, label='%s (fit)' % name.name)
+
+                ax2 = divider.append_axes('top', size=1.2, pad=0.1, sharex=ax)
+                ax2.axhline(0)
+                d = params.curves[i]
+                ax2.semilogx(d['lag'], model.compute_G(p, d['lag']) - d['G'])
+                for t in ax2.get_xticklabels():
+                        t.set_visible(False)
+
+                text = 'chi^2    = %1.1e' % chi_sq
+                for k,v in p.items():
+                        text += "\n%-8s = %1.3e" % (k,v)
+                ax2.text(1.10, 0.90, name.name,
+                                weight='bold',
+                                fontsize=12,
+                                horizontalalignment='left',
+                                verticalalignment='top',
+                                transform=ax2.transAxes)
+                ax2.text(1.12, 0.77, text,
+                                fontsize=8,
+                                family='monospace',
+                                horizontalalignment='left',
+                                verticalalignment='top',
+                                transform=ax2.transAxes)
+
+                i += 1
 
 import cmd
 class ParamConfig(cmd.Cmd):
@@ -319,11 +351,11 @@ if __name__ == '__main__':
                             help='Correlation functions to plot')
         args = parser.parse_args()
 
-        data = []
+        curves = []
         for f in args.curves:
                 datum = load_favia(f)
                 take = datum['lag'] > args.early_cutoff
-                data.append(datum[take])
+                curves.append(datum[take])
 
         if args.model == 'help':
                 print_models()
@@ -332,8 +364,8 @@ if __name__ == '__main__':
                 parser.error('Error: Unknown fitting model "%s"' % args.model)
 
         model = models[args.model]()
-        params = Parameters(model, data)
-        print 'Fitting %d curves against model %s' % (len(data), args.model)
+        params = Parameters(model, curves)
+        print 'Fitting %d curves against model %s' % (len(curves), args.model)
 
         if args.params_file is not None:
                 # TODO
@@ -360,10 +392,16 @@ if __name__ == '__main__':
         print 'Initial Parameters:'
         print_parameters(params)
 
-        new, chi_squared = fit(data, model, params)
-        print 'Chi^2 = %e' % chi_squared
-        print 'Fitted Parameters:'
+        new = fit(curves, model, params)
+        print 'Parameters:'
         print_parameters(new)
+        for i,c in enumerate(curves):
+                d = params.curves[i]
+                err = model.compute_G(params._curve_params(i), d['lag']) - d['G']
+                chi_sq = sum(err**2)
+                print #name
+                print 'Chi^2 = %e' % chi_sq
+                print 'Chi^2 / DOF = %f' % (chi_sq / (len(curves[i])-len(params)))
 
         # Plot
         if args.plot:
@@ -375,19 +413,19 @@ if __name__ == '__main__':
                         fig.savefig(args.output)
 
                 ax = fig.add_subplot(111)
-                ax.set_xlabel(r'$\tau$')
-                ax.set_ylabel(r'$G$')
-                ax.legend()
-                ax.autoscale_view(tight=True, scalex=True)
                 
-                for curve,name in zip(data, args.curves):
-                        ax.semilogx(curve['lag'], curve['G'], label=name,
+                for curve,name in zip(curves, args.curves):
+                        ax.semilogx(curve['lag'], curve['G'], label=name.name,
                                     linestyle='None', marker='+')
 
                 if not args.no_fit:
-                        from mpl_toolkits.axes_grid1 import make_axes_locatable
-                        divider = make_axes_locatable(ax)
-                        plot_model(fig, model)
+                        fig.subplots_adjust(right=0.7)
+                        plot_model(fig, ax, new, model, args.curves)
+
+                ax.set_xlabel(r'$\tau$')
+                ax.set_ylabel(r'$G$')
+                ax.autoscale_view(tight=True, scalex=True)
+                ax.legend()
 
                 print 'saved to', args.output
                 if args.output:
