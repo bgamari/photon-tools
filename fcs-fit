@@ -268,6 +268,15 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                         verticalalignment='top',
                         transform=ax.transAxes)
 
+def parse_param_value(value):
+        a = value.split(',')
+        if len(a) == 1:
+                return suffix_parse.parse(value)
+        elif len(a) == len(params.curves):
+                return [suffix_parse.parse(v) for v in a]
+        else:
+                raise RuntimeError('Not enough values (expected %d)' % len(params.curves))
+
 import cmd
 class ParamEditor(cmd.Cmd):
         def __init__(self, params):
@@ -294,16 +303,9 @@ class ParamEditor(cmd.Cmd):
                         print 'Invalid parameter %s' % name
                         return
                 try:
-                        a = value.split(',')
-                        if len(a) == 1:
-                                self.params[name].value = suffix_parse.parse(value)
-                        elif len(a) == len(params.curves):
-                                self.params[name].value = [suffix_parse.parse(v) for v in a]
-                        else:
-                                print 'Not enough values (expected %d)' % len(params.curves)
+                        self.params[name].value = parse_param_value(value)
                 except:
                         print 'Invalid value %s' % value
-                        pass
 
         def do_done(self, line):
                 """ Finished editing parameters """
@@ -359,6 +361,8 @@ if __name__ == '__main__':
                             help='Save plot to FILE')
         parser.add_argument('-m', '--model', metavar='MODEL', required=True,
                             help='Specify a fit function to use (options: %s)' % ', '.join(models.keys()))
+        parser.add_argument('-E', '--edit',
+                            help='Start command-line parameters editor')
         parser.add_argument('-s', '--set', metavar='SCOPE:PARAM=VALUE', action='append', dest='params',
                             help='Set an initial fit parameter')
         parser.add_argument('-f', '--file', metavar='FILE', dest='params_file',
@@ -370,8 +374,8 @@ if __name__ == '__main__':
         curves = []
         for f in args.curves:
                 datum = load_favia(f)
-                take = datum['lag'] > args.early_cutoff
-                curves.append(datum[take])
+                taken = datum[datum['lag'] > args.early_cutoff]
+                curves.append(taken)
 
         if args.model == 'help':
                 print_models()
@@ -387,7 +391,7 @@ if __name__ == '__main__':
                 # TODO
                 pass
 
-        # Load parameters from arguments
+        # Parse parameters from arguments
         if args.params is not None:
                 for s in args.params:
                         scope,pv = s.split(':')
@@ -396,14 +400,12 @@ if __name__ == '__main__':
                                 parser.error('Invalid scope %s' % scope)
                         if p not in params:
                                 parser.error('Unknown parameters %s' % p)
-
-                        v = suffix_parse.parse(v)
                         params[p].scope = scope
-                        params[p].value = v
+                        params[p].value = parse_param_value(v)
 
-        # Start prompt
-        c = ParamEditor(params)
-        c.cmdloop()
+        if args.edit:
+                c = ParamEditor(params)
+                c.cmdloop()
 
         print 'Initial Parameters:'
         print_parameters(params)
@@ -415,7 +417,7 @@ if __name__ == '__main__':
                 d = params.curves[i]
                 err = model.compute_G(params._curve_params(i), d['lag']) - d['G']
                 chi_sq = sum(err**2)
-                print #name
+                print args.curves[i].name
                 print 'Chi^2 = %e' % chi_sq
                 print 'Chi^2 / DOF = %f' % (chi_sq / (len(curves[i])-len(params)))
 
