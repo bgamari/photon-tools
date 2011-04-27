@@ -15,6 +15,11 @@ _bin_photons.so : _bin_photons.o
 _bin_photons.o : _bin_photons.c
 	gcc -c -I/usr/include/python2.6 -fPIC ${CFLAGS} -o $@ $<
 
+timetag_parse.so : timetag_parse.o
+	gcc ${LDFLAGS} -shared -o $@ $+
+timetag_parse.o : timetag_parse.c
+	gcc -c -I/usr/include/python2.6 -fPIC ${CFLAGS} -o $@ $<
+
 %.c : %.pyx
 	cython $<
 
