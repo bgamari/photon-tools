@@ -368,7 +368,7 @@ if __name__ == '__main__':
                             help='Save plot to FILE')
         parser.add_argument('-m', '--model', metavar='MODEL', required=True,
                             help='Specify a fit function to use (options: %s)' % ', '.join(models.keys()))
-        parser.add_argument('-E', '--edit',
+        parser.add_argument('-E', '--edit', action='store_true',
                             help='Start command-line parameters editor')
         parser.add_argument('-s', '--set', metavar='SCOPE:PARAM=VALUE', action='append', dest='params',
                             help='Set an initial fit parameter')
@@ -412,7 +412,17 @@ if __name__ == '__main__':
 
         if args.edit:
                 c = ParamEditor(params)
-                c.cmdloop()
+                while True:
+                        c.cmdloop()
+                        unset_params = [ k for k,v in params.items() if v.value is None ]
+                        if len(unset_params) == 0:
+                                break
+                        else:
+                                print "There are still unset parameters: ", ', '.join(unset_params)
+        else:
+                unset_params = [ k for k,v in params.items() if v is None ]
+                if len(unset_params) > 0:
+                        parser.error('Error: Unset parameters (%s)' % ', '.join(unset_params))
 
         print 'Initial Parameters:'
         print_parameters(params)
