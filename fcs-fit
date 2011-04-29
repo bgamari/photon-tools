@@ -307,6 +307,13 @@ class ParamEditor(cmd.Cmd):
                 except:
                         print 'Invalid value %s' % value
 
+        def do_list(self, line):
+                print 'Known Parameters:'
+                print '      name\tdefault scope\tdefault value\tdescription'
+                for p in self.params.values():
+                        print '    %6s\t%13s\t%13s\t%s' % (p.name, p.def_scope, p.def_value, p.description)
+                print
+
         def do_done(self, line):
                 """ Finished editing parameters """
                 return True
