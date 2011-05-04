@@ -9,13 +9,13 @@ This follows the work of Yang and Watkins
 """
 
 import numpy as np
-from numpy import log
+from numpy import log, sum, sqrt
 
 def tau95(n):
         if 1 < n <= 100:
-                return (3.0123 + 0.4835*log(n) - 0.00957*log(n**2) - 0.001488*log(n**3))/n
+                return 1.*n/(3.0123 + 0.4835*log(n) - 0.00957*log(n**2) - 0.001488*log(n**3))
         elif 100 < n:
-                return (3.0806 + 0.4894*log(n) - 0.02086*log(n**2))/n
+                return 1.*n/(3.0806 + 0.4894*log(n) - 0.02086*log(n**2))
         else:
                 raise RuntimeError('Implement me')
 
@@ -42,14 +42,31 @@ def find_change_points(times, alpha=0.05):
         """ Find change points of a data set """
         chunk_sz = 1000
         chgpts = []
+        # Iterate over chunks
         for i in range(0, len(times), chunk_sz):
                 t = times[i:i+chunk_sz]
-                L = compute_likelihood(t)
+                N = len(t)
+                T = t[-1]
+                L0 = compute_likelihood(t)
+
+                k = np.indices(t.shape)[0]
+                Vk = t / T
+                mu_k = -sum(1. / np.arange(k, N-1))
+                mu_nk = -sum(1. / np.arange(N-k, N-1))
+                v2_k = -sum(1. / np.arange(k, N-1)**2)
+                v2_nk = -sum(1. / np.arange(N-k, N-1)**2)
+                xi = pi**2/6 - sum(1. / np.arange(1, N-1)**2)
+                sigma2_k = 4*k**2*v2_k + 4*(N-k)**2*v2_nk - 8*k*(N-k)*xi
+
+                L0_E = -2*k*log(Vk) + 2*k*mu_k - 2*(N-k)*log(1-Vk) + 2*(N-k)*mu_nk
+                Lbar = L0_E / sqrt(sigma2_k)
+                W = 0.5*log(4*k*(N-k)/N**2)
+                L = (L0 - mean(L0)) / + W
+
                 k_max = argmax(L)
-                chgpts.append(k_max)
                 Z = L[k_max]
-                tau = compute_tau(1-beta)
-                C = (Z-L) <= tau
+                chgpts.append(k_max)
+
 
 def test_discrete_data():
         times = []
@@ -78,11 +95,11 @@ def test_gaussian_data(sigma=10, k=40, I0=10, I1=1000):
 
 if __name__ == '__main__':
         import sys
-        data = test_discrete_data()
+        #data = test_discrete_data()
         #data = test_gaussian_data()
-        times = data['t']
+        #times = data['t']
 
-        #times = np.fromfile(sys.argv[1], dtype=np.uint64)
+        times = np.fromfile(sys.argv[1], dtype=np.uint64)
         bins = np.core.records.fromfile(open(sys.argv[2]), formats='u8,u2', names='t,n')
         times = 1.*(times - times[0])
 
