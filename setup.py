@@ -3,7 +3,7 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
 ext_modules = [
-        Extension('_bin_photons', ['_bin_photons.pyx'])
+        Extension('photon_tools.bin_photons', ['bin_photons.pyx'])
 ]
 
 setup(name = 'photon-tools',

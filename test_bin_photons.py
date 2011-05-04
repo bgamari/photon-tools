@@ -12,8 +12,7 @@ def bin_data(data, bin_len):
 
         fo = tempfile.TemporaryFile('rw+b')
         subprocess.check_call(['./bin_photons', '-w %d' % bin_len], stdin=fi, stdout=fo)
-        dt = np.dtype([('time', 'u8'), ('counts','u2')])
-        return np.fromfile(fo, dtype=dt)
+        return np.fromfile(fo, dtype=[('time', 'u8'), ('counts','u2')])
 
 test_n = 1
 def result(result, description):
