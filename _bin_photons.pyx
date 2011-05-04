@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 cimport numpy as np
+from cpython cimport bool
 
 ctypedef unsigned short uint16_t
 ctypedef unsigned long long uint64_t
