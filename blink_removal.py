@@ -157,16 +157,34 @@ def kinetic_mc(states, steps):
 
         return state_traj
 
-def test_data(transitions=1e3, bg_flux=10, flux=(220, 10), fret_eff1=0.40, fret_eff2=0.7, ct_prob=0.005):
+def test_data(transitions=1e4, bg_flux=10, flux=220, fret_eff1=0.40, fret_eff2=0.7, ct_prob=0.005):
         """ Produce fake FRET data.
         
             We generate data for each of the three regions of the experiment
             (FRET, crosstalk, background). The FRET region data is generated
             with two FRET states of the given efficiencies.
         """
-        fret_length = int(round(transitions*0.75))
-        ct_length = int(round(transitions*0.25))
+        fret_length = int(round(transitions*0.5))
+        ct_length = int(round(transitions*0.5))
         bg_length = 10000
+
+        bins = []
+        add_bins = lambda a,d: bins.append(np.rec.fromarrays((a,d), names='A,D'))
+
+        # FRET region
+        #       State   : (rate, event_func)
+        states = {
+                'Ablink': (2e-3, lambda l: add_bins(np.zeros(l, dtype='i8'),
+                                                    np.random.poisson(flux, l).round())),
+                'Dblink': (2e-3, lambda l: add_bins(np.zeros(l, dtype='i8'),
+                                                    np.zeros(l, dtype='i8'))),
+                'fret1' : (6e-3, lambda l: add_bins(np.random.poisson((1-fret_eff1)*flux, l).round(),
+                                                    np.random.poisson(fret_eff1*flux, l).round())),
+                'fret2' : (8e-3, lambda l: add_bins(np.random.poisson((1-fret_eff2)*flux, l).round(),
+                                                    np.random.poisson(fret_eff2*flux, l).round())),
+        }
+        state_traj = kinetic_mc(states, fret_length)
+        fret_bins = stack_arrays(bins, asrecarray=True)
 
         def noisify_bins(bins):
                 # Cross-talk
@@ -179,41 +197,23 @@ def test_data(transitions=1e3, bg_flux=10, flux=(220, 10), fret_eff1=0.40, fret_
                 np.place(bins.A, bins.A<0, 0)
                 np.place(bins.D, bins.D<0, 0)
 
-
-        bins = []
-        add_bins = lambda a,d: bins.append(np.rec.fromarrays((a,d), names='A,D'))
-
-        # FRET region
-        #       State   : (rate, event_func)
-        states = {
-                'Ablink': (2e-3, lambda l: add_bins(np.zeros(l),
-                                                    np.random.normal(flux[0], flux[1], l).round())),
-                'Dblink': (2e-3, lambda l: add_bins(np.zeros(l),
-                                                    np.zeros(l))),
-                'fret1' : (6e-3, lambda l: add_bins(np.random.normal((1-fret_eff1)*flux[0], flux[1], l).round(),
-                                                    np.random.normal(fret_eff1*flux[0], flux[1], l).round())),
-                'fret2' : (8e-3, lambda l: add_bins(np.random.normal((1-fret_eff2)*flux[0], flux[1], l).round(),
-                                                    np.random.normal(fret_eff2*flux[0], flux[1], l).round())),
-        }
-        state_traj = kinetic_mc(states, fret_length)
-        fret_bins = stack_arrays(bins, asrecarray=True)
         noisify_bins(fret_bins)
 
         # Crosstalk region (acceptor died)
         bins = []
         states = {
-                'Dblink': (2e-3, lambda l: add_bins(np.zeros(l),
-                                                    np.zeros(l))),
-                'obs'   : (8e-3, lambda l: add_bins(np.zeros(l), 
-                                                    np.random.normal(flux[0], flux[1], l).round())),
+                'Dblink': (2e-3, lambda l: add_bins(np.zeros(l, dtype='i8'),
+                                                    np.zeros(l, dtype='i8'))),
+                'obs'   : (8e-3, lambda l: add_bins(np.zeros(l, dtype='i8'), 
+                                                    np.random.poisson(flux, l).round())),
         }
         state_traj = kinetic_mc(states, fret_length)
         ct_bins = stack_arrays(bins, asrecarray=True)
         noisify_bins(ct_bins)
 
         # Background region
-        bg_d_bins = np.random.normal(bg_flux, bg_flux, bg_length).round()
-        bg_a_bins = np.random.normal(bg_flux, bg_flux, bg_length).round()
+        bg_d_bins = np.random.poisson(bg_flux, bg_length).round()
+        bg_a_bins = np.random.poisson(bg_flux, bg_length).round()
         bg_bins = np.rec.fromarrays([bg_a_bins, bg_d_bins], names='A,D')
         np.place(bg_bins.A, bg_bins.A<0, 0)
         np.place(bg_bins.D, bg_bins.D<0, 0)
@@ -229,6 +229,12 @@ if __name__ == '__main__':
         fret,ct,bg = test_data(transitions=transitions)
         bins = stack_arrays((fret,ct,bg))
         logging.info("Generated %d time steps" % len(bins))
+
+        pl.clf()
+        pl.plot(bins['D'], label='Donor')
+        pl.plot(bins['A'], label='Acceptor')
+        pl.legend()
+        pl.savefig('all.png')
 
         pl.clf()
         pl.plot(fret.D[:plot_len], label='Donor')
