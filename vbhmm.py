@@ -7,8 +7,8 @@ from scipy.special import gammaln, psi
 def kl_dirichlet(P, Q):
 	alphaP = sum(P)
         alphaQ = sum(Q)
-        return gammaln(alphaP) - gammaln(alphaQ)
-                - sum(gammaln(P)-gammaln(Q))
+        return gammaln(alphaP) - gammaln(alphaQ) \
+                - sum(gammaln(P)-gammaln(Q)) \
                 + sum((P-Q) * (psi(P)-psi(P)))
 
 def vbmm(emission_seqs, n_states, model, max_iter=100, tol=1e-4):
@@ -30,7 +30,7 @@ def vbmm(emission_seqs, n_states, model, max_iter=100, tol=1e-4):
         wpi = dirichlet(upi,1) * len(emission_seqs)
 
         Fold = -Inf; ntol = tol*len(emission_seqs)
-        for i in range(max_iter);
+        for i in range(max_iter):
                 # M step
                 Wa = wa + np.tile(ua, (K, 1))
                 Wb = wb + np.tile(ub, (K, 1))
@@ -46,8 +46,8 @@ def vbmm(emission_seqs, n_states, model, max_iter=100, tol=1e-4):
                 # Compute F
                 Fa[i] = 0; Fb[i] = 0; Fpi[i] = 0;
                 for kk in range(K):
-                        Fa[i] -= kl_dirichlet(Wa(kk,:), ua)
-                        Fb[i] -= kl_dirichlet(Wb(kk,:), ub)
+                        Fa[i] -= kl_dirichlet(Wa[kk,:], ua)
+                        Fb[i] -= kl_dirichlet(Wb[kk,:], ub)
 
                 Fpi[i] = -kl_dirichlet(Wpi, upi)
                 F[i] = Fa[i] + Fb[i] + Fpi[i] + lnZ[i]
