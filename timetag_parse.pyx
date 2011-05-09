@@ -1,7 +1,8 @@
 import numpy as np
 cimport numpy as np
-from stdlib cimport *
-from my_stdio cimport * # Work around Cython 0.12's awful stdio.pxd
+from libc.stdlib cimport *
+from libc.stdio cimport *
+from cpython cimport bool
 
 ctypedef unsigned char uint8_t
 ctypedef unsigned long long uint64_t

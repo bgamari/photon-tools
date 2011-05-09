@@ -3,7 +3,8 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
 ext_modules = [
-        Extension('photon_tools.bin_photons', ['bin_photons.pyx'])
+        Extension('photon_tools.bin_photons', ['bin_photons.pyx']),
+        Extension('photon_tools.timetag_parse', ['timetag_parse.pyx']),
 ]
 
 setup(name = 'photon-tools',
