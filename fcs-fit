@@ -308,6 +308,7 @@ class ParamEditor(cmd.Cmd):
                         print 'Invalid value %s' % value
 
         def do_list(self, line):
+                """ Describe known parameters """
                 print 'Known Parameters:'
                 print '      name\tdefault scope\tdefault value\tdescription'
                 for p in self.params.values():
