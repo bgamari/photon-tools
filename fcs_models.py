@@ -13,7 +13,7 @@ class DiffusionModel(Model):
                 Parameter('offset',     'Offset', def_value=0, def_scope='fixed'),
         ]
 
-        def compute_G(self, p, x):
+        def __call__(self, p, x):
                 a = p['a']
                 n = p['n']
                 tau_taud = (x / (p['tau_d']*1e-6))**p['alpha']
@@ -33,7 +33,7 @@ class NormalDiffusionTripletModel(Model):
                 Parameter('F',          'Fraction of particles in triplet state'),
         ]
 
-        def compute_G(self, p, x):
+        def __call__(self, p, x):
                 a = p['a']
                 F = p['F']
                 n = p['n']

@@ -3,6 +3,14 @@ import numpy as np
 import scipy
 from scipy.optimize import leastsq
 
+""" 
+model_fit - A flexible framework for model parameter fitting
+
+This is a framework for doing non-linear least-squares fitting on several
+datasets simultaneously.
+
+"""
+
 models = {}
 def register_model(*names):
         def reg(cls):
@@ -88,7 +96,7 @@ class Model(object):
         To implement a new fit function, one must inherit from the Model class,
         providing a class member 'params' list giving the parameters supported by
         the model and their default scope. The fit function itself is given by
-        the compute_G function.
+        the __call__ function.
         """
 
         # Override this in subclasses
@@ -99,7 +107,7 @@ class Model(object):
                 for p in cls.params:
                         if p.name == name: return p
                 
-        def compute_G(self, params, x):
+        def __call__(self, params, x):
                 """ Compute the value of the fit function with the given
                     parameters on the given domain """
                 pass
@@ -109,7 +117,7 @@ def _compute_error(p, curves, params, model):
         params._unpack(p)
         for i,c in enumerate(curves):
                 cparams = params._curve_params(i)
-                G = model.compute_G(cparams, c['lag'])
+                G = model(cparams, c['lag'])
                 #err.extend(c['G'] - G)
                 err.extend((c['G'] - G) / c['var']**2)
 
@@ -124,10 +132,10 @@ def fit(curves, model, params):
         params = deepcopy(params)
         params.validate()
         p0 = params._pack()
-        # Not sure why epsfcn needs to be changed
+        # TODO: Not sure why epsfcn needs to be changed
         res = scipy.optimize.leastsq(_compute_error, p0, args=(curves, params, model), full_output=True, epsfcn=1e-7)
         p, cov_x, infodict, mesg, ier = res
-        print cov_x, mesg
-        #if cov_x is None: raise RuntimeError('Fit failed to converge (flat axis)')
+        #print cov_x, mesg
+        if cov_x is None: raise RuntimeError('Fit failed to converge (flat axis)')
         params._unpack(p)
         return params

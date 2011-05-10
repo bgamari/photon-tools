@@ -49,13 +49,13 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                 stop = log10(max(curve['lag']))
                 x = np.logspace(start, stop, npts)
                 cparams = params._curve_params(i)
-                m = model.compute_G(cparams, x)
+                m = model(cparams, x)
                 ax.semilogx(x, m, label='%s (fit)' % name)
 
                 ax2 = divider.append_axes('top', size=1.2, pad=0.1, sharex=ax)
                 ax2.axhline(y=0, linewidth=1, color='k', alpha=0.5)
                 d = params.curves[i]
-                ax2.semilogx(d['lag'], model.compute_G(cparams, d['lag']) - d['G'])
+                ax2.semilogx(d['lag'], model(cparams, d['lag']) - d['G'])
                 for t in ax2.get_xticklabels():
                         t.set_visible(False)
 
@@ -135,6 +135,7 @@ class ParamEditor(cmd.Cmd):
         def do_list(self, line):
                 """ Describe known parameters """
                 print 'Known Parameters:'
+                print '================='
                 print '      name\tdefault scope\tdefault value\tdescription'
                 for p in self.params.values():
                         print '    %6s\t%13s\t%13s\t%s' % (p.name, p.def_scope, p.def_value, p.description)
@@ -176,6 +177,7 @@ def print_models():
         for k,m in models.items():
                 print '  %s : %s' % (k, m.__doc__)
                 print '     Parameters:'
+                print '     ==========='
                 print '          name\tdefault scope\tdefault value\tdescription'
                 for p in m.params:
                         print '    %10s\t%13s\t%13s\t%s' % (p.name, p.def_scope, p.def_value, p.description)
@@ -258,7 +260,7 @@ if __name__ == '__main__':
         print_parameters(new)
         for i,c in enumerate(curves):
                 d = params.curves[i]
-                err = model.compute_G(params._curve_params(i), d['lag']) - d['G']
+                err = model(params._curve_params(i), d['lag']) - d['G']
                 chi_sq = sum(err**2)
                 print args.curves[i].name
                 print 'Chi^2 = %e' % chi_sq
