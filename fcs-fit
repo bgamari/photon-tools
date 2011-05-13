@@ -24,7 +24,7 @@ import sys
 import numpy as np
 from numpy import min, max, mean, exp, power, sqrt, log10, sum
 from photon_tools import suffix_parse
-from photon_tools.model_fit import models, Parameters, fit
+from photon_tools.model_fit import models, Parameters, fit, plot_model
 from photon_tools import fcs_models
 
 """
@@ -39,59 +39,6 @@ def load_favia(file):
         d = np.genfromtxt(file, dtype=dt, usecols=(0,3,4))
         d['G'] -= 1.0   # Subtract out offset
         return d
-
-def plot_model(fig, ax, params, model, curve_names, npts=1e3):
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        divider = make_axes_locatable(ax)
-        for i,curve in enumerate(params.curves):
-                name = curve_names[i].name
-                start = log10(min(curve['lag']))
-                stop = log10(max(curve['lag']))
-                x = np.logspace(start, stop, npts)
-                cparams = params._curve_params(i)
-                m = model(cparams, x)
-                ax.semilogx(x, m, label='%s (fit)' % name)
-
-                ax2 = divider.append_axes('top', size=1.2, pad=0.1, sharex=ax)
-                ax2.axhline(y=0, linewidth=1, color='k', alpha=0.5)
-                d = params.curves[i]
-                ax2.semilogx(d['lag'], model(cparams, d['lag']) - d['G'])
-                for t in ax2.get_xticklabels():
-                        t.set_visible(False)
-
-                text = 'chi^2             = %1.1e' % chi_sq
-                text += '\nchi^2/DOF         = %1.1e' % (chi_sq / len(curves[i])-len(params))
-                ptext = ["%3s  %-12s = %1.3e" % (p.scope[0:3], p.name, p.value)
-                                for p in params.values() if isinstance(p.value, list)]
-                text += '\n' + '\n'.join(sorted(ptext))
-                ax2.text(1.05, 0.90, name,
-                                weight='bold',
-                                fontsize=12,
-                                horizontalalignment='left',
-                                verticalalignment='top',
-                                transform=ax2.transAxes)
-                ax2.text(1.07, 0.77, text,
-                                fontsize=8,
-                                family='monospace',
-                                horizontalalignment='left',
-                                verticalalignment='top',
-                                transform=ax2.transAxes)
-
-        ptext = ["%3s  %-12s = %1.3e" % (p.scope[0:3], p.name, p.value)
-                        for p in params.values() if not isinstance(p.value, list)]
-        text = '\n' + '\n'.join(sorted(ptext))
-        ax.text(1.05, 0.95, 'Global Parameters',
-                        weight='bold',
-                        fontsize=12,
-                        horizontalalignment='left',
-                        verticalalignment='top',
-                        transform=ax.transAxes)
-        ax.text(1.07, 0.90, text,
-                        fontsize=8,
-                        family='monospace',
-                        horizontalalignment='left',
-                        verticalalignment='top',
-                        transform=ax.transAxes)
 
 def parse_param_value(value):
         a = value.split(',')
