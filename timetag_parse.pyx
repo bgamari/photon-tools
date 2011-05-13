@@ -109,7 +109,7 @@ def get_delta_events(f, skip_wraps=0):
         cdef uint64_t rec
         cdef np.ndarray[DeltaEvent] chunk
         chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
-        chunks = []
+        chunks = [chunk]
 
         while not feof(fl):
                 res = fread(&rec, 6, 1, fl)
@@ -133,11 +133,10 @@ def get_delta_events(f, skip_wraps=0):
 
                         # Start new chunk on filled
                         if j == chunk_sz:
-                                chunks.append(chunk)
                                 chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
+                                chunks.append(chunk)
                                 j = 0
         
-        chunks.append(chunk[:j])
         fclose(fl)
         return np.hstack(chunks)
 
@@ -175,7 +174,7 @@ def get_delta_spans(f, channel, skip_wraps=0):
         cdef uint64_t rec
         cdef np.ndarray[DeltaSpan] chunk
         chunk = np.empty(chunk_sz, dtype=delta_span_dtype)
-        chunks = []
+        chunks = [chunk]
 
         while not feof(fl):
                 res = fread(&rec, 6, 1, fl)
@@ -203,8 +202,8 @@ def get_delta_spans(f, channel, skip_wraps=0):
 
                         # Start new chunk on filled
                         if j == chunk_sz:
-                                chunks.append(chunk)
                                 chunk = np.empty(chunk_sz, dtype=delta_span_dtype)
+                                chunks.append(chunk)
                                 j = 0
         
         chunk[j].start_t = last_t
@@ -212,7 +211,6 @@ def get_delta_spans(f, channel, skip_wraps=0):
         chunk[j].state = last_state
         j += 1
 
-        chunks.append(chunk[:j])
         fclose(fl)
         return np.hstack(chunks)
 
