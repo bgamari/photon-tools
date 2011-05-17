@@ -31,7 +31,7 @@ def bin_photons(np.ndarray[np.uint64_t] times, int bin_width, bool include_zeros
 
         cdef Py_ssize_t i, j
         cdef uint64_t new_start
-        cdef uint64_t bin_start = times[0]
+        cdef uint64_t bin_start = (times[0] / bin_width) * bin_width
         cdef short bin_count = 0
         cdef unsigned int bin = 0
 
