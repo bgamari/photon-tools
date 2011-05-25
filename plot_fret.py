@@ -10,7 +10,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('file', type=file, help='Time trace file')
 parser.add_argument('-s', '--bin-size', metavar='TIME', help='Length of histogram bins (seconds)', default=1e-3)
 parser.add_argument('-S', '--skip', metavar='N', type=int, help='Skip first N records', default=0)
-parser.add_argument('-c', '--clockrate', metavar='HZ', type=float, help='Clockrate of timetagger (will read from .params file by default)', default=None)
+parser.add_argument('-c', '--clockrate', metavar='HZ', type=float,
+                    help='Clockrate of timetagger (will read from .params file by default)', default=None)
 parser.add_argument('-A', '--acceptor', metavar='N', required=True, type=int, help='Acceptor channel')
 parser.add_argument('-D', '--donor', metavar='N', required=True, type=int, help='Donor channel')
 parser.add_argument('-o', '--output', metavar='FILE', help='Output File Name')
@@ -36,12 +37,12 @@ ctot = ba['count'] + bd['count']
 def fret_eff(acc_bins, don_bins):
         return 1. * acc_bins['count'] / (don_bins['count']+acc_bins['count'])
 
-pl.figure()
-pl.subplots_adjust(hspace=0.6, left=0.1)
+pl.figure(figsize=(6,8))
+pl.subplots_adjust(hspace=0.6, wspace=0.5, bottom=0.1, right=0.9, top=0.9, left=0.15)
 
 pl.figtext(0.5, 0.96, args.file.name, fontsize=12, horizontalalignment='center')
 pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{s}, \langle I_D \\rangle = %1.1f \/\mathrm{Hz}, \langle I_A \\rangle = %1.1f \/\mathrm{Hz}$' % 
-	((end_t-start_t)/clockrate, 1.*len(da)/dt*clockrate, 1.*len(dd)/dt*clockrate), horizontalalignment='center')
+                ((end_t-start_t)/clockrate, 1.*len(da)/dt*clockrate, 1.*len(dd)/dt*clockrate), horizontalalignment='center')
 
 def plot_bins(ax, bins, color):
         ax.plot(bins['start_t'], bins['count'], color=color)
@@ -61,14 +62,15 @@ plot_bins(pl.subplot(423), bd, 'g')
 plot_burst_hist(pl.subplot(424), bd, 'r')
 
 def plot_fret_eff_hist(ax, thresh):
-	t = mean(ctot) + thresh*std(ctot)
+        t = mean(ctot) + thresh*std(ctot)
         take = ctot > t
         ta, td = ba[take], bd[take]
+        ax.locator_params(nbins=4)
         if len(ta) > 0:
                 ax.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1))
                 ax.set_xlabel('FRET Efficiency')
                 ax.set_ylabel('Events')
-		ax.text(0.1, 0.75, '$%1.2f \sigma \/(I > %1.2f \/\mathrm{Hz})$' % (thresh, t), transform=ax.transAxes)
+        ax.text(0.1, 0.75, '$%1.2f \sigma \/(I > %1.2f \/\mathrm{Hz})$' % (thresh, t), transform=ax.transAxes)
 
 plot_fret_eff_hist(pl.subplot(425), 1.0)
 plot_fret_eff_hist(pl.subplot(426), 1.5)
@@ -76,6 +78,6 @@ plot_fret_eff_hist(pl.subplot(427), 2.0)
 plot_fret_eff_hist(pl.subplot(428), 4.0)
 
 if args.output is None:
-	pl.show()
+        pl.show()
 else:
-	pl.savefig(args.output)
+        pl.savefig(args.output)
