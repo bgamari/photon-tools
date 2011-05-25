@@ -42,42 +42,35 @@ def fret_eff(acc_bins, don_bins):
 pl.figure()
 pl.subplots_adjust(hspace=0.4, left=0.1)
 
-def plot_bins(bins):
-        pl.plot(bins['start_t'], bins['count'])
-        pl.xlim(bins['start_t'][0], bins['start_t'][1000])
-        pl.xlabel('Time')
-        pl.ylabel('Counts')
+def plot_bins(ax, bins):
+        ax.plot(bins['start_t'], bins['count'])
+        ax.set_xlim(bins['start_t'][0], bins['start_t'][1000])
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Counts')
 
-def plot_burst_hist(bins):
-        pl.hist(bins['count'], bins=20, log=True)
-        pl.xlabel('Burst size (photons)')
-        pl.ylabel('Events')
+def plot_burst_hist(ax, bins):
+        ax.hist(bins['count'], bins=20, log=True)
+        ax.set_xlabel('Burst size (photons)')
+        ax.set_ylabel('Events')
 
-pl.subplot(421)
-plot_bins(bd)
-pl.subplot(422)
-plot_burst_hist(ba)
+plot_bins(pl.subplot(421), bd)
+plot_burst_hist(pl.subplot(422), ba)
 
-pl.subplot(423)
-plot_bins(bd)
-pl.subplot(424)
-plot_burst_hist(bd)
+plot_bins(pl.subplot(423), bd)
+plot_burst_hist(pl.subplot(424), bd)
 
-def plot_fret_eff_hist(thresh):
+def plot_fret_eff_hist(ax, thresh):
         ta,td = threshold(thresh)
         if len(ta) > 0:
-                pl.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1))
-                pl.xlabel('FRET Efficiency')
-                pl.ylabel('Events')
+                ax.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1), log=True)
+                ax.set_xlabel('FRET Efficiency')
+                ax.set_ylabel('Events')
+		ax.text(0.1, 0.75, '$%1.2f \sigma$' % thresh, transform=ax.transAxes)
 
-pl.subplot(425)
-plot_fret_eff_hist(4)
-pl.subplot(426)
-plot_fret_eff_hist(8)
-pl.subplot(427)
-plot_fret_eff_hist(5)
-pl.subplot(428)
-plot_fret_eff_hist(10)
+plot_fret_eff_hist(pl.subplot(425), 1.0)
+plot_fret_eff_hist(pl.subplot(426), 1.5)
+plot_fret_eff_hist(pl.subplot(427), 2.0)
+plot_fret_eff_hist(pl.subplot(428), 4.0)
 
 pl.show()
 
