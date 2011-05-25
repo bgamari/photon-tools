@@ -3,16 +3,18 @@
 from photon_tools.timetag_parse import get_strobe_events
 from photon_tools.bin_photons import bin_photons
 import argparse
-from numpy import mean, amin, amax, logical_and
+from numpy import mean, std, amin, amax, logical_and
 from matplotlib import pyplot as pl
 
 parser = argparse.ArgumentParser()
 parser.add_argument('file', type=file, help='Time trace file')
-parser.add_argument('-s', '--bin-size', help='Length of histogram bins (seconds)', default=1e-3)
+parser.add_argument('-s', '--bin-size', metavar='TIME', help='Length of histogram bins (seconds)', default=1e-3)
 parser.add_argument('-S', '--skip', metavar='N', type=int, help='Skip first N records', default=0)
 parser.add_argument('-c', '--clockrate', metavar='HZ', type=float, help='Clockrate of timetagger (will read from .params file by default)', default=None)
-parser.add_argument('-A', '--acceptor', metavar='N', type=int, help='Acceptor channel')
-parser.add_argument('-D', '--donor', metavar='N', type=int, help='Donor channel')
+parser.add_argument('-A', '--acceptor', metavar='N', required=True, type=int, help='Acceptor channel')
+parser.add_argument('-D', '--donor', metavar='N', required=True, type=int, help='Donor channel')
+parser.add_argument('-o', '--output', metavar='FILE', help='Output File Name')
+
 args = parser.parse_args()
 
 da = get_strobe_events(args.file.name, 1<<(args.acceptor-1))[args.skip:]
@@ -72,5 +74,7 @@ plot_fret_eff_hist(pl.subplot(426), 1.5)
 plot_fret_eff_hist(pl.subplot(427), 2.0)
 plot_fret_eff_hist(pl.subplot(428), 4.0)
 
-pl.show()
-
+if args.output is None:
+	pl.show()
+else:
+	pl.savefig(args.output)
