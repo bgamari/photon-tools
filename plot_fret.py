@@ -29,45 +29,46 @@ start_t = max(amin(ba['start_t']), amin(bd['start_t']))
 end_t = min(amax(ba['start_t']), amax(bd['start_t']))
 ba = ba[logical_and(ba['start_t'] >= start_t, ba['start_t'] < end_t)]
 bd = bd[logical_and(bd['start_t'] >= start_t, bd['start_t'] < end_t)]
+dt = end_t - start_t
 
 ctot = ba['count'] + bd['count']
-cavg = mean(ctot)
-cavg = 0.7
-
-def threshold(thresh):
-        take = ctot > thresh*cavg
-        return (ba[take], bd[take])
 
 def fret_eff(acc_bins, don_bins):
         return 1. * acc_bins['count'] / (don_bins['count']+acc_bins['count'])
 
 pl.figure()
-pl.subplots_adjust(hspace=0.4, left=0.1)
+pl.subplots_adjust(hspace=0.6, left=0.1)
 
-def plot_bins(ax, bins):
-        ax.plot(bins['start_t'], bins['count'])
+pl.figtext(0.5, 0.96, args.file.name, fontsize=12, horizontalalignment='center')
+pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{s}, \langle I_D \\rangle = %1.1f \/\mathrm{Hz}, \langle I_A \\rangle = %1.1f \/\mathrm{Hz}$' % 
+	((end_t-start_t)/clockrate, 1.*len(da)/dt*clockrate, 1.*len(dd)/dt*clockrate), horizontalalignment='center')
+
+def plot_bins(ax, bins, color):
+        ax.plot(bins['start_t'], bins['count'], color=color)
         ax.set_xlim(bins['start_t'][0], bins['start_t'][1000])
         ax.set_xlabel('Time')
         ax.set_ylabel('Counts')
 
-def plot_burst_hist(ax, bins):
-        ax.hist(bins['count'], bins=20, log=True)
+def plot_burst_hist(ax, bins, color):
+        ax.hist(bins['count'], bins=20, log=True, color=color)
         ax.set_xlabel('Burst size (photons)')
         ax.set_ylabel('Events')
 
-plot_bins(pl.subplot(421), bd)
-plot_burst_hist(pl.subplot(422), ba)
+plot_bins(pl.subplot(421), bd, 'g')
+plot_burst_hist(pl.subplot(422), ba, 'r')
 
-plot_bins(pl.subplot(423), bd)
-plot_burst_hist(pl.subplot(424), bd)
+plot_bins(pl.subplot(423), bd, 'g')
+plot_burst_hist(pl.subplot(424), bd, 'r')
 
 def plot_fret_eff_hist(ax, thresh):
-        ta,td = threshold(thresh)
+	t = mean(ctot) + thresh*std(ctot)
+        take = ctot > t
+        ta, td = ba[take], bd[take]
         if len(ta) > 0:
-                ax.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1), log=True)
+                ax.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1))
                 ax.set_xlabel('FRET Efficiency')
                 ax.set_ylabel('Events')
-		ax.text(0.1, 0.75, '$%1.2f \sigma$' % thresh, transform=ax.transAxes)
+		ax.text(0.1, 0.75, '$%1.2f \sigma \/(I > %1.2f \/\mathrm{Hz})$' % (thresh, t), transform=ax.transAxes)
 
 plot_fret_eff_hist(pl.subplot(425), 1.0)
 plot_fret_eff_hist(pl.subplot(426), 1.5)
