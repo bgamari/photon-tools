@@ -87,71 +87,16 @@ def get_strobe_events(f, channel_mask, skip_wraps=0):
         return np.hstack(chunks)
 
 cdef packed struct DeltaEvent:
-        np.uint64_t time
-        np.uint8_t channels
-delta_event_dtype = np.dtype([('t', np.uint64), ('chs', np.uint8)])
-
-def get_delta_events(f, skip_wraps=0):
-        cdef char* fname 
-        if isinstance(f, str):
-                fname = f
-        else:
-                fname = f.filename
-        cdef FILE* fl = fopen(fname, "r")
-        if fl == NULL:
-                raise RuntimeError("Couldn't open file")
-
-        cdef size_t chunk_sz = 1024
-        cdef unsigned int j = 0
-        cdef uint64_t time_offset = 0
-
-        cdef unsigned int wraps = 0
-        cdef uint64_t rec
-        cdef np.ndarray[DeltaEvent] chunk
-        chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
-        chunks = [chunk]
-
-        while not feof(fl):
-                res = fread(&rec, 6, 1, fl)
-                if res != 1: break
-                rec = swap_record(rec)
-
-                # Handle timer wraparound
-                wrapped = rec & (1ULL<<46) != 0
-                wraps += wrapped
-                if wraps < skip_wraps: continue
-                if wrapped:
-                        time_offset += (1ULL<<36)
-
-                # Record event
-                if rec & (1ULL << 45):
-                        t = rec & ((1ULL<<36)-1)
-                        t += time_offset
-                        chunk[j].time = t
-                        chunk[j].channels = (rec>>36) & 0xf
-                        j += 1
-
-                        # Start new chunk on filled
-                        if j == chunk_sz:
-                                chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
-                                chunks.append(chunk)
-                                j = 0
-        
-        fclose(fl)
-        return np.hstack(chunks)
-
-cdef packed struct DeltaSpan:
-        uint64_t start_t, end_t
+        uint64_t start_t
         uint8_t state
-delta_span_dtype = np.dtype([
+delta_event_dtype = np.dtype([
         ('start_t', np.uint64),
-        ('end_t', np.uint64),
         ('state', np.uint8)])
 
-def get_delta_spans(f, channel, skip_wraps=0):
+def get_delta_events(f, channel, skip_wraps=0):
         """
-        Gets a list of delta channel spans. A span is defined as a period 
-        during which the given delta channel has a static value.
+        Returns a list of delta channel events. The event is defined by a start
+        time past which the state is the given value.
         """
         cdef char* fname 
         if isinstance(f, str):
@@ -172,8 +117,8 @@ def get_delta_spans(f, channel, skip_wraps=0):
 
         cdef unsigned int wraps = 0
         cdef uint64_t rec
-        cdef np.ndarray[DeltaSpan] chunk
-        chunk = np.empty(chunk_sz, dtype=delta_span_dtype)
+        cdef np.ndarray[DeltaEvent] chunk
+        chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
         chunks = [chunk]
 
         while not feof(fl):
@@ -194,7 +139,6 @@ def get_delta_spans(f, channel, skip_wraps=0):
                         t = rec & ((1ULL<<36)-1)
                         t += time_offset
                         chunk[j].start_t = last_t
-                        chunk[j].end_t = t
                         chunk[j].state = last_state
                         if last_t != 0: j += 1 # Throw out first span to get correct start time
                         last_t = t
@@ -202,7 +146,7 @@ def get_delta_spans(f, channel, skip_wraps=0):
 
                         # Start new chunk on filled
                         if j == chunk_sz:
-                                chunk = np.empty(chunk_sz, dtype=delta_span_dtype)
+                                chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
                                 chunks.append(chunk)
                                 j = 0
         
