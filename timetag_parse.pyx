@@ -1,11 +1,8 @@
-import numpy as np
-cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
 from cpython cimport bool
-
-ctypedef unsigned char uint8_t
-ctypedef unsigned long long uint64_t
+from timetag_types cimport *
+from timetag_types import *
 
 DEF ENDIANESS="little"
 
@@ -26,11 +23,6 @@ ELIF ENDIANESS == "little":
                 return ret
 ELSE:
         print 'Invalid ENDIANESS'
-
-cdef packed struct StrobeEvent:
-        np.uint64_t time
-        np.uint8_t channels
-strobe_event_dtype = np.dtype([('t', np.uint64), ('chs', np.uint8)])
 
 def get_strobe_events(f, channel_mask, skip_wraps=0):
         cdef char* fname 
@@ -85,13 +77,6 @@ def get_strobe_events(f, channel_mask, skip_wraps=0):
         chunks.append(chunk[:j])
         fclose(fl)
         return np.hstack(chunks)
-
-cdef packed struct DeltaEvent:
-        uint64_t start_t
-        uint8_t state
-delta_event_dtype = np.dtype([
-        ('start_t', np.uint64),
-        ('state', np.uint8)])
 
 def get_delta_events(f, channel, skip_wraps=0):
         """
