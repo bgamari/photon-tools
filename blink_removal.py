@@ -20,7 +20,7 @@ plot_iterations = True
 plot_len = 4000
 
 dtype = np.dtype({'names': ['A','D'], 'formats': [np.uint32,np.uint32]})
-class fret_trajectory:
+class fret_trajectory(object):
         """ Represents a FRET trajectory. This consists of two-channel photon
             bin series for three regions: the FRET region, the cross-talk region,
             and the background region. These bin series are passed as numpy
@@ -109,7 +109,7 @@ class fret_trajectory:
                                 cax.fill_between(x, bayes[:plot_len], color='b')
                                 cax.axhline(bayes_thresh, color='r')
                                 cax.set_ylim(0, 8*bayes_thresh)
-                                pl.savefig('iter%d.png' % i)
+                                pl.savefig('iter%d.pdf' % i)
 
                         blinks = bayes > bayes_thresh
                         n_blinks = len(np.nonzero(blinks)[0])
@@ -224,23 +224,59 @@ if __name__ == '__main__':
         bayes_thresh = 10
         transitions = 1e4
 
-        logging.info("Generating test data")
-        from matplotlib import pyplot as pl
-        fret,ct,bg = test_data(transitions=transitions)
-        bins = stack_arrays((fret,ct,bg))
-        logging.info("Generated %d time steps" % len(bins))
+        import argparse
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-t', '--test', action='store_true', help='Use generated test data')
+        parser.add_argument('-a', '--acceptor', type=argparse.FileType('r'), help='Acceptor bin data')
+        parser.add_argument('-d', '--donor', type=argparse.FileType('r'), help='Donor bin data')
+        parser.add_argument('-f', '--fret', metavar='START:STOP', help='FRET region')
+        parser.add_argument('-c', '--crosstalk', metavar='START:STOP', help='Cross-talk region')
+        parser.add_argument('-b', '--background', metavar='START:STOP', help='Background region')
+        args = parser.parse_args()
+        
+        fret,ct,bg = None,None,None
+        if args.test:
+                logging.info("Generating test data")
+                from matplotlib import pyplot as pl
+                fret,ct,bg = test_data(transitions=transitions)
+                bins = stack_arrays((fret,ct,bg))
+                logging.info("Generated %d time steps" % len(bins))
+        else:
+                #da = np.fromfile(args.acceptor, dtype='u8,u2')[:,1]
+                #dd = np.fromfile(args.donor, dtype='u8,u2')[:,1]
+                da = np.fromfile(args.acceptor, dtype='<u2')
+                dd = np.fromfile(args.donor, dtype='<u2')
+                bins = np.rec.fromarrays([da, dd], names='A,D')
+                def parse_range(s):
+                        start,stop = s.split(':')
+                        return slice(int(start), int(stop))
+                fret = bins[parse_range(args.fret)]
+                ct = bins[parse_range(args.crosstalk)]
+                bg = bins[parse_range(args.background)]
 
+        from matplotlib import pyplot as pl
         pl.clf()
         pl.plot(bins['D'], label='Donor')
         pl.plot(bins['A'], label='Acceptor')
+        if args.test:
+                pl.axvspan(0, len(fret), color='b', alpha=0.1)
+                pl.axvspan(len(fret), len(ct), color='g', alpha=0.1)
+                pl.axvspan(len(fret)+len(ct), len(fret)+len(ct)+len(bg), color='r', alpha=0.1)
+        else:
+                def plot_range(rng, color):
+                        r = parse_range(rng)
+                        pl.axvspan(r.start, r.stop, color=color, alpha=0.1)
+                plot_range(args.fret, 'b')
+                plot_range(args.crosstalk, 'g')
+                plot_range(args.background, 'r')
         pl.legend()
-        pl.savefig('all.png')
+        pl.savefig('all.pdf')
 
         pl.clf()
         pl.plot(fret.D[:plot_len], label='Donor')
         pl.plot(fret.A[:plot_len], label='Acceptor')
         pl.legend()
-        pl.savefig('initial.png')
+        pl.savefig('initial.pdf')
 
         logging.info("Finding acceptor blinks")
         traj = fret_trajectory.from_bins(fret, ct, bg)
@@ -254,11 +290,11 @@ if __name__ == '__main__':
         b = np.nonzero(blinks)[0]
         pl.vlines(b[b<plot_len], ymin, ymax, alpha=0.1, color='r', label='Acceptor blinks')
         pl.legend()
-        pl.savefig('fret.png')
+        pl.savefig('fret.pdf')
         
         pl.clf()
         pl.plot(deblinked['D'][:plot_len], label='Donor')
         pl.plot(deblinked['A'][:plot_len], label='Acceptor')
         pl.legend()
-        pl.savefig('deblinked.png')
+        pl.savefig('deblinked.pdf')
 
