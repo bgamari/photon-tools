@@ -7,6 +7,7 @@ from Cython.Distutils import build_ext
 ext_modules = [
         Extension('photon_tools.bin_photons', ['bin_photons.pyx'], include_dirs=['.']),
         Extension('photon_tools.timetag_parse', ['timetag_parse.pyx'], include_dirs=['.']),
+        Extension('photon_tools.filter_photons', ['filter_photons.pyx'], include_dirs=['.']),
 ]
 
 setup(name = 'photon-tools',
