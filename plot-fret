@@ -1,0 +1,83 @@
+#!/usr/bin/python
+
+from photon_tools.timetag_parse import get_strobe_events
+from photon_tools.bin_photons import bin_photons
+import argparse
+from numpy import mean, std, amin, amax, logical_and
+from matplotlib import pyplot as pl
+
+parser = argparse.ArgumentParser()
+parser.add_argument('file', type=file, help='Time trace file')
+parser.add_argument('-s', '--bin-size', metavar='TIME', help='Length of histogram bins (seconds)', default=1e-3)
+parser.add_argument('-S', '--skip', metavar='N', type=int, help='Skip first N records', default=0)
+parser.add_argument('-c', '--clockrate', metavar='HZ', type=float,
+                    help='Clockrate of timetagger (will read from .params file by default)', default=None)
+parser.add_argument('-A', '--acceptor', metavar='N', required=True, type=int, help='Acceptor channel')
+parser.add_argument('-D', '--donor', metavar='N', required=True, type=int, help='Donor channel')
+parser.add_argument('-o', '--output', metavar='FILE', help='Output File Name')
+
+args = parser.parse_args()
+
+da = get_strobe_events(args.file.name, 1<<(args.acceptor-1))[args.skip:]
+dd = get_strobe_events(args.file.name, 1<<(args.donor-1))[args.skip:]
+clockrate = args.clockrate # TODO: Read from params
+
+ba = bin_photons(da['t'], args.bin_size*clockrate)
+bd = bin_photons(dd['t'], args.bin_size*clockrate)
+
+# Make sure data are aligned
+start_t = max(amin(ba['start_t']), amin(bd['start_t']))
+end_t = min(amax(ba['start_t']), amax(bd['start_t']))
+ba = ba[logical_and(ba['start_t'] >= start_t, ba['start_t'] < end_t)]
+bd = bd[logical_and(bd['start_t'] >= start_t, bd['start_t'] < end_t)]
+dt = end_t - start_t
+
+ctot = ba['count'] + bd['count']
+
+def fret_eff(acc_bins, don_bins):
+        return 1. * acc_bins['count'] / (don_bins['count']+acc_bins['count'])
+
+pl.figure(figsize=(6,8))
+pl.subplots_adjust(hspace=0.6, wspace=0.5, bottom=0.1, right=0.9, top=0.9, left=0.15)
+
+pl.figtext(0.5, 0.96, args.file.name, fontsize=12, horizontalalignment='center')
+pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{s}, \langle I_D \\rangle = %1.1f \/\mathrm{Hz}, \langle I_A \\rangle = %1.1f \/\mathrm{Hz}$' % 
+                ((end_t-start_t)/clockrate, 1.*len(da)/dt*clockrate, 1.*len(dd)/dt*clockrate), horizontalalignment='center')
+
+def plot_bins(ax, bins, color):
+        ax.plot(bins['start_t'], bins['count'], color=color)
+        ax.set_xlim(bins['start_t'][0], bins['start_t'][1000])
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Counts')
+
+def plot_burst_hist(ax, bins, color):
+        ax.hist(bins['count'], bins=20, log=True, color=color)
+        ax.set_xlabel('Burst size (photons)')
+        ax.set_ylabel('Events')
+
+plot_bins(pl.subplot(421), bd, 'g')
+plot_burst_hist(pl.subplot(422), ba, 'r')
+
+plot_bins(pl.subplot(423), bd, 'g')
+plot_burst_hist(pl.subplot(424), bd, 'r')
+
+def plot_fret_eff_hist(ax, thresh):
+        t = mean(ctot) + thresh*std(ctot)
+        take = ctot > t
+        ta, td = ba[take], bd[take]
+        ax.locator_params(nbins=4)
+        if len(ta) > 0:
+                ax.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1))
+                ax.set_xlabel('FRET Efficiency')
+                ax.set_ylabel('Events')
+        ax.text(0.1, 0.75, '$%1.2f \sigma \/(I > %1.2f \/\mathrm{Hz})$' % (thresh, t), transform=ax.transAxes)
+
+plot_fret_eff_hist(pl.subplot(425), 1.0)
+plot_fret_eff_hist(pl.subplot(426), 1.5)
+plot_fret_eff_hist(pl.subplot(427), 2.0)
+plot_fret_eff_hist(pl.subplot(428), 4.0)
+
+if args.output is None:
+        pl.show()
+else:
+        pl.savefig(args.output)
