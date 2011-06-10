@@ -5,3 +5,6 @@ delta_event_dtype = np.dtype([
         ('start_t', np.uint64),
         ('state', np.uint8)])
 
+bin_dtype = np.dtype([
+        ('start_t', np.uint64),
+        ('count', np.uint16)])

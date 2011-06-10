@@ -1,17 +1,6 @@
-import sys
-import numpy as np
-cimport numpy as np
 from cpython cimport bool
-
-ctypedef unsigned short uint16_t
-ctypedef unsigned long long uint64_t
-
-cdef packed struct Bin:
-        uint64_t start_t
-        uint16_t count
-bin_dtype = np.dtype([
-        ('start_t', np.uint64),
-        ('count', np.uint16)])
+from timetag_types cimport *
+from timetag_types import *
 
 def bin_photons(np.ndarray[np.uint64_t] times, int bin_width, bool include_zeros=True):
         """ bin_photons(times, bin_width, include_zeros=True)
