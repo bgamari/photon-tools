@@ -136,7 +136,6 @@ def get_delta_events(f, channel, skip_wraps=0):
                                 j = 0
         
         chunk[j].start_t = last_t
-        chunk[j].end_t = t
         chunk[j].state = last_state
         j += 1
 
