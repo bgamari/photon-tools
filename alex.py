@@ -16,33 +16,50 @@ parser.add_argument('-w', '--bin-width', type=float,
 args = parser.parse_args()
 
 start_exc_offset = args.start_offset
-bin_width = 1e-3
+bin_width = 10e-3
 strobe_clock = delta_clock = 128e6
 f = args.file.name
 
-Dem = get_strobe_events(f, 0x1)
-Aem = get_strobe_events(f, 0x2)
+strobe_D = get_strobe_events(f, 0x1)
+strobe_A = get_strobe_events(f, 0x2)
 delta_D = get_delta_events(f, 0)
 delta_A = get_delta_events(f, 1)
 
 def shifted_deltas(deltas, state, off):
         """ Add an offset to the start times of delta records with the given state """
-        ret = np.array(deltas)
-        taken = ret['state'] == state
+        ret = np.copy(deltas)
+        taken = deltas['state'] == state
         ret['start_t'][taken] += off*delta_clock
         return ret
 
-Dem_Dexc = filter_by_spans(strobe_D, shifted_deltas(strobe_D, True, start_exc_offset))
-Dem_Aexc = filter_by_spans(strobe_D, shifted_deltas(strobe_A, True, start_exc_offset))
-Aem_Dexc = filter_by_spans(strobe_A, shifted_deltas(strobe_D, True, start_exc_offset))
-Aem_Aexc = filter_by_spans(strobe_A, shifted_deltas(strobe_A, True, start_exc_offset))
+Dem_Dexc = filter_by_spans(strobe_D, shifted_deltas(delta_D, True, start_exc_offset))
+Dem_Aexc = filter_by_spans(strobe_D, shifted_deltas(delta_A, True, start_exc_offset))
+Aem_Dexc = filter_by_spans(strobe_A, shifted_deltas(delta_D, True, start_exc_offset))
+Aem_Aexc = filter_by_spans(strobe_A, shifted_deltas(delta_A, True, start_exc_offset))
 
-Dem_Dexc_bins = bin_photons(Dem_Dexc['t'], bin_width*strobe_clock)
-Dem_Aexc_bins = bin_photons(Dem_Aexc['t'], bin_width*strobe_clock)
-Aem_Dexc_bins = bin_photons(Aem_Dexc['t'], bin_width*strobe_clock)
-Aem_Aexc_bins = bin_photons(Aem_Aexc['t'], bin_width*strobe_clock)
+start_t = min(Dem_Dexc['t'][0], Dem_Aexc['t'][0], Aem_Dexc['t'][0], Aem_Aexc['t'][0])
+end_t = max(Dem_Dexc['t'][-1], Dem_Aexc['t'][-1], Aem_Dexc['t'][-1], Aem_Aexc['t'][-1])
 
-F_D_Dem_Dexc = Dem_Dexc_bins['count']
-F_fret = Aem_Dexc_bins['count'] - Lk - Dir
-F_A_Aem_Aexc = Aem_Aexc_bins['count']
+Dem_Dexc_bins = bin_photons(Dem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
+Dem_Aexc_bins = bin_photons(Dem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
+Aem_Dexc_bins = bin_photons(Aem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
+Aem_Aexc_bins = bin_photons(Aem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
 
+print end_t, start_t
+F_Dem_Dexc = Dem_Dexc_bins['count']
+F_Dem_Aexc = Dem_Aexc_bins['count']
+F_Aem_Dexc = Aem_Dexc_bins['count']
+F_Aem_Aexc = Aem_Aexc_bins['count']
+
+D_F_Dem_Dexc = Dem_Dexc_bins['count']
+#F_fret = Aem_Dexc_bins['count'] - Lk - Dir
+A_F_Aem_Aexc = Aem_Aexc_bins['count']
+
+E_raw_PR = 1. * F_Aem_Dexc / (F_Aem_Dexc + F_Dem_Dexc)
+E_raw_PR = E_raw_PR[np.logical_not(np.isnan(E_raw_PR))]
+S_raw = 1. * (F_Dem_Dexc + F_Aem_Dexc) / (F_Dem_Dexc + F_Aem_Dexc + F_Aem_Aexc)
+S_raw = S_raw[np.logical_not(np.isnan(S_raw))]
+
+#from matplotlib import pyplot as pl
+#pl.plot(E_raw_PR[:10000], S_raw[:10000], 'bo')
+#pl.show()
