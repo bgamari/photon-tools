@@ -53,6 +53,9 @@ def bin_photons(np.ndarray[np.uint64_t] times, int bin_width, uint64_t start_t=-
                 bin_count += 1
 
         if include_zeros and end_t != -1:
+                chunk[bin].start_t = bin_start
+                chunk[bin].count = bin_count
+                bin += 1
                 for j in range(bin_start+bin_width, end_t, bin_width):
                         chunk[bin].start_t = j
                         chunk[bin].count = 0
