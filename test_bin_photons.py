@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import numpy as np
 from numpy import any, all
+from photon_tools.bin_photons import bin_photons
 
 def bin_data(data, bin_len):
         fi = tempfile.TemporaryFile('rw+b')
@@ -43,4 +44,10 @@ good = len(do) == 11 \
         and all(do['counts'][1:9] == 0) \
         and do['counts'][10] == 1
 result(good, 'bin_photons zero bins test')
+
+di = np.array([200, 300, 400, 500], dtype='u8')
+do = bin_photons(di, 100, 0, 1000)
+good = np.all(do['count'] == [0, 0, 1, 1, 1, 1, 0, 0, 0, 0]) \
+	and np.all(do['start_t'] == [0, 100, 200, 300, 400, 500, 600, 700, 800, 900])
+result(good, 'bin_photons start_t/end_t')
 
