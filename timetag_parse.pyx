@@ -131,14 +131,14 @@ def get_delta_events(f, channel, skip_wraps=0):
 
                         # Start new chunk on filled
                         if j == chunk_sz:
-                                chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
                                 chunks.append(chunk)
+                                chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
                                 j = 0
         
         chunk[j].start_t = last_t
         chunk[j].state = last_state
         j += 1
-
+        chunks.append(chunk[:j])
         fclose(fl)
         return np.hstack(chunks)
 
