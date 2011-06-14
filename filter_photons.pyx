@@ -17,7 +17,7 @@ def filter_by_spans(np.ndarray[StrobeEvent] strobes, np.ndarray[DeltaEvent] delt
         while cur_span.state != True:
                 cur_span += 1
         for i in range(strobes.shape[0]):
-                if strobes[i].time >= (cur_span+1).start_t:
+                while strobes[i].time >= (cur_span+1).start_t:
                         if cur_span.state == False:
                                 # Assumes that states alternate
                                 t_off += (cur_span+1).start_t - cur_span.start_t
