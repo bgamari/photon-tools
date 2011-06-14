@@ -56,8 +56,9 @@ def get_strobe_events(f, channel_mask, skip_wraps=0):
                 # Handle timer wraparound
                 wrapped = rec & (1ULL<<46) != 0
                 wraps += wrapped
-                if wraps < skip_wraps: continue
-                if wrapped:
+                if wraps < skip_wraps:
+                        continue
+                elif wrapped and wraps > skip_wraps:
                         time_offset += (1ULL<<36)
 
                 # Record event
@@ -114,8 +115,9 @@ def get_delta_events(f, channel, skip_wraps=0):
                 # Handle timer wraparound
                 wrapped = rec & (1ULL<<46) != 0
                 wraps += wrapped
-                if wraps < skip_wraps: continue
-                if wrapped:
+                if wraps < skip_wraps:
+                        continue
+                elif wrapped and wraps > skip_wraps:
                         time_offset += (1ULL<<36)
 
                 # Record event
