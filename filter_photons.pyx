@@ -16,6 +16,8 @@ def filter_by_spans(np.ndarray[StrobeEvent] strobes, np.ndarray[DeltaEvent] delt
         # HACK? Move to first span in which we are interested
         while cur_span.state != True:
                 cur_span += 1
+                if cur_span == &deltas[-1]:
+                        raise RuntimeError('No deltas events with state==True')
         for i in range(strobes.shape[0]):
                 while strobes[i].time >= (cur_span+1).start_t:
                         if cur_span.state == False:
