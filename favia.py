@@ -27,7 +27,7 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
         stderr = sys.stderr if verbose else subprocess.PIPE
         p = subprocess.Popen(args, stdout=fo, stderr=stderr)
         if p.wait() != 0:
-                print p.stderr.read()
+                if not verbose: print p.stderr.read()
                 raise RuntimeError('Favia threw error')
 
         return np.loadtxt(fo.name, dtype=dtype)
