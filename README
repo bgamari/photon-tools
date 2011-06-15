@@ -22,9 +22,14 @@ Dependencies include,
  - Cython >= 0.15
  - Boost
 
-Note that working within the photon-tools/ root directory will require that the
-cython code is built in-place, due to limitations of Python's module name
-resolution scheme. To do this, one must run,
+The scripts and libraries included in photon-tools can be installed like any
+distutils package,
+
+  $ sudo ./setup.py install
+
+Note that running scripts within the photon-tools/ root directory will require
+that the cython code is built in-place, due to limitations of Python's module
+name resolution scheme. To do this, one must run,
 
   $ ./setup.py build_ext --inplace
 
