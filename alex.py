@@ -7,6 +7,7 @@ from photon_tools.timetag_parse import get_strobe_events, get_delta_events
 from photon_tools.bin_photons import bin_photons
 from photon_tools.timetag_types import *
 from matplotlib import pyplot as pl
+from numpy import mean, std, amin, amax, logical_and
 
 parser = argparse.ArgumentParser()
 parser.add_argument('file', type=argparse.FileType('r'),
@@ -15,10 +16,12 @@ parser.add_argument('-s', '--start-offset', type=float,
                     help='Time offset of valid data after delta channel goes high (seconds)', default=1e-6)
 parser.add_argument('-w', '--bin-width', type=float,
                     help='Bin width (seconds)', default=1e-3)
+parser.add_argument('-o', '--output', metavar='FILE', help='Output File Name')
+
 args = parser.parse_args()
 
 start_exc_offset = args.start_offset
-bin_width = 10e-3
+bin_width = args.bin_width
 strobe_clock = delta_clock = 128e6
 f = args.file.name
 
@@ -30,7 +33,6 @@ delta_A = get_delta_events(f, 1, skip_wraps=skip_wraps)
 
 def shifted_deltas(deltas, state, off):
         """ Add an offset to the start times of delta records with the given state """
-        return deltas #HACK
         ret = np.copy(deltas)
         taken = deltas['state'] == state
         ret['start_t'][taken] += off*delta_clock
@@ -60,17 +62,47 @@ pl.plot(F_Dem_Aexc[:npts], label='Dem Aexc')
 pl.plot(F_Aem_Dexc[:npts], label='Aem Dexc')
 pl.plot(F_Aem_Aexc[:npts], label='Aem Aexc')
 pl.legend()
-pl.show()
+if args.output is None:
+        pl.show()
+else:
+        pl.savefig('BINS_' + args.output)
 
-D_F_Dem_Dexc = Dem_Dexc_bins['count']
+#D_F_Dem_Dexc = Dem_Dexc_bins['count']
 #F_fret = Aem_Dexc_bins['count'] - Lk - Dir
-A_F_Aem_Aexc = Aem_Aexc_bins['count']
+#A_F_Aem_Aexc = Aem_Aexc_bins['count']
 
-E_raw_PR = 1. * F_Aem_Dexc / (F_Aem_Dexc + F_Dem_Dexc)
-E_raw_PR = E_raw_PR[np.logical_not(np.isnan(E_raw_PR))]
-S_raw = 1. * (F_Dem_Dexc + F_Aem_Dexc) / (F_Dem_Dexc + F_Aem_Dexc + F_Aem_Aexc)
-S_raw = S_raw[np.logical_not(np.isnan(S_raw))]
+#E_raw_PR = 1. * F_Aem_Dexc / (F_Aem_Dexc + F_Dem_Dexc)
+#E_raw_PR = E_raw_PR[np.logical_not(np.isnan(E_raw_PR))]
+#S_raw = 1. * (F_Dem_Dexc + F_Aem_Dexc) / (F_Dem_Dexc + F_Aem_Dexc + F_Aem_Aexc)
+#S_raw = S_raw[np.logical_not(np.isnan(S_raw))]
 
-pl.plot(E_raw_PR[:10000], S_raw[:10000], 'bo')
-pl.show()
+def fret_eff(don_bins, acc_bins):
+        return 1. * acc_bins / (don_bins + acc_bins)
+
+def plot_fret_eff_hist(ax, donor_bins, acceptor_bins, thresh):
+	ctot = donor_bins + acceptor_bins
+	t = thresh * mean(ctot)
+	take = ctot > t
+        td, ta = donor_bins[take], acceptor_bins[take]
+        ax.locator_params(nbins=4)
+        if len(ta) > 0:
+                ax.hist(fret_eff(td, ta), bins=20, histtype='step', range=(0,1))
+                ax.set_xlabel('FRET Efficiency')
+                ax.set_ylabel('Events')
+        ax.text(0.1, 0.75, '$%1.2f bkgrd \/(I > %1.2f \/\mathrm{ppb})$' % (thresh, t), transform=ax.transAxes)
+
+plot_fret_eff_hist(pl.subplot(421), F_Dem_Dexc, F_Aem_Dexc, 0.0)
+plot_fret_eff_hist(pl.subplot(422), F_Dem_Dexc, F_Aem_Dexc, 1.0)
+plot_fret_eff_hist(pl.subplot(423), F_Dem_Dexc, F_Aem_Dexc, 1.5)
+plot_fret_eff_hist(pl.subplot(424), F_Dem_Dexc, F_Aem_Dexc, 2.0)
+#plot_fret_eff_hist(pl.subplot(425), F_Dem_Dexc, F_Aem_Dexc, 2.5)
+#plot_fret_eff_hist(pl.subplot(426), F_Dem_Dexc, F_Aem_Dexc, 3.0)
+#plot_fret_eff_hist(pl.subplot(427), F_Dem_Dexc, F_Aem_Dexc, 5.0)
+#plot_fret_eff_hist(pl.subplot(428), F_Dem_Dexc, F_Aem_Dexc, 10.0)
+
+#pl.plot(E_raw_PR[:10000], S_raw[:10000], 'bo')
+if args.output is None:
+        pl.show()
+else:
+        pl.savefig('FRET_' + args.output)
 
