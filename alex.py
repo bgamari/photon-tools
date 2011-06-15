@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from collections import namedtuple
 import argparse
 import numpy as np
 from photon_tools.filter_photons import filter_by_spans
@@ -38,23 +39,28 @@ def shifted_deltas(deltas, state, off):
         ret['start_t'][taken] += off*delta_clock
         return ret
 
-Dem_Dexc = filter_by_spans(strobe_D, shifted_deltas(delta_D, True, start_exc_offset))
-Dem_Aexc = filter_by_spans(strobe_D, shifted_deltas(delta_A, True, start_exc_offset))
-Aem_Dexc = filter_by_spans(strobe_A, shifted_deltas(delta_D, True, start_exc_offset))
-Aem_Aexc = filter_by_spans(strobe_A, shifted_deltas(delta_A, True, start_exc_offset))
+AlexBins = namedtuple('AlexBins', 'Dem_Dexc Dem_Aexc Aem_Dexc Aem_Aexc')
+def get_alex_bins(strobe_D, strobe_A, delta_D, delta_A):
+	Dem_Dexc = filter_by_spans(strobe_D, shifted_deltas(delta_D, True, start_exc_offset))
+	Dem_Aexc = filter_by_spans(strobe_D, shifted_deltas(delta_A, True, start_exc_offset))
+	Aem_Dexc = filter_by_spans(strobe_A, shifted_deltas(delta_D, True, start_exc_offset))
+	Aem_Aexc = filter_by_spans(strobe_A, shifted_deltas(delta_A, True, start_exc_offset))
+	
+	start_t = min(Dem_Dexc['t'][0], Dem_Aexc['t'][0], Aem_Dexc['t'][0], Aem_Aexc['t'][0])
+	end_t = max(Dem_Dexc['t'][-1], Dem_Aexc['t'][-1], Aem_Dexc['t'][-1], Aem_Aexc['t'][-1])
+	
+	Dem_Dexc_bins = bin_photons(Dem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
+	Dem_Aexc_bins = bin_photons(Dem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
+	Aem_Dexc_bins = bin_photons(Aem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
+	Aem_Aexc_bins = bin_photons(Aem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
 
-start_t = min(Dem_Dexc['t'][0], Dem_Aexc['t'][0], Aem_Dexc['t'][0], Aem_Aexc['t'][0])
-end_t = max(Dem_Dexc['t'][-1], Dem_Aexc['t'][-1], Aem_Dexc['t'][-1], Aem_Aexc['t'][-1])
+	return AlexBins(Dem_Dexc_bins, Dem_Aexc_bins, Aem_Dexc_bins, Aem_Aexc_bins) 
 
-Dem_Dexc_bins = bin_photons(Dem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
-Dem_Aexc_bins = bin_photons(Dem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
-Aem_Dexc_bins = bin_photons(Aem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
-Aem_Aexc_bins = bin_photons(Aem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
-
-F_Dem_Dexc = Dem_Dexc_bins['count']
-F_Dem_Aexc = Dem_Aexc_bins['count']
-F_Aem_Dexc = Aem_Dexc_bins['count']
-F_Aem_Aexc = Aem_Aexc_bins['count']
+bins = get_alex_bins(strobe_D, strobe_A, delta_D, delta_A)
+F_Dem_Dexc = bins.Dem_Dexc['count']
+F_Dem_Aexc = bins.Dem_Aexc['count']
+F_Aem_Dexc = bins.Aem_Dexc['count']
+F_Aem_Aexc = bins.Aem_Aexc['count']
 
 npts = 1000
 pl.plot(F_Dem_Dexc[:npts], label='Dem Dexc')
