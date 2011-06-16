@@ -2,7 +2,7 @@ from cpython cimport bool
 from timetag_types cimport *
 from timetag_types import *
 
-def bin_photons(np.ndarray[np.uint64_t] times, int bin_width, uint64_t start_t=-1, uint64_t end_t=-1, bool include_zeros=True):
+def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t start_t=-1, uint64_t end_t=-1, bool include_zeros=True):
         """ bin_photons(times, bin_width, include_zeros=True)
 
         Bin the given array of photon times in bins of bin_width. The resulting
