@@ -53,8 +53,8 @@ if __name__ == '__main__':
 	f = args.file.name
 
 	skip_wraps = 1
-	strobe_D = get_strobe_events(f, 0x1, skip_wraps=skip_wraps)
-	strobe_A = get_strobe_events(f, 0x2, skip_wraps=skip_wraps)
+	strobe_D = get_strobe_events(f, 0x1, skip_wraps=skip_wraps)[1000:]
+	strobe_A = get_strobe_events(f, 0x2, skip_wraps=skip_wraps)[1000:]
 	delta_D = get_delta_events(f, 0, skip_wraps=skip_wraps)
 	delta_A = get_delta_events(f, 1, skip_wraps=skip_wraps)
 
