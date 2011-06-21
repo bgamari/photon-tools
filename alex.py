@@ -18,22 +18,27 @@ def shifted_deltas(deltas, state, off):
 		ret['start_t'][taken] += off*delta_clock
 	return ret
 
-AlexBins = namedtuple('AlexBins', 'Dem_Dexc Dem_Aexc Aem_Dexc Aem_Aexc')
-def get_alex_bins(strobe_D, strobe_A, delta_D, delta_A, bin_width, strobe_clock, start_exc_offset = 0):
+AlexDecomp = namedtuple('AlexDecomp', 'Dem_Dexc Dem_Aexc Aem_Dexc Aem_Aexc')
+
+def get_alex_photons(strobe_D, strobe_A, delta_D, delta_A, start_exc_offset=0):
 	Dem_Dexc = filter_by_spans(strobe_D, shifted_deltas(delta_D, True, start_exc_offset))
 	Dem_Aexc = filter_by_spans(strobe_D, shifted_deltas(delta_A, True, start_exc_offset))
 	Aem_Dexc = filter_by_spans(strobe_A, shifted_deltas(delta_D, True, start_exc_offset))
 	Aem_Aexc = filter_by_spans(strobe_A, shifted_deltas(delta_A, True, start_exc_offset))
-	
-	start_t = min(Dem_Dexc['t'][0], Dem_Aexc['t'][0], Aem_Dexc['t'][0], Aem_Aexc['t'][0])
-	end_t = max(Dem_Dexc['t'][-1], Dem_Aexc['t'][-1], Aem_Dexc['t'][-1], Aem_Aexc['t'][-1])
-	
-	Dem_Dexc_bins = bin_photons(Dem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
-	Dem_Aexc_bins = bin_photons(Dem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
-	Aem_Dexc_bins = bin_photons(Aem_Dexc['t'], bin_width*strobe_clock, start_t, end_t)
-	Aem_Aexc_bins = bin_photons(Aem_Aexc['t'], bin_width*strobe_clock, start_t, end_t)
+	return AlexDecomp(Dem_Dexc, Dem_Aexc, Aem_Dexc, Aem_Aexc) 
 
-	return AlexBins(Dem_Dexc_bins, Dem_Aexc_bins, Aem_Dexc_bins, Aem_Aexc_bins) 
+def get_alex_bins(photons, bin_width):
+	p = photons
+	start_t = min(p.Dem_Dexc['t'][0], p.Dem_Aexc['t'][0], p.Aem_Dexc['t'][0], p.Aem_Aexc['t'][0])
+	end_t = max(p.Dem_Dexc['t'][-1], p.Dem_Aexc['t'][-1], p.Aem_Dexc['t'][-1], p.Aem_Aexc['t'][-1])
+	
+	Dem_Dexc= bin_photons(p.Dem_Dexc['t'], bin_width, start_t, end_t)
+	Dem_Aexc= bin_photons(p.Dem_Aexc['t'], bin_width, start_t, end_t)
+	Aem_Dexc= bin_photons(p.Aem_Dexc['t'], bin_width, start_t, end_t)
+	Aem_Aexc= bin_photons(p.Aem_Aexc['t'], bin_width, start_t, end_t)
+
+	return AlexDecomp(Dem_Dexc, Dem_Aexc, Aem_Dexc, Aem_Aexc) 
+	
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
@@ -58,13 +63,14 @@ if __name__ == '__main__':
 	delta_D = get_delta_events(f, 0, skip_wraps=skip_wraps)
 	delta_A = get_delta_events(f, 1, skip_wraps=skip_wraps)
 
-	bins = get_alex_bins(strobe_D, strobe_A, delta_D, delta_A, bin_width, strobe_clock, start_exc_offset)
+	photons = get_alex_photons(strobe_D, strobe_A, delta_D, delta_A, start_exc_offset)
+	bins = get_alex_bins(photons, strobe_clock*bin_width)
 	F_Dem_Dexc = bins.Dem_Dexc['count']
 	F_Dem_Aexc = bins.Dem_Aexc['count']
 	F_Aem_Dexc = bins.Aem_Dexc['count']
 	F_Aem_Aexc = bins.Aem_Aexc['count']
 
-	npts = 1000
+	npts = 10000
 	pl.plot(F_Dem_Dexc[:npts], label='Dem Dexc')
 	pl.plot(F_Dem_Aexc[:npts], label='Dem Aexc')
 	pl.plot(F_Aem_Dexc[:npts], label='Aem Dexc')
