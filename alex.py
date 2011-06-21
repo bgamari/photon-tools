@@ -101,7 +101,13 @@ if __name__ == '__main__':
 			e_raw = alex_e_raw(tdd, tda, tad, taa)
 			s_raw = alex_s_raw(tdd, tda, tad, taa)
 			ax.plot(e_raw[:10000], s_raw[:10000], 'b+')
+
 		ax.text(0.1, 0.75, '$%1.2f bkgrd \/(I > %1.2f \/\mathrm{ ppb})$' % (thresh, t), transform=ax.transAxes)
+		pl.ylim(0, 1)
+		pl.xlim(0, 1)
+		tick_locations = np.arange(10) / 5.
+		ax.set_xticks(tick_locations, minor=False)
+		ax.set_yticks(tick_locations, minor=False)
 		
 
 	def fret_eff(don_bins, acc_bins):
