@@ -15,7 +15,7 @@ def shifted_deltas(deltas, state, off):
 	ret = np.copy(deltas)
 	if (off != 0):
 		taken = deltas['state'] == state
-		ret['start_t'][taken] += off*delta_clock
+		ret['start_t'][taken] += off
 	return ret
 
 AlexDecomp = namedtuple('AlexDecomp', 'Dem_Dexc Dem_Aexc Aem_Dexc Aem_Aexc')
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 	delta_D = get_delta_events(f, 0, skip_wraps=skip_wraps)[1024:]
 	delta_A = get_delta_events(f, 1, skip_wraps=skip_wraps)[1024:]
 
-	photons = get_alex_photons(strobe_D, strobe_A, delta_D, delta_A, start_exc_offset)
+	photons = get_alex_photons(strobe_D, strobe_A, delta_D, delta_A, delta_clock*start_exc_offset)
 	bins = get_alex_bins(photons, strobe_clock*bin_width)
 	F_Dem_Dexc = bins.Dem_Dexc['count']
 	F_Dem_Aexc = bins.Dem_Aexc['count']
