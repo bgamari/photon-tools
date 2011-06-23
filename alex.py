@@ -32,10 +32,10 @@ def get_alex_bins(photons, bin_width):
 	start_t = min(p.Dem_Dexc['t'][0], p.Dem_Aexc['t'][0], p.Aem_Dexc['t'][0], p.Aem_Aexc['t'][0])
 	end_t = max(p.Dem_Dexc['t'][-1], p.Dem_Aexc['t'][-1], p.Aem_Dexc['t'][-1], p.Aem_Aexc['t'][-1])
 	
-	Dem_Dexc= bin_photons(p.Dem_Dexc['t'], bin_width, start_t, end_t)
-	Dem_Aexc= bin_photons(p.Dem_Aexc['t'], bin_width, start_t, end_t)
-	Aem_Dexc= bin_photons(p.Aem_Dexc['t'], bin_width, start_t, end_t)
-	Aem_Aexc= bin_photons(p.Aem_Aexc['t'], bin_width, start_t, end_t)
+	Dem_Dexc = bin_photons(p.Dem_Dexc['t'], bin_width, start_t, end_t)
+	Dem_Aexc = bin_photons(p.Dem_Aexc['t'], bin_width, start_t, end_t)
+	Aem_Dexc = bin_photons(p.Aem_Dexc['t'], bin_width, start_t, end_t)
+	Aem_Aexc = bin_photons(p.Aem_Aexc['t'], bin_width, start_t, end_t)
 
 	return AlexDecomp(Dem_Dexc, Dem_Aexc, Aem_Dexc, Aem_Aexc) 
 	
@@ -62,6 +62,8 @@ if __name__ == '__main__':
 	strobe_A = get_strobe_events(f, 0x2, skip_wraps=skip_wraps)[1024:]
 	delta_D = get_delta_events(f, 0, skip_wraps=skip_wraps)[1024:]
 	delta_A = get_delta_events(f, 1, skip_wraps=skip_wraps)[1024:]
+	print delta_D
+	print delta_A
 
 	photons = get_alex_photons(strobe_D, strobe_A, delta_D, delta_A, delta_clock*start_exc_offset)
 	bins = get_alex_bins(photons, strobe_clock*bin_width)
@@ -71,10 +73,10 @@ if __name__ == '__main__':
 	F_Aem_Aexc = bins.Aem_Aexc['count']
 
 	npts = 10000
-	pl.plot(F_Dem_Dexc[:npts], label='Dem Dexc')
-	pl.plot(F_Dem_Aexc[:npts], label='Dem Aexc')
-	pl.plot(F_Aem_Dexc[:npts], label='Aem Dexc')
-	pl.plot(F_Aem_Aexc[:npts], label='Aem Aexc')
+	pl.plot(bins.Dem_Dexc[:npts]['start_t']/strobe_clock, bins.Dem_Dexc[:npts]['count'], '+', label='Dem Dexc')
+	pl.plot(bins.Dem_Aexc[:npts]['start_t']/strobe_clock, bins.Dem_Aexc[:npts]['count'], '+', label='Dem Aexc')
+	pl.plot(bins.Aem_Dexc[:npts]['start_t']/strobe_clock, bins.Aem_Dexc[:npts]['count'], '+', label='Aem Dexc')
+	pl.plot(bins.Aem_Aexc[:npts]['start_t']/strobe_clock, bins.Aem_Aexc[:npts]['count'], '+', label='Aem Aexc')
 	pl.legend()
 	if args.output is None:
 		pl.show()
