@@ -12,26 +12,28 @@ def filter_by_spans(np.ndarray[StrobeEvent] strobes, np.ndarray[DeltaEvent] delt
         chunk = np.empty(chunk_sz, dtype=strobe_event_dtype)
         chunks = []
 
-        cdef DeltaEvent* cur_span = &deltas[0]
+        cdef unsigned int delta_idx = 0
         # HACK? Move to first span in which we are interested
-        while cur_span.state != True:
-                cur_span += 1
-                if cur_span == &deltas[-1]:
+        while deltas[delta_idx].state != True:
+                delta_idx += 1
+                if delta_idx == len(deltas):
                         raise RuntimeError('No deltas events with state==True')
         for i in range(strobes.shape[0]):
-                while strobes[i].time >= (cur_span+1).start_t:
-                        if cur_span == &deltas[-2]:
+                while strobes[i].time >= deltas[delta_idx+1].start_t:
+                        if delta_idx == len(deltas) - 2:
                                 chunks.append(chunk[:j])
                                 return np.hstack(chunks)
 
-                        if cur_span.state == False:
+                        if deltas[delta_idx].state == False:
                                 # Assumes that states alternate
-                                t_off += (cur_span+1).start_t - cur_span.start_t
+                                t_off += deltas[delta_idx+1].start_t - deltas[delta_idx].start_t
+                                if deltas[delta_idx+1].start_t < deltas[delta_idx].start_t:
+                                        raise RuntimeError, "Data inconsistency: Decreasing delta timestamps (index %d: %d -> %d)" % (delta_idx, deltas[delta_idx].start_t, deltas[delta_idx+1].start_t)
 
-                        cur_span += 1
+                        delta_idx += 1
 
-                if strobes[i].time >= cur_span.start_t and cur_span.state:
-                        chunk[j].time = strobes[i].time - cur_span.start_t + t_off
+                if strobes[i].time >= deltas[delta_idx].start_t and deltas[delta_idx].state:
+                        chunk[j].time = strobes[i].time - deltas[delta_idx].start_t + t_off
                         chunk[j].channels = strobes[i].channels
                         j += 1
 
