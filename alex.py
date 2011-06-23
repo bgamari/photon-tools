@@ -58,10 +58,10 @@ if __name__ == '__main__':
 	f = args.file.name
 
 	skip_wraps = 1
-	strobe_D = get_strobe_events(f, 0x1, skip_wraps=skip_wraps)[1000:]
-	strobe_A = get_strobe_events(f, 0x2, skip_wraps=skip_wraps)[1000:]
-	delta_D = get_delta_events(f, 0, skip_wraps=skip_wraps)
-	delta_A = get_delta_events(f, 1, skip_wraps=skip_wraps)
+	strobe_D = get_strobe_events(f, 0x1, skip_wraps=skip_wraps)[1024:]
+	strobe_A = get_strobe_events(f, 0x2, skip_wraps=skip_wraps)[1024:]
+	delta_D = get_delta_events(f, 0, skip_wraps=skip_wraps)[1024:]
+	delta_A = get_delta_events(f, 1, skip_wraps=skip_wraps)[1024:]
 
 	photons = get_alex_photons(strobe_D, strobe_A, delta_D, delta_A, start_exc_offset)
 	bins = get_alex_bins(photons, strobe_clock*bin_width)
