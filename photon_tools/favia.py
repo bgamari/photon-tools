@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 import subprocess
 import numpy as np
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 dtype = np.dtype([('lag', 'f8'), ('loglag', 'f8'),
                   ('dot', 'f8'), ('dotnormed', 'f8'),
