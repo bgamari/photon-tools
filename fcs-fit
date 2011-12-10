@@ -202,7 +202,12 @@ if __name__ == '__main__':
         print 'Initial Parameters:'
         print_parameters(params)
 
-        new = fit(curves, model, params)
+        new = params
+        try:
+                new = fit(curves, model, params)
+        except RuntimeError as e:
+                print 'Failed to converge', e
+
         print 'Parameters:'
         print_parameters(new)
         for i,c in enumerate(curves):
