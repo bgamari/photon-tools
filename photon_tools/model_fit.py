@@ -1,5 +1,6 @@
 from collections import namedtuple
 import numpy as np
+from numpy import log10
 import scipy
 from scipy.optimize import leastsq
 
