@@ -244,9 +244,10 @@ if __name__ == '__main__':
                 for t in leg.get_texts():
                         t.set_fontsize('small')
 
-                print 'saved to', args.output
                 if args.output:
                         fig.savefig(args.output)
+                        print 'saved to', args.output
                 else:
-                        fig.show()
+                        from matplotlib import pyplot as pl
+                        pl.show()
                 

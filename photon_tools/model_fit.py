@@ -149,6 +149,8 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         divider = make_axes_locatable(ax)
         for i,curve in enumerate(params.curves):
+                chi_sq = 0 # TODO
+
                 name = curve_names[i].name
                 start = log10(min(curve['lag']))
                 stop = log10(max(curve['lag']))
@@ -165,7 +167,7 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                         t.set_visible(False)
 
                 text = 'chi^2             = %1.1e' % chi_sq
-                text += '\nchi^2/DOF         = %1.1e' % (chi_sq / len(curves[i])-len(params))
+                text += '\nchi^2/DOF         = %1.1e' % (chi_sq / len(params.curves[i])-len(params))
                 ptext = ["%3s  %-12s = %1.3e" % (p.scope[0:3], p.name, p.value)
                                 for p in params.values() if isinstance(p.value, list)]
                 text += '\n' + '\n'.join(sorted(ptext))
