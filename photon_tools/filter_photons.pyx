@@ -32,12 +32,13 @@ def filter_by_spans(np.ndarray[StrobeEvent] strobes, np.ndarray[DeltaEvent] delt
 
                         # Compensate for discarded duration
                         if offsetTimes and deltas[delta_idx].state == False:
-                                # Assumes that states alternate
+                                # Assumes that delta channel state alternates
                                 t_off += deltas[delta_idx+1].start_t - deltas[delta_idx].start_t
 
-
                 if strobes[i].time >= deltas[delta_idx].start_t and deltas[delta_idx].state:
-                        chunk[j].time = strobes[i].time - deltas[delta_idx].start_t + t_off
+                        chunk[j].time = strobes[i].time
+                        if offsetTimes:
+                                chunk[j].time += t_off - deltas[delta_idx].start_t
                         chunk[j].channels = strobes[i].channels
                         j += 1
 
