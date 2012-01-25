@@ -98,6 +98,7 @@ def get_delta_events(f, channel, skip_wraps=0):
         cdef uint64_t time_offset = 0
 
         cdef uint64_t t
+        cdef bool state = False
         cdef bool last_state = False
         cdef uint64_t last_t = 0
 
