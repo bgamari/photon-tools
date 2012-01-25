@@ -145,3 +145,67 @@ def get_delta_events(f, channel, skip_wraps=0):
         fclose(fl)
         return np.hstack(chunks)
 
+def get_filtered_strobe_events(f, channel_mask, delta_channel, skip_wraps=0):
+        cdef char* fname 
+        if isinstance(f, str):
+                fname = f
+        else:
+                fname = f.filename
+        cdef FILE* fl = fopen(fname, "r")
+        if fl == NULL:
+                raise RuntimeError("Couldn't open file")
+
+        if channel_mask > 0xf:
+                raise RuntimeError("Invalid channel mask")
+        cdef uint64_t mask = channel_mask << 36
+
+        cdef size_t chunk_sz = 1024
+        cdef unsigned int j = 0
+        cdef uint64_t time_offset = 0
+        cdef bool last_state = False
+
+        cdef unsigned int wraps = 0
+        cdef uint64_t rec
+        cdef np.ndarray[StrobeEvent] chunk
+        chunk = np.empty(chunk_sz, dtype=strobe_event_dtype)
+        chunks = []
+
+        cdef unsigned int last_deltas = 0
+
+        while not feof(fl):
+                res = fread(&rec, 6, 1, fl)
+                if res != 1: break
+                rec = swap_record(rec)
+
+                # Handle timer wraparound
+                wrapped = rec & (1ULL<<46) != 0
+                wraps += wrapped
+                if wraps < skip_wraps:
+                        continue
+                elif wrapped and wraps > skip_wraps:
+                        time_offset += (1ULL<<36)
+
+                if rec & (1ULL << 45):
+                        state = ((rec>>(36+channel)) & 1) != 0
+
+                # Filter on delta state
+                if state & delta_mask == 0:
+                        continue
+
+                # Record event
+                if rec & mask and not (rec & (1ULL << 45)):
+                        t = rec & ((1ULL<<36)-1)
+                        t += time_offset
+                        chunk[j].time = t
+                        chunk[j].channels = (rec >> 36) & 0xf
+                        j += 1
+
+                        # Start new chunk on filled
+                        if j == chunk_sz:
+                                chunks.append(chunk)
+                                chunk = np.empty(chunk_sz, dtype=strobe_event_dtype)
+                                j = 0
+        
+        chunks.append(chunk[:j])
+        fclose(fl)
+        return np.hstack(chunks)
