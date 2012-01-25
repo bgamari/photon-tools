@@ -145,7 +145,7 @@ def get_delta_events(f, channel, skip_wraps=0):
         fclose(fl)
         return np.hstack(chunks)
 
-def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1):
+def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1, on_offset=0):
         cdef char* fname 
         if isinstance(f, str):
                 fname = f
@@ -163,6 +163,7 @@ def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1):
         cdef unsigned int j = 0
         cdef uint64_t time_offset = 0
         cdef bool state = False
+        cdef uint64_t on_time = 0
 
         cdef unsigned int wraps = 0
         cdef uint64_t rec
@@ -185,16 +186,19 @@ def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1):
                 elif wrapped and wraps > skip_wraps:
                         time_offset += (1ULL<<36)
 
+                t = rec & ((1ULL<<36)-1)
+                t += time_offset
+
                 if rec & (1ULL << 45):
                         state = ((rec>>(36+delta_channel)) & 1) != 0
+                        if state: on_time = t
 
                 # Filter on delta state
                 if not state: continue
+                if t < on_time + on_offset: continue
 
                 # Record event
                 if rec & mask and not (rec & (1ULL << 45)):
-                        t = rec & ((1ULL<<36)-1)
-                        t += time_offset
                         chunk[j].time = t
                         chunk[j].channels = (rec >> 36) & 0xf
                         j += 1
