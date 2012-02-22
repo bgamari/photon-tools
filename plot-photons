@@ -20,7 +20,11 @@ if os.path.isfile(meta_name):
         params = json.load(open(meta_name))
 
 jiffy = 1.0 / params.get('clockrate', 1)
-times = np.fromfile(args.input, np.uint64) * jiffy
+if args.input.name.endswith('.timetag'):
+        from photon_tools.timetag_parse import get_strobe_events
+        times = get_strobe_events(args.input.name, 0)
+else:
+        times = np.fromfile(args.input, np.uint64) * jiffy
 pl.hist(times, args.nbins, histtype='step')
 pl.show()
 
