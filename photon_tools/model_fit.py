@@ -91,7 +91,7 @@ class Parameters(dict):
                 return params
 
         def __str__(self):
-                return "\n".join(map(lambda x: x, self.params))
+                return "\n".join(map(lambda x: str(x), self.params))
 	
 class Model(object):
         """
