@@ -28,18 +28,25 @@ class Parameter(object):
                 self.description = description
                 self.def_value = def_value
                 self.def_scope = def_scope
+                self.scope = None
+                self.value = None
+
+        def __str__(self):
+                return '<Parameter %s (%s) = %e>' % (self.name, self.scope, self.value)
 
 class Parameters(dict):
         def __init__(self, model, curves):
                 from copy import copy
                 assert(len(curves) > 0)
                 self.curves = curves
-                
+                self.params = []
+		
                 for p in model.params:
                         a = copy(p)
                         a.scope = p.def_scope
                         a.value = p.def_value
                         self[p.name] = a
+                        self.params.append(a)
 
         def validate(self):
                 """ Needs to be called before pack or unpack are used """
@@ -83,6 +90,9 @@ class Parameters(dict):
                         params[k] = v[i] if isinstance(v, list) else v
                 return params
 
+        def __str__(self):
+                return "\n".join(map(lambda x: x, self.params))
+	
 class Model(object):
         """
         Represents a fitting model for a multi-curve non-linear regression
@@ -107,7 +117,7 @@ class Model(object):
         def param(cls, name):
                 for p in cls.params:
                         if p.name == name: return p
-                
+	
         def __call__(self, params, x):
                 """ Compute the value of the fit function with the given
                     parameters on the given domain """
