@@ -32,8 +32,9 @@ args = parser.parse_args()
 jiffy = args.jiffy # seconds
 bin_width = args.bin_width # seconds
 
-a = tp.get_strobe_events(args.input, 2)[100:]
-d = tp.get_strobe_events(args.input, 1)[100:]
+fname = args.input.name
+a = tp.get_strobe_events(fname, 2)[100:]
+d = tp.get_strobe_events(fname, 1)[100:]
 
 start_t = min(a[0]['t'], d[0]['t'])
 a['t'] -= start_t
@@ -42,19 +43,19 @@ d['t'] -= start_t
 abins = bp.bin_photons(a['t'], round(bin_width / jiffy))
 dbins = bp.bin_photons(d['t'], round(bin_width / jiffy))
 
-print f
+print fname
 print "Average rates:"
 print "  Donor:    %f / second" % (np.mean(dbins['count']) / bin_width)
 print "  Acceptor: %f / second" % (np.mean(abins['count']) / bin_width)
 print
 
 ymax = None
-if args.max_count_rate == 'max':
+if args.max_count == 'max':
         ymax = max(np.max(abins['count']), np.max(dbins['count']))
-elif args.max_count_rate == 'avg':
+elif args.max_count == 'avg':
         ymax = 1.5 * max(np.mean(dbins['count']), np.mean(abins['count']))
 else:
-        ymax = args.max_count_rate * bin_width
+        ymax = args.max_count * bin_width
 
 def plot_bins(bins, style, **kws):
         times = map(lambda t: t*jiffy, bins['start_t']) 
@@ -79,7 +80,7 @@ for r in range(args.rows):
 
 pl.gca().axes.get_xaxis().set_visible(True)
 
-pl.suptitle(f + '\nBin Width=%1.1f ms' % (bin_width*1e3))
+pl.suptitle(fname + '\nBin Width=%1.1f ms' % (bin_width*1e3))
 pl.xlabel('Time (seconds)')
 
 if args.output is not None:
