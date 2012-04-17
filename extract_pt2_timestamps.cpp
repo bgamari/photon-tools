@@ -60,7 +60,8 @@ int main(int argc, char** argv) {
                 pos << (boost::format("{\n"
                                         "\"clockrate\": %f\n"
                                         "\"date\": \"%s\"\n"
-                                      "}") % (1.0/PT2_TIME_UNIT));
+                                      "}") % (1.0/PT2_TIME_UNIT)
+                                           % "todo");
         } else
                 dump(std::cin, std::cout);
 
