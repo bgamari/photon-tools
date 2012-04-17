@@ -1,0 +1,76 @@
+#!/usr/bin/python
+
+import photon_tools.timetag_parse as tp
+import photon_tools.bin_photons as bp
+import sys
+from matplotlib import pyplot as pl
+import numpy as np
+from matplotlib.ticker import MaxNLocator
+
+jiffy = 1/128e6 # seconds
+bin_width = 10e-3 # seconds
+rows = 14
+row_width = 10 # seconds
+
+#max_count_rate = 4000 # Absolute count rate in 1/second
+#max_count_rate = 'avg' # Autoscale to average count rate
+max_count_rate = 'max' # Autoscale to maximum count rate
+
+
+f = sys.argv[1]
+a = tp.get_strobe_events(f, 2)[100:]
+d = tp.get_strobe_events(f, 1)[100:]
+
+start_t = min(a[0]['t'], d[0]['t'])
+a['t'] -= start_t
+d['t'] -= start_t
+
+abins = bp.bin_photons(a['t'], round(bin_width / jiffy))
+dbins = bp.bin_photons(d['t'], round(bin_width / jiffy))
+
+print f
+print "Average rates:"
+print "  Donor:    %f / second" % (np.mean(dbins['count']) / bin_width)
+print "  Acceptor: %f / second" % (np.mean(abins['count']) / bin_width)
+print
+
+ymax = None
+if max_count_rate == 'max':
+        ymax = max(np.max(abins['count']), np.max(dbins['count']))
+elif max_count_rate == 'avg':
+        ymax = 1.5 * max(np.mean(dbins['count']), np.mean(abins['count']))
+else:
+        ymax = max_count_rate * bin_width
+
+def plot_bins(bins, style, **kws):
+        times = map(lambda t: t*jiffy, bins['start_t']) 
+        pl.plot(times, bins['count'], style, **kws)
+
+for r in range(rows):
+        pl.subplot(rows,1,r+1)
+        s = r * row_width / jiffy
+        e = (r+1) * row_width / jiffy
+        ab = abins[np.logical_and(abins['start_t'] >= s, abins['start_t'] < e)]
+        db = dbins[np.logical_and(dbins['start_t'] >= s, dbins['start_t'] < e)]
+        plot_bins(db, 'g-', label='Donor', alpha=0.7)
+        plot_bins(ab, 'r-', label='Acceptor', alpha=0.7)
+
+        ax = pl.gca()
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_major_locator(MaxNLocator(2))
+        ax.yaxis.set_minor_locator(MaxNLocator(4))
+        ax.yaxis.grid(which='minor', alpha=0.2, color='black', linestyle='-')
+        pl.xlim(r*row_width, (r+1)*row_width)
+        pl.ylim(0, ymax)
+
+pl.gca().axes.get_xaxis().set_visible(True)
+
+pl.suptitle(f + '\nBin Width=%1.1f ms' % (bin_width*1e3))
+pl.xlabel('Time (seconds)')
+
+if False:
+        pl.show()
+else:
+        (root,_,_) = f.rpartition('.')
+        pl.savefig('%s-bins.pdf' % root)
+
