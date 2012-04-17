@@ -8,13 +8,6 @@ all : ${PROGS} bin_photons
 dump_pt2 : pt2.o
 extract_pt2_timestamps : pt2.o
 
-CLEAN += _bin_photons.c _bin_photons.so
-bin_photons : _bin_photons.so
-_bin_photons.so : _bin_photons.o
-	gcc ${LDFLAGS} -shared -o $@ $+
-_bin_photons.o : _bin_photons.c
-	gcc -c -I/usr/include/python2.6 -fPIC ${CFLAGS} -o $@ $<
-
 timetag_parse.so : timetag_parse.o
 	gcc ${LDFLAGS} -shared -o $@ $+
 timetag_parse.o : timetag_parse.c
