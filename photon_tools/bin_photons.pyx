@@ -73,4 +73,11 @@ def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t star
         chunks.append(chunk[:bin])
         return np.hstack(chunks)
 
+def bin_all(times, bin_width):
+        """ Bin a list of photon streams such that all resulting bin
+            lists begin and end at the same times. """
+        start_t = max(map(np.amin, times))
+        end_t = min(map(np.amax, times))
+        print start_t, end_t
+        return map(lambda ts: bin_photons(ts, bin_width, start_t, end_t), times)
 
