@@ -29,7 +29,7 @@ def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t star
         cdef short bin_count = 0
         cdef unsigned int bin = 0
 
-        for i in range(times.shape[0]):
+        for i in xrange(times.shape[0]):
                 if times[i] >= end_t: break
                 if times[i] >= bin_start + bin_width:
                         new_start = (times[i] / bin_width) * bin_width
@@ -61,7 +61,7 @@ def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t star
                 chunk[bin].start_t = bin_start
                 chunk[bin].count = bin_count
                 bin += 1
-                for j in range(bin_start+bin_width, end_t, bin_width):
+                for j in xrange(bin_start+bin_width, end_t, bin_width):
                         chunk[bin].start_t = j
                         chunk[bin].count = 0
                         bin += 1
