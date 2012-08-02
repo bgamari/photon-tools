@@ -55,7 +55,7 @@ if args.max_count == 'max':
 elif args.max_count == 'avg':
         ymax = 1.5 * max(np.mean(dbins['count']), np.mean(abins['count']))
 else:
-        ymax = args.max_count * bin_width
+        ymax = float(args.max_count) * bin_width
 
 def plot_bins(bins, style, **kws):
         times = map(lambda t: t*jiffy, bins['start_t']) 
