@@ -22,6 +22,7 @@
 #include "pt2.h"
 #include <stdexcept>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 
 pt2_record pt2_file::read_record() {
@@ -75,25 +76,27 @@ void pt2_file::read_headers() {
 	is.ignore(4*tttr_hdr.imaging_hdr_sz);
 }
 
-uint64_t *get_pt2_timestamps(const char *filename, unsigned int channel)
+uint64_t *get_pt2_timestamps(const char *filename, unsigned int channel, unsigned int *n_records)
 {
     std::ifstream is(filename);
-    pt2_file pt2(is);
-    unsigned int n_rec = pt2.tttr_hdr.n_records;
+    pt2_file *pt2 = new pt2_file(is);
+    unsigned int n_rec = pt2->tttr_hdr.n_records;
     uint64_t *buffer = new uint64_t[n_rec];
     unsigned int n = 0;
 
     for (int i=0; i < n_rec; i++) {
-	pt2_record rec = pt2.read_record();
+	pt2_record rec = pt2->read_record();
 	if (!rec.special && (channel == 0xf || channel == rec.channel)) {
 	    buffer[i] = rec.time;
 	    n++;
 	}
     }
+    delete pt2;
     
-    uint64_t *new_buffer = new uint64_t[n];
+    uint64_t *new_buffer = (uint64_t *) malloc(n * sizeof(uint64_t));
     memcpy(new_buffer, buffer, n*sizeof(uint64_t));
     delete[] buffer;
+    *n_records = n;
     return new_buffer;
 }
 

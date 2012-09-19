@@ -154,5 +154,5 @@ private:
 };
 
 // A convenient helper
-uint64_t *get_pt2_timestamps(const char *filename, unsigned int channel);
+uint64_t *get_pt2_timestamps(const char *filename, unsigned int channel, unsigned int *n_records);
 
