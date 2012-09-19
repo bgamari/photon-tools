@@ -21,6 +21,7 @@
 #include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
+#include <cstring>
 #include "pt2.h"
 
 // channel=0xf dumps all channels
@@ -45,6 +46,13 @@ int main(int argc, char** argv) {
                 std::ifstream is(name);
                 int chan;
 
+                if (strncmp(argv[1], "-c", 2) == 0) {
+                        if (argc < 3) return -1;
+                        chan = atoi(argv[2]);
+                        dump(std::cin, std::cout, chan);
+                        return 0;
+                }
+                
                 if (argc > 2) {
                         chan = atoi(argv[2]);
                         out_name = (boost::format("%s.ch%d.times") % name % chan).str();
