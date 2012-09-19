@@ -153,3 +153,6 @@ private:
 	void read_headers();
 };
 
+// A convenient helper
+uint64_t *get_pt2_timestamps(const char *filename, unsigned int channel);
+
