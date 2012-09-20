@@ -29,7 +29,7 @@ def get_strobe_events(f, channel_mask, skip_wraps=0):
         if isinstance(f, str):
                 fname = f
         else:
-                fname = f.filename
+                fname = f.name
         cdef FILE* fl = fopen(fname, "r")
         if fl == NULL:
                 raise RuntimeError("Couldn't open file")
