@@ -12,9 +12,7 @@ import numpy as np
 from matplotlib import pyplot as pl
 import math
 
-
 verbose = False
-datapaths = ("/home/sheema/data/new","junk")
 
 def read_timetag(file):
     donor = timetag_parse.get_strobe_events(file,0x1)['t'][1024:] #0x1 is the channel mask
