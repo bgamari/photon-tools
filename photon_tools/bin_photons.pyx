@@ -25,10 +25,12 @@ def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t star
         cdef uint64_t new_start
         cdef uint64_t bin_start = times[0] if start_t == -1 else start_t
         bin_start = (bin_start / bin_width) * bin_width # Make sure we start on bin boundary
+        if end_t != -1: end_t = (end_t / bin_width) * bin_width
         cdef short bin_count = 0
         cdef unsigned int bin = 0
 
-        for i in range(times.shape[0]):
+        for i in xrange(times.shape[0]):
+                if times[i] >= end_t: break
                 if times[i] >= bin_start + bin_width:
                         new_start = (times[i] / bin_width) * bin_width
                         chunk[bin].start_t = bin_start
@@ -55,11 +57,11 @@ def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t star
 
                 bin_count += 1
 
-        if include_zeros and end_t != -1:
+        if include_zeros and end_t != -1 and bin_start < end_t:
                 chunk[bin].start_t = bin_start
                 chunk[bin].count = bin_count
                 bin += 1
-                for j in range(bin_start+bin_width, end_t, bin_width):
+                for j in xrange(bin_start+bin_width, end_t, bin_width):
                         chunk[bin].start_t = j
                         chunk[bin].count = 0
                         bin += 1
@@ -71,4 +73,11 @@ def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t star
         chunks.append(chunk[:bin])
         return np.hstack(chunks)
 
+def bin_all(times, bin_width):
+        """ Bin a list of photon streams such that all resulting bin
+            lists begin and end at the same times. """
+        start_t = max(map(np.amin, times))
+        end_t = min(map(np.amax, times))
+        print start_t, end_t
+        return map(lambda ts: bin_photons(ts, bin_width, start_t, end_t), times)
 
