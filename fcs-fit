@@ -219,7 +219,7 @@ if __name__ == '__main__':
 
         new = params
         try:
-                new = fit(curves, model, params, verbose=args.verbose)
+                new = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
         except RuntimeError as e:
                 print 'Failed to converge', e
 
