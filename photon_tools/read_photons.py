@@ -8,6 +8,7 @@ def determine_filetype(fname):
     
 class TimestampFile(object):
     def __init__(self, fname, channel, ftype=None):
+        """ Channel number of zero-based """
         self.jiffy = None
         self.metadata = None
 
@@ -25,7 +26,7 @@ class TimestampFile(object):
             if self.metadata is not None:
                 self.jiffy = 1. / self.metadata['clockrate']
             open(fname) # Ensure a reasonable error is generated
-            self.data = timetag_parse.get_strobe_events(fname, 1<<channel)[1024:]
+            self.data = timetag_parse.get_strobe_events(fname, 1<<channel)[1024:]['t']
 
         elif ftype == 'raw':
             if channel != 0:
