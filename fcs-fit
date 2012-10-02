@@ -259,7 +259,7 @@ if __name__ == '__main__':
                 for t in leg.get_texts():
                         t.set_fontsize('small')
 
-                if args.output:
+                if args.output is not None:
                         fig.savefig(args.output)
                         print 'saved to', args.output
                 else:
