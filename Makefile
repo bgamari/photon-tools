@@ -1,12 +1,11 @@
-PROGS = autocorr dump_pt2 extract_pt2_timestamps
+PROGS = bin_photons
 CXXFLAGS = -ggdb -std=c++0x ${INCLUDE}
 LDFLAGS = ${LIBS}
 CC=g++
 
-all : ${PROGS} bin_photons
+include pt2/Makefile
 
-dump_pt2 : pt2.o
-extract_pt2_timestamps : pt2.o
+all : ${PROGS}
 
 timetag_parse.so : timetag_parse.o
 	gcc ${LDFLAGS} -shared -o $@ $+
