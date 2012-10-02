@@ -4,9 +4,8 @@ import argparse
 from argparse import ArgumentParser
 
 import os.path
-from photon_tools.favia import corr #photon_tools.favia calls favia from python
-from photon_tools import timetag_parse #this extracts timestamps
-from photon_tools.pt2_parse import read_pt2
+from photon_tools.favia import corr
+from photon_tools.read_photons import TimestampFile
 
 import numpy as np
 from matplotlib import pyplot as pl
@@ -14,20 +13,14 @@ import math
 
 verbose = False
 
-def read_timetag(file):
-    donor = timetag_parse.get_strobe_events(file,0x1)['t'][1024:] #0x1 is the channel mask
-    acceptor = timetag_parse.get_strobe_events(file,0x2)['t'][1024:] #ditto for channel 2
-    return (1./128e6, donor, acceptor)
-    
 def read_data(file):
-    if file.name.endswith('.timetag'):
-        return read_timetag(file)
-    elif file.name.endswith('.pt2'):
-        a = read_pt2(file.name, 0)
-        b = read_pt2(file.name, 1)
-        return (1e-12, a, b)
-    else:
-        raise RuntimeError("Unknown file type")
+    a = TimestampFile(file.name, 0)
+    d = TimestampFile(file.name, 1)
+    jiffy = a.jiffy
+    if jiffy is None:
+        jiffy = 1. / 128e6
+        print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
+    return (jiffy, a.data, d.data)
 
 def correlate_timetags(file):
     jiffy,donor,acceptor = read_data(file)
