@@ -10,6 +10,9 @@ dtype = np.dtype([('lag', 'f8'), ('loglag', 'f8'),
                   ('dot', 'f8'), ('dotnormed', 'f8'),
                   ('bar', 'f8')])
 
+def read_favia(fname):
+        return np.loadtxt(fname, dtype=dtype)
+        
 def acorr(x, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
         return corr(x, x, jiffy, short_grain, long_lag, verbose)
 
@@ -34,5 +37,5 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
                 if not verbose: print p.stderr.read()
                 raise RuntimeError('Favia threw error: exit code %d' % p.returncode)
 
-        return np.loadtxt(fo.name, dtype=dtype)
+        return read_favia(fo.name)
 
