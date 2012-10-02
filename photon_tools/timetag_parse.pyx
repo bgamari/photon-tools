@@ -88,7 +88,7 @@ def get_delta_events(f, channel, skip_wraps=0):
         if isinstance(f, str):
                 fname = f
         else:
-                fname = f.filename
+                fname = f.name
         cdef FILE* fl = fopen(fname, "r")
         if fl == NULL:
                 raise RuntimeError("Couldn't open file")
@@ -150,7 +150,7 @@ def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1, on_
         if isinstance(f, str):
                 fname = f
         else:
-                fname = f.filename
+                fname = f.name
         cdef FILE* fl = fopen(fname, "r")
         if fl == NULL:
                 raise RuntimeError("Couldn't open file")
