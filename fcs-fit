@@ -195,9 +195,9 @@ if __name__ == '__main__':
                         else:
                                 print "There are still unset parameters: ", ', '.join(unset_params)
         else:
-                unset_params = [ k for k,v in params.items() if v is None ]
+                unset_params = [ k for k,v in params.items() if v.value is None ]
                 if len(unset_params) > 0:
-                        parser.error('Error: Unset parameters (%s)' % ', '.join(unset_params))
+                        parser.error('Error: Unset parameters: ' + ', '.join(unset_params))
 
         print 'Initial Parameters:'
         print_parameters(params)
