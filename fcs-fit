@@ -170,6 +170,8 @@ if __name__ == '__main__':
                             help='Set an initial fit parameter')
         parser.add_argument('-f', '--file', metavar='FILE', dest='params_file',
                             help='Specify parameters file for initial fit parameters')
+        parser.add_argument('-v', '--verbose', action='store_true',
+                            help='Enable verbose output')
         parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                             help='Correlation functions to plot')
         args = parser.parse_args()
@@ -217,7 +219,7 @@ if __name__ == '__main__':
 
         new = params
         try:
-                new = fit(curves, model, params)
+                new = fit(curves, model, params, verbose=args.verbose)
         except RuntimeError as e:
                 print 'Failed to converge', e
 
