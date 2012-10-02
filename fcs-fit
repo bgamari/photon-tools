@@ -24,6 +24,8 @@ import sys
 import numpy as np
 from numpy import min, max, mean, exp, power, sqrt, log10, sum
 from photon_tools import suffix_parse
+from photon_tools import read_photons
+from photon_tools import favia
 from photon_tools.model_fit import models, Parameters, fit, plot_model
 from photon_tools import fcs_models
 
@@ -130,6 +132,25 @@ def print_models():
                         print '    %10s\t%13s\t%13s\t%s' % (p.name, p.def_scope, p.def_value, p.description)
                 print
 
+def apply_params(params, param_exprs):
+        for s in param_exprs:
+                p,v = s.split('=')
+                scope = None
+                if ':' in s:
+                    scope,p = p.split(':')
+                    if scope.startswith('fit'):
+                            scope = 'fitted'
+                    elif scope.startswith('fix'):
+                            scope = 'fixed'
+                    else:
+                            parser.error('Invalid scope %s' % scope)
+
+                if p not in params:
+                        parser.error('Unknown parameters %s' % p)
+                params[p].value = parse_param_value(v)
+                if scope is not None: params[p].scope = scope
+        return params
+        
 if __name__ == '__main__':
         import argparse
         parser = argparse.ArgumentParser()
@@ -169,21 +190,13 @@ if __name__ == '__main__':
         params = Parameters(model, curves)
         print 'Fitting %d curves against model %s' % (len(curves), args.model)
 
+        # Parse params from file
         if args.params_file is not None:
-                # TODO
-                pass
+                params = apply_params(params, open(args.params_file).readlines())
 
         # Parse parameters from arguments
         if args.params is not None:
-                for s in args.params:
-                        scope,pv = s.split(':')
-                        p,v = pv.split('=')
-                        if scope not in ['fitted', 'fixed']:
-                                parser.error('Invalid scope %s' % scope)
-                        if p not in params:
-                                parser.error('Unknown parameters %s' % p)
-                        params[p].scope = scope
-                        params[p].value = parse_param_value(v)
+                params = apply_params(params, args.params)
 
         if args.edit:
                 c = ParamEditor(params)
