@@ -2,6 +2,7 @@ PROGS = bin_photons
 CXXFLAGS = -ggdb -std=c++0x ${INCLUDE}
 LDFLAGS = ${LIBS}
 CC=g++
+DESTDIR ?= /usr/local
 
 include pt2/Makefile
 
@@ -18,6 +19,11 @@ timetag_parse.o : timetag_parse.c
 test : ${PROGS}
 	./test_bin_photons.py
 
+.PHONY : install
+install : ${PROGS}
+	cp ${PROGS} ${DESTDIR}/bin
+
+.PHONY : clean
 clean : 
 	rm -f ${CLEAN} ${PROGS} *.o *.pyc
 
