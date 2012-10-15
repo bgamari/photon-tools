@@ -162,7 +162,7 @@ if __name__ == '__main__':
                             help='Produce plot of data and fits')
         parser.add_argument('-o', '--output', metavar='FILE',
                             help='Save plot to FILE')
-        parser.add_argument('-m', '--model', metavar='MODEL', required=True,
+        parser.add_argument('-m', '--model', metavar='MODEL', required=True, default='3d_diff',
                             help='Specify a fit function to use (options: %s)' % ', '.join(models.keys()))
         parser.add_argument('-E', '--edit', action='store_true',
                             help='Start command-line parameters editor')
