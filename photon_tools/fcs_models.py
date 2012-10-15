@@ -6,9 +6,9 @@ class DiffusionModel(Model):
         """ Three-dimensional diffusion model. This includes the anamalous diffusion
             exponent alpha, which can be set to 1 for normal diffusion. """
         params = [
-                Parameter('tau_d',      'Diffusion time (microseconds)', def_scope='fitted'),
+                Parameter('tau_d',      'Diffusion time', def_value=100, def_scope='fitted'),
                 Parameter('a',          'Aspect ratio', def_value=3, def_scope='fitted'),
-                Parameter('n',          'Concentration', def_scope='fitted'),
+                Parameter('n',          'Concentration', def_value=0.5, def_scope='fitted'),
                 Parameter('alpha',      'Anamalous diffusion exponent (1=normal diffusion)', def_value=1, def_scope='fixed'),
                 Parameter('offset',     'Offset', def_value=0, def_scope='fixed'),
         ]
