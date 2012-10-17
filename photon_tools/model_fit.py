@@ -23,8 +23,9 @@ def register_model(*names):
         return reg
 
 class Parameter(object):
-        def __init__(self, name, description, def_value=None, def_scope=None):
+        def __init__(self, name, description, unit='', def_value=None, def_scope=None):
                 self.name = name
+                self.unit = unit
                 self.description = description
                 self.def_value = def_value
                 self.def_scope = def_scope
@@ -32,7 +33,7 @@ class Parameter(object):
                 self.value = None
 
         def __str__(self):
-                return '<Parameter %s (%s) = %e>' % (self.name, self.scope, self.value)
+                return '<Parameter %s (%s) = %e %s>' % (self.name, self.scope, self.value, self.unit)
 
 class Parameters(dict):
         def __init__(self, model, curves):
