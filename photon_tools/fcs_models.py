@@ -28,11 +28,11 @@ class DiffusionModel(Model):
 class NormalDiffusionTripletModel(Model):
         """ Three-dimensional diffusion model with triplet correction """
         params = [
-                Parameter('tau_d',      'Diffusion time constants', unit='μs', def_scope='fitted'),
-                Parameter('tau_F',      'Triplet state relaxation time', unit='μs', def_scope='fitted'),
+                Parameter('tau_d',      'Diffusion time constants', def_value=100, unit='μs', def_scope='fitted'),
+                Parameter('tau_F',      'Triplet state relaxation time', def_value=1, unit='μs', def_scope='fitted'),
                 Parameter('a',          'Aspect ratio', def_value=3, def_scope='fitted'),
-                Parameter('n',          'Concentration', def_scope='fitted'),
-                Parameter('F',          'Fraction of particles in triplet state'),
+                Parameter('n',          'Concentration', def_value=0.5, def_scope='fitted'),
+                Parameter('F',          'Fraction of particles in triplet state', def_value=0.01, def_scope='fitted'),
         ]
 
         def __call__(self, p, x):
