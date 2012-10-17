@@ -87,7 +87,8 @@ class ParamEditor(cmd.Cmd):
                 print '================='
                 print '      name\tdefault scope\tdefault value\tdescription'
                 for p in self.params.values():
-                        print '    %6s\t%13s\t%13s\t%s' % (p.name, p.def_scope, p.def_value, p.description)
+                        print '    %6s\t%13s\t%13s %-5s\t%s' % \
+                            (p.name, p.def_scope, p.def_value, p.unit, p.description)
                 print
 
         def do_done(self, line):
@@ -119,7 +120,8 @@ done
 def print_parameters(params):
         for p in params.values():
                 v = suffix_parse.format(p.value) if p.value is not None else 'not set'
-                print '%15s  (%-6s)   =   %15s         %s' % (p.name, p.scope, v, p.description)
+                print '%15s  (%-6s)   =   %10s %-5s        %s' % \
+                    (p.name, p.scope, v, p.unit, p.description)
 
 def print_models():
         print 'Known models:'
@@ -129,7 +131,8 @@ def print_models():
                 print '     ==========='
                 print '          name\tdefault scope\tdefault value\tdescription'
                 for p in m.params:
-                        print '    %10s\t%13s\t%13s\t%s' % (p.name, p.def_scope, p.def_value, p.description)
+                        print '    %10s\t%13s\t%13s %-5s\t%s' % \
+                            (p.name, p.def_scope, p.def_value, p.unit, p.description)
                 print
 
 def apply_params(params, param_exprs):
