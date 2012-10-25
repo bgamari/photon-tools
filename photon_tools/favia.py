@@ -5,6 +5,7 @@ import subprocess
 import numpy as np
 
 #logging.basicConfig(level=logging.DEBUG)
+keep = False # For debugging
 
 dtype = np.dtype([('lag', 'f8'), ('loglag', 'f8'),
                   ('dot', 'f8'), ('dotnormed', 'f8'),
@@ -19,9 +20,9 @@ def acorr(x, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
 def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
         """ Compute the correlation function of the datasets x and y. Jiffy,
         short_grain, and long_lag are given in seconds """
-        fo = NamedTemporaryFile()
-        fx = NamedTemporaryFile()
-        fy = NamedTemporaryFile()
+        fo = NamedTemporaryFile(delete=not keep)
+        fx = NamedTemporaryFile(delete=not keep)
+        fy = NamedTemporaryFile(delete=not keep)
         x.tofile(fx.name)
         y.tofile(fy.name)
 
