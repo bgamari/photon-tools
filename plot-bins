@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as pl
 from matplotlib.ticker import MaxNLocator
 
-import photon_tools.timetag_parse as tp
+from photon_tools.read_photons import TimestampFile
 import photon_tools.bin_photons as bp
 
 description = 'Utility to plot a binned series of timestamps'
@@ -17,7 +17,7 @@ parser.add_argument('-w', '--bin-width', metavar='TIME', type=float, default=10e
 		    help='Bin width in seconds')
 parser.add_argument('-r', '--rows', metavar='N', type=int, default=10,
 		    help='Number of plot rows')
-parser.add_argument('-j', '--jiffy', metavar='TIME', type=float, default=1/128e6,
+parser.add_argument('-j', '--jiffy', metavar='TIME', type=float, default=None,
 		    help='Instrument tick period')
 parser.add_argument('-W', '--row-width', metavar='TIME', type=float, default=10,
 		    help='Width of row in seconds')
@@ -25,23 +25,34 @@ parser.add_argument('-y', '--max-count', metavar='COUNT|max|avg', default='max',
 		    help='Maximum count rate of Y axis')
 parser.add_argument('-o', '--output', metavar='FILE', type=argparse.FileType('w'), default=None,
 		    help='Output to named file')
+parser.add_argument('--acceptor', metavar='CHANNEL', type=int, default=1,
+                    help='Acceptor channel')
+parser.add_argument('--donor', metavar='CHANNEL', type=int, default=0,
+                    help='Donor channel')
 parser.add_argument('-O', '--auto-output', action='store_true',
 		    help='Output to file (name automatically generated)')
 args = parser.parse_args()
-
-jiffy = args.jiffy # seconds
 bin_width = args.bin_width # seconds
 
 fname = args.input.name
-a = tp.get_strobe_events(fname, 2)[100:]
-d = tp.get_strobe_events(fname, 1)[100:]
+d = TimestampFile(fname, args.donor)
+a = TimestampFile(fname, args.acceptor)
 
-start_t = min(a[0]['t'], d[0]['t'])
-a['t'] -= start_t
-d['t'] -= start_t
+jiffy = a.jiffy
+if args.jiffy is not None:
+        jiffy = args.jiffy
+if jiffy is None:
+        raise RuntimeError("Couldn't identify jiffy")
 
-abins = bp.bin_photons(a['t'], round(bin_width / jiffy))
-dbins = bp.bin_photons(d['t'], round(bin_width / jiffy))
+d = d.data
+a = a.data
+
+start_t = min(a[0], d[0])
+a -= start_t # FIXME: There's no reason this needs to be done
+d -= start_t
+
+abins = bp.bin_photons(a, round(bin_width / jiffy))
+dbins = bp.bin_photons(d, round(bin_width / jiffy))
 
 print fname
 print "Average rates:"
