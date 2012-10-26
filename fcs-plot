@@ -22,14 +22,14 @@ def read_data(file):
         print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
     return (jiffy, a.data, d.data)
 
-def correlate_timetags(file, min_lag):
+def correlate_timetags(file, min_lag, max_lag, fineness):
     jiffy,donor,acceptor = read_data(file)
 
     fname = os.path.basename(file.name)
     print 'Read %s: %d acceptor events, %d donor events' % (fname, len(acceptor), len(donor))
-    dcorr = corr(donor, donor, jiffy=jiffy, short_grain=min_lag, verbose=verbose)
-    acorr = corr(acceptor ,acceptor, jiffy=jiffy, short_grain=min_lag, verbose=verbose)
-    xcorr = corr(donor, acceptor, jiffy=jiffy, short_grain=min_lag, verbose=verbose)
+    dcorr = corr(donor, donor, jiffy=jiffy, short_grain=min_lag, long_lag=max_lag, fineness=fineness, verbose=verbose)
+    acorr = corr(acceptor ,acceptor, jiffy=jiffy, short_grain=min_lag, long_lag=max_lag, fineness=fineness, verbose=verbose)
+    xcorr = corr(donor, acceptor, jiffy=jiffy, short_grain=min_lag, long_lag=max_lag, fineness=fineness, verbose=verbose)
     np.savetxt(fname+'.dcorr', dcorr)
     np.savetxt(fname+'.acorr', acorr)
     np.savetxt(fname+'.xcorr', xcorr)
@@ -56,9 +56,13 @@ parser.add_argument('-v', '--verbose', action='store_true',
                     help='Produce debugging output')
 parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
                     help='Smallest lag to compute')
+parser.add_argument('-L', '--max-lag', type=float, default=1,
+                    help='Longest lag to compute')
+parser.add_argument('-f', '--fineness', type=int, default=8,
+                    help='Fineness argument passed to favia')
 args = parser.parse_args()
 verbose = args.verbose
 
 for file in args.files:
-    correlate_timetags(file, args.min_lag)
+    correlate_timetags(file, args.min_lag, args.max_lag, args.fineness)
     

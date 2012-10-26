@@ -17,7 +17,7 @@ def read_favia(fname):
 def acorr(x, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
         return corr(x, x, jiffy, short_grain, long_lag, verbose)
 
-def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
+def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose=False):
         """ Compute the correlation function of the datasets x and y. Jiffy,
         short_grain, and long_lag are given in seconds """
         fo = NamedTemporaryFile(delete=not keep)
@@ -30,7 +30,9 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
                 '--xfile=%s' % fx.name, '--yfile=%s' % fy.name,
                 '--jiffy=%e' % jiffy,
                 '--long_lag=%e' % long_lag,
-                '--short_grain=%e' % short_grain]
+                '--short_grain=%e' % short_grain,
+                '--fineness=%d' % fineness
+                ]
         logging.debug(' '.join(args))
         stderr = sys.stderr if verbose else subprocess.PIPE
         p = subprocess.Popen(args, stdout=fo, stderr=stderr)
