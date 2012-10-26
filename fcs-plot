@@ -22,14 +22,14 @@ def read_data(file):
         print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
     return (jiffy, a.data, d.data)
 
-def correlate_timetags(file):
+def correlate_timetags(file, min_lag):
     jiffy,donor,acceptor = read_data(file)
 
     fname = os.path.basename(file.name)
     print 'Read %s: %d acceptor events, %d donor events' % (fname, len(acceptor), len(donor))
-    dcorr = corr(donor, donor, jiffy=jiffy, short_grain=1e-7, verbose=verbose)
-    acorr = corr(acceptor ,acceptor, jiffy=jiffy, short_grain=1e-7, verbose=verbose)
-    xcorr = corr(donor, acceptor, jiffy=jiffy, short_grain=1e-7, verbose=verbose)
+    dcorr = corr(donor, donor, jiffy=jiffy, short_grain=min_lag, verbose=verbose)
+    acorr = corr(acceptor ,acceptor, jiffy=jiffy, short_grain=min_lag, verbose=verbose)
+    xcorr = corr(donor, acceptor, jiffy=jiffy, short_grain=min_lag, verbose=verbose)
     np.savetxt(fname+'.dcorr', dcorr)
     np.savetxt(fname+'.acorr', acorr)
     np.savetxt(fname+'.xcorr', xcorr)
@@ -51,9 +51,14 @@ def plot_corr(corr, output=None):
     
 parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps')
 parser.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
-		     help='Input files in either PT2 or FPGA timetagger format')
+                    help='Input files in either PT2 or FPGA timetagger format')
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help='Produce debugging output')
+parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
+                    help='Smallest lag to compute')
 args = parser.parse_args()
+verbose = args.verbose
 
 for file in args.files:
-    correlate_timetags(file)
+    correlate_timetags(file, args.min_lag)
     
