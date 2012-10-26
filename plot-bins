@@ -111,5 +111,6 @@ def process(fname):
             pl.show()
 
 for f in args.input:
+    pl.clf()
     process(f.name)
 
