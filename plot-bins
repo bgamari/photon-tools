@@ -28,7 +28,7 @@ parser.add_argument('-y', '--max-count', metavar='COUNT|max|avg', default='max',
 		    help='Maximum count rate of Y axis')
 parser.add_argument('-o', '--output', metavar='FILE', type=argparse.FileType('w'), default=None,
 		    help='Output to named file')
-parser.add_argument('-c', '--channel', metavar='CHANNEL[=LABEL],...',
+parser.add_argument('-c', '--channel', metavar='CHANNEL[=LABEL]',
                     action='append', default=[],
                     help='Channels to plot')
 parser.add_argument('-O', '--auto-output', action='store_true',
