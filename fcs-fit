@@ -238,13 +238,8 @@ if __name__ == '__main__':
 
         # Plot
         if args.plot:
-                from matplotlib.figure import Figure
-                fig = Figure()
-                if args.output:
-                        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-                        canvas = FigureCanvas(fig)
-                        fig.savefig(args.output)
-
+                from matplotlib import pyplot as pl
+                fig = pl.figure()
                 ax = fig.add_subplot(111)
                 
                 for curve,name in zip(curves, args.curves):
@@ -266,6 +261,5 @@ if __name__ == '__main__':
                         fig.savefig(args.output)
                         print 'saved to', args.output
                 else:
-                        from matplotlib import pyplot as pl
                         pl.show()
                 

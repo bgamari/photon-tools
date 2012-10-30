@@ -171,9 +171,10 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                 ax.semilogx(x, m, label='%s (fit)' % name)
 
                 ax2 = divider.append_axes('top', size=1.2, pad=0.1, sharex=ax)
-                ax2.axhline(y=0, linewidth=1, color='k', alpha=0.5)
                 d = params.curves[i]
                 ax2.semilogx(d['lag'], model(cparams, d['lag']) - d['G'], '+')
+                # This appears to be broken at the moment due to Issue #1246
+                #ax2.axhline(y=1, color='k', alpha=0.5)
                 for t in ax2.get_xticklabels():
                         t.set_visible(False)
 
