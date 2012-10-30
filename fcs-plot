@@ -22,47 +22,76 @@ def read_data(file):
         print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
     return (jiffy, a.data, d.data)
 
-def correlate_timetags(file, min_lag, max_lag, fineness):
-    jiffy,donor,acceptor = read_data(file)
+def chunks(x, n):
+    l = len(x) / n
+    return [ x[i*l:(i+1)*l] for i in range(n) ]
 
-    fname = os.path.basename(file.name)
-    print 'Read %s: %d acceptor events, %d donor events' % (fname, len(acceptor), len(donor))
-    dcorr = corr(donor, donor, jiffy=jiffy, short_grain=min_lag, long_lag=max_lag, fineness=fineness, verbose=verbose)
-    acorr = corr(acceptor ,acceptor, jiffy=jiffy, short_grain=min_lag, long_lag=max_lag, fineness=fineness, verbose=verbose)
-    xcorr = corr(donor, acceptor, jiffy=jiffy, short_grain=min_lag, long_lag=max_lag, fineness=fineness, verbose=verbose)
-    np.savetxt(fname+'.dcorr', dcorr)
-    np.savetxt(fname+'.acorr', acorr)
-    np.savetxt(fname+'.xcorr', xcorr)
-    plot_corr(dcorr, fname+'.dcorr.png')
-    plot_corr(acorr, fname+'.acorr.png')
-    plot_corr(xcorr, fname+'.xcorr.png')
+def correlate_multi(x, y, n=10, **kwargs):
+    x_chunks = chunks(x, n)
+    y_chunks = chunks(y, n)
+    print map(len, x_chunks)
+    corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
+    print np.mean(corrs['G'], axis=1)
+    print corrs.shape
     
-    #Note that files have the following columns:  
-    #time, logtime, dot, correlation function, uncertainty, mean, uncertainty in mean.
-
 def plot_corr(corr, output=None):
     pl.clf()
     pl.xscale('log')
     pl.errorbar(corr['lag'], corr['dotnormed'], yerr=corr['bar'], fmt='.')
     pl.xlabel('Lag (s)')
-    pl.ylabel('Correlation function')
+    pl.ylabel('Correlation')
     if output is not None:
 	pl.savefig(output)
     
 parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps')
 parser.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
                     help='Input timestamp files')
-parser.add_argument('-v', '--verbose', action='store_true',
-                    help='Produce debugging output')
+parser.add_argument('-a', '--a-channel', type=int, default=0,
+                    help='Channel to run correlate')
+parser.add_argument('-b', '--b-channel', type=int, default=1,
+                    help='Channel to run correlate')
 parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
                     help='Smallest lag to compute')
 parser.add_argument('-L', '--max-lag', type=float, default=1,
                     help='Longest lag to compute')
 parser.add_argument('-f', '--fineness', type=int, default=8,
                     help='Granularity of lags')
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help='Produce debugging output')
+parser.add_argument('-l', '--label', type=str, default='corr')
+parser.add_argument('-s', '--single', action='store_true',
+                    help='Only compute the correlation of the given two channels')
+parser.add_argument('-p', '--plot', action='store_true',
+                    help='Plot each computed correlation function')
 args = parser.parse_args()
 verbose = args.verbose
 
+correlations = [(args.a_channel, args.a_channel, 'acorr'),
+                (args.b_channel, args.b_channel, 'bcorr'),
+                (args.a_channel, args.b_channel, 'xcorr')
+               ]
+if args.single:
+    correlations = [(args.a_channel, args.b_channel, args.label)]
+
 for file in args.files:
-    correlate_timetags(file, args.min_lag, args.max_lag, args.fineness)
-    
+    for (ac,bc,label) in correlations:
+        a = TimestampFile(file.name, ac)
+        b = TimestampFile(file.name, bc)
+        jiffy = a.jiffy
+        if jiffy is None:
+            jiffy = 1. / 128e6
+            print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
+
+        fname = os.path.basename(file.name)
+        print label
+        print '%20s, channel %d: %d events' % (fname, bc, len(a.data))
+        print '%20s, channel %d: %d events' % (fname, ac, len(b.data))
+        print
+
+        c = corr(a.data, b.data,
+                 jiffy=jiffy,
+                 short_grain=args.min_lag, long_lag=args.max_lag,
+                 fineness=args.fineness, verbose=args.verbose)
+        np.savetxt(fname+'.'+label, c)
+        if args.plot:
+            plot_corr(c, fname+'.'+label+'.png')
