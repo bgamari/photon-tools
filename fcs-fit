@@ -217,24 +217,31 @@ if __name__ == '__main__':
                 if len(unset_params) > 0:
                         parser.error('Error: Unset parameters: ' + ', '.join(unset_params))
 
-        print 'Initial Parameters:'
+        print
+        print 'Initial parameters:'
         print_parameters(params)
+        print
 
         new = params
         try:
                 new = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
         except RuntimeError as e:
-                print 'Failed to converge', e
+                print 'Fit failed to converge: ', e
+                sys.exit(1)
 
-        print 'Parameters:'
+        print
+        print 'Fitted parameters:'
         print_parameters(new)
+        print
+
+        print 'Goodness of fit:'
         for i,c in enumerate(curves):
                 d = params.curves[i]
                 err = model(params._curve_params(i), d['lag']) - d['G']
                 chi_sq = sum(err**2)
-                print args.curves[i].name
-                print 'Chi^2 = %e' % chi_sq
-                print 'Chi^2 / DOF = %f' % (chi_sq / (len(curves[i])-len(params)))
+                print '  ', args.curves[i].name
+                print '    Chi^2 = %e' % chi_sq
+                print '    Chi^2 / DOF = %f' % (chi_sq / (len(curves[i])-len(params)))
 
         # Plot
         if args.plot:
