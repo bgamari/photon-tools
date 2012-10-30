@@ -79,10 +79,26 @@ channel 0 to be the donor and channel 1 to be the acceptor. This can
 be overridden with the `--channel` command
 (e.g. `--channel=0=acceptor`).
 
-### fcs-plot
+### fcs-corr
 
 In the case of an FCS experiment, the first task in the analysis
 process is generally to compute a correlation function. `photon-tools`
-provides the `fcs-plot` tool to conveniently compute and plot a
+provides the `fcs-corr` tool to conveniently compute and plot a
 correlation function from timestamp data.
+
+To compute and plot a correlation function from $\tau$ of 1
+microsecond to 1 second (which is the default range, but we will set
+it explicitly here for completeness),
+
+     $ fcs-corr --min-lag=1e-6 --max-lag=1 2012-10-26-run_000.timetag
+     
+This will produce three files: `2012-10-25-run_001.timetag.acorr` (the
+auto-correlation of channel a), `2012-10-25-run_001.timetag.bcorr`
+(the auto-correlation of channel b), and
+`2012-10-25-run_001.timetag.xcorr` (the cross-correlation of channels
+a and b). Moreover, if we pass the `--plot` option a plot will be
+produced of each of these functions,
+
+![fcs-corr output](doc/fcs-corr-1.png)
+
 
