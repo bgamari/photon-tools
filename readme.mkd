@@ -4,7 +4,16 @@
 analysis of photon timestamp data, particularly from FRET and FCS
 experiments.
 
-## Requirements
+## Installation: the five minute version
+
+To install `photon-tools` on Ubuntu,
+
+     $ sudo apt-get install build-essential python python-numpy python-scipy python-matplotlib cython libboost-all-dev
+     $ git clone git://github.com/bgamari/photon-tools.git
+     $ cd photon-tools
+     $ ./install.sh
+
+## Installation: the unabridged version
 
 Many of these utilities are written in Python and generally require Python 2.6
 or greater along with numpy. In particular, some optimized modules require
@@ -12,24 +21,24 @@ Cython. Utilities capable of producing plots require the matplotlib python
 plotting library.
 
 Dependencies include,
- - Gnu make
- - Python 2.6+
- - Numpy
- - Scipy
- - Matplotlib
- - Cython >= 0.15
- - Boost
+ * Gnu make
+ * Python >= 2.6
+ * Numpy
+ * Scipy
+ * Matplotlib >= 1.0
+ * Cython >= 0.15
+ * Boost
 
-The scripts and libraries included in photon-tools can be installed like any
-distutils package,
+The scripts and libraries included in `photon-tools` can be installed
+like any distutils package,
 
-  $ sudo ./setup.py install
+     $ sudo ./setup.py install
 
 Note that running scripts within the photon-tools/ root directory will require
-that the cython code is built in-place, due to limitations of Python's module
+that the Cython code is built in-place, due to limitations of Python's module
 name resolution scheme. To do this, one must run,
 
-  $ ./setup.py build_ext --inplace
+     $ ./setup.py build_ext --inplace
 
 
 ## Installation
@@ -45,12 +54,35 @@ Utilities requiring timestamp data as input accept data in the following formats
  * Raw 64-bit integer timestamps (read as little endian)
  * Picoquant PT2
  * Goldner FPGA timetagger `.timetag` files
+ 
+In all of these cases, the utilities will attempt to figure out the
+period of the timebase (known as the jiffy).
 
 ## Tools
 ### plot-bins
 
 The `plot-bins` utility produces a binned timeseries plot of a photon
-timestamp data set. This is useful when needing a 
+timestamp data set. This is useful to quickly visualize the trajectory
+of an experiment.  For example, to get a high-level view of the
+intensity in a FRET experiment, one might want to plot the binned
+intensity over a long duration (say 5 rows of 20 seconds each) with a
+bin width of 10 ms,
 
-## 
+     $ plot-bins --rows=5 --row-width=20 --bin-width=1e-2 2012-07-26-run_013.timetag
+     
+This will produce a plot looking like,
+
+![plot-bins output](doc/plot-bins-1.png)
+
+Note that `plot-bins` by default assumes a FRET experiment, taking
+channel 0 to be the donor and channel 1 to be the acceptor. This can
+be overridden with the `--channel` command
+(e.g. `--channel=0=acceptor`).
+
+### fcs-plot
+
+In the case of an FCS experiment, the first task in the analysis
+process is generally to compute a correlation function. `photon-tools`
+provides the `fcs-plot` tool to conveniently compute and plot a
+correlation function from timestamp data.
 
