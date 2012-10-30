@@ -119,7 +119,7 @@ done
 
 def print_parameters(params):
         for p in params.values():
-                v = suffix_parse.format(p.value) if p.value is not None else 'not set'
+                v = '%1.3e' % p.value if p.value is not None else 'not set'
                 print '%15s  (%-6s)   =   %10s %-5s        %s' % \
                     (p.name, p.scope, v, p.unit, p.description)
 
