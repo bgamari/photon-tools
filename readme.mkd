@@ -4,11 +4,12 @@
 analysis of photon timestamp data, particularly from FRET and FCS
 experiments.
 
-## Installation: the five minute version
+## Installation: the two-minute version
 
 To install `photon-tools` on Ubuntu,
 
-     $ sudo apt-get install build-essential python python-numpy python-scipy python-matplotlib cython libboost-all-dev
+     $ sudo apt-get install python python-numpy python-scipy python-matplotlib \
+       build-essential cython libboost-all-dev
      $ git clone git://github.com/bgamari/photon-tools.git
      $ cd photon-tools
      $ ./install.sh
@@ -41,12 +42,6 @@ name resolution scheme. To do this, one must run,
      $ ./setup.py build_ext --inplace
 
 
-## Installation
-
-To install `photon-tools`, simply run the following,
-
-     $ sudo ./setup.py install
-    
 ## Supported formats
 
 Utilities requiring timestamp data as input accept data in the following formats,
@@ -59,6 +54,17 @@ In all of these cases, the utilities will attempt to figure out the
 period of the timebase (known as the jiffy).
 
 ## Tools
+
+The tools that `photon-tools` provides are command-line utilities
+following typical UNIX argument conventions. That is, most arguments
+are delimited by a dash and have both a long form (`--output`) and a
+short form (`-o`).
+
+Below is a set of simple examples describing basic usage of the tools.
+These are, however, only basic examples and do not show all of the
+features of these tools. Full help for each utility is always
+available with from `--help`.
+ 
 ### plot-bins
 
 The `plot-bins` utility produces a binned timeseries plot of a photon
@@ -92,13 +98,21 @@ it explicitly here for completeness),
 
      $ fcs-corr --min-lag=1e-6 --max-lag=1 2012-10-26-run_000.timetag
      
-This will produce three files: `2012-10-25-run_001.timetag.acorr` (the
-auto-correlation of channel a), `2012-10-25-run_001.timetag.bcorr`
-(the auto-correlation of channel b), and
-`2012-10-25-run_001.timetag.xcorr` (the cross-correlation of channels
-a and b). Moreover, if we pass the `--plot` option a plot will be
-produced of each of these functions,
+This will produce three files,
+
+ * `2012-10-25-run_001.timetag.acorr`: the auto-correlation of channel a
+ * `2012-10-25-run_001.timetag.bcorr`: the auto-correlation of channel b
+ * `2012-10-25-run_001.timetag.xcorr`: the cross-correlation of channels a and b
+
+Moreover, if we pass the `--plot` option a plot will be produced of
+each of these functions,
 
 ![fcs-corr output](doc/fcs-corr-1.png)
 
+### fcs-fit
 
+After one has computed the correlation function to a data set, it is
+typical that one would next fit a physically relevant model to the
+resulting function. The `fcs-fit` tool provides a means of fitting 
+a model across one or several sets of observations. In the simplest
+case, it allows one to fit
