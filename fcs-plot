@@ -51,7 +51,7 @@ def plot_corr(corr, output=None):
     
 parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps')
 parser.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
-                    help='Input files in either PT2 or FPGA timetagger format')
+                    help='Input timestamp files')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Produce debugging output')
 parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
@@ -59,7 +59,7 @@ parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
 parser.add_argument('-L', '--max-lag', type=float, default=1,
                     help='Longest lag to compute')
 parser.add_argument('-f', '--fineness', type=int, default=8,
-                    help='Fineness argument passed to favia')
+                    help='Granularity of lags')
 args = parser.parse_args()
 verbose = args.verbose
 
