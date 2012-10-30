@@ -115,15 +115,47 @@ typical that one would next fit a physically relevant model to the
 resulting function. The `fcs-fit` tool provides a means of fitting 
 a model across one or several sets of observations. In the simplest
 case, it allows one to fit a single model (e.g. a three-dimensional
-diffusion model) to a correlation function produced by `fcs-corr`,
+diffusion model, `--model=3d_diff`) to a correlation function produced
+by `fcs-corr`,
 
-     $ fcs-fit --plot 9-24-2012-001.pt2.acorr
+     $ fcs-fit --plot -m3d_diff 9-24-2012-001.pt2.acorr
+     Fitting 1 curves against model 3d_diff
+     
+     Initial parameters:
+            a  (fitted)   =    3.000e+00              Aspect ratio
+            F  (fixed )   =    0.000e+00              Fraction of particles in triplet state
+        tau_F  (fixed )   =    1.000e+00 μs           Triplet state relaxation time
+        tau_d  (fitted)   =    1.000e+02 μs           Diffusion time
+            n  (fitted)   =    5.000e-01              Concentration
+       offset  (fixed )   =    0.000e+00              Offset
+        alpha  (fixed )   =    1.000e+00              Anamalous diffusion exponent (1=normal diffusion)
+     
+     
+     Fitted parameters:
+            a  (fitted)   =    1.270e+01              Aspect ratio
+            F  (fixed )   =    0.000e+00              Fraction of particles in triplet state
+        tau_F  (fixed )   =    1.000e+00 μs           Triplet state relaxation time
+        tau_d  (fitted)   =    1.370e+01 μs           Diffusion time
+            n  (fitted)   =    3.810e+00              Concentration
+       offset  (fixed )   =    0.000e+00              Offset
+        alpha  (fixed )   =    1.000e+00              Anamalous diffusion exponent (1=normal diffusion)
+     
+     Goodness of fit:
+        9-24-2012-001.pt2.acorr
+         Chi^2 = 1.642541e+02
+         Chi^2 / DOF = 1.013914
+
+In the first block of this output we see the parameters of the model
+(`3d_diff`), along with their initial values and scope (e.g. whether
+the parameter is taken to be fixed or will be fitted). After this we
+see a similar list reflecting the parameter values resulting from the
+fit. Finally, we see some commonly used measures of goodness-of-fit.
      
 ![Correlation function fitted and plotted by fcs-fit](doc/fcs-fit-1.png)
 
 Of course, things aren't always this easy. Fits are notoriously
 finicky in the presence of imperfect data as demonstrated in this
-example,
+example (omitting `--model=3d_diff` since this is the default),
 
      $ fcs-fit 2012-10-25-run_001.timetag.acorr -p
      Fitting 1 curves against model 3d_diff
@@ -179,6 +211,8 @@ questionable, we can nevertheless do so by cutting out the triplet
          Chi^2 = 1.895113e+02
          Chi^2 / DOF = 1.238636
 
-Where the fit now fits (only ever so slightly) better,
+Here, we have set the `offset` parameter of the model with an initial
+value (0.5) and allowed the parameter to be varied by the fit. We find
+that the fit now fits (only ever so slightly) better,
 
 ![Slightly better fitting correlation function](doc/fcs-fit-3.png)
