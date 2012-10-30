@@ -1,0 +1,3 @@
+[submodule "corr"]
+	path = corr
+	url = git://goldnerlab.physics.umass.edu/corr
