@@ -99,9 +99,9 @@ it explicitly here for completeness),
      
 This will produce three files,
 
- * `2012-10-25-run_001.timetag.acorr`: the auto-correlation of channel a
- * `2012-10-25-run_001.timetag.bcorr`: the auto-correlation of channel b
- * `2012-10-25-run_001.timetag.xcorr`: the cross-correlation of channels a and b
+ * `2012-10-25-run_001.timetag.acorr-0`: the auto-correlation of channel 0
+ * `2012-10-25-run_001.timetag.acorr-1`: the auto-correlation of channel 1
+ * `2012-10-25-run_001.timetag.xcorr-0-1`: the cross-correlation of channels 0 and 1
 
 Moreover, if we pass the `--plot` option a plot will be produced of
 each of these functions,
@@ -118,30 +118,30 @@ case, it allows one to fit a single model (e.g. a three-dimensional
 diffusion model, `--model=3d_diff`) to a correlation function produced
 by `fcs-corr`,
 
-     $ fcs-fit --plot -m3d_diff 9-24-2012-001.pt2.acorr
+     $ fcs-fit --plot -m3d_diff 9-24-2012-001.pt2.acorr-0
      Fitting 1 curves against model 3d_diff
      
      Initial parameters:
-            a  (fitted)   =    3.000e+00              Aspect ratio
-            F  (fixed )   =    0.000e+00              Fraction of particles in triplet state
-        tau_F  (fixed )   =    1.000e+00 μs           Triplet state relaxation time
-        tau_d  (fitted)   =    1.000e+02 μs           Diffusion time
-            n  (fitted)   =    5.000e-01              Concentration
-       offset  (fixed )   =    0.000e+00              Offset
-        alpha  (fixed )   =    1.000e+00              Anamalous diffusion exponent (1=normal diffusion)
-     
-     
-     Fitted parameters:
-            a  (fitted)   =    1.270e+01              Aspect ratio
-            F  (fixed )   =    0.000e+00              Fraction of particles in triplet state
-        tau_F  (fixed )   =    1.000e+00 μs           Triplet state relaxation time
-        tau_d  (fitted)   =    1.370e+01 μs           Diffusion time
-            n  (fitted)   =    3.810e+00              Concentration
-       offset  (fixed )   =    0.000e+00              Offset
-        alpha  (fixed )   =    1.000e+00              Anamalous diffusion exponent (1=normal diffusion)
+            a  (fitted)   =    3.000e+00        Aspect ratio
+            F  (fixed )   =    0.000e+00        Fraction of particles in triplet state
+        tau_F  (fixed )   =    1.000e+00 us     Triplet state relaxation time
+        tau_d  (fitted)   =    1.000e+02 us     Diffusion time
+            n  (fitted)   =    5.000e-01        Concentration
+       offset  (fixed )   =    0.000e+00        Offset
+        alpha  (fixed )   =    1.000e+00        Anamalous diffusion exponent (1=normal diffusion)
+                                                
+                                                
+     Fitted parameters:                         
+            a  (fitted)   =    1.270e+01        Aspect ratio
+            F  (fixed )   =    0.000e+00        Fraction of particles in triplet state
+        tau_F  (fixed )   =    1.000e+00 us     Triplet state relaxation time
+        tau_d  (fitted)   =    1.370e+01 us     Diffusion time
+            n  (fitted)   =    3.810e+00        Concentration
+       offset  (fixed )   =    0.000e+00        Offset
+        alpha  (fixed )   =    1.000e+00        Anamalous diffusion exponent (1=normal diffusion)
      
      Goodness of fit:
-        9-24-2012-001.pt2.acorr
+        9-24-2012-001.pt2.acorr-0
          Chi^2 = 1.642541e+02
          Chi^2 / DOF = 1.013914
 
@@ -157,24 +157,24 @@ Of course, things aren't always this easy. Fits are notoriously
 finicky in the presence of imperfect data as demonstrated in this
 example (omitting `--model=3d_diff` since this is the default),
 
-     $ fcs-fit 2012-10-25-run_001.timetag.acorr -p
+     $ fcs-fit 2012-10-25-run_001.timetag.acorr-0 -p
      Fitting 1 curves against model 3d_diff
 
      Initial Parameters:
-             a  (fitted)   =    3.000e+00              Aspect ratio
-             F  (fixed )   =    0.000e+00              Fraction of particles in triplet state
-         tau_F  (fixed )   =    1.000e+00 us           Triplet state relaxation time
-         tau_d  (fitted)   =    1.000e+02 us           Diffusion time
-             n  (fitted)   =    5.000e-01              Concentration
-        offset  (fixed )   =    0.000e+00              Offset
-         alpha  (fixed )   =    1.000e+00              Anamalous diffusion exponent (1=normal diffusion)
+             a  (fitted)   =    3.000e+00       Aspect ratio
+             F  (fixed )   =    0.000e+00       Fraction of particles in triplet state
+         tau_F  (fixed )   =    1.000e+00 us    Triplet state relaxation time
+         tau_d  (fitted)   =    1.000e+02 us    Diffusion time
+             n  (fitted)   =    5.000e-01       Concentration
+        offset  (fixed )   =    0.000e+00       Offset
+         alpha  (fixed )   =    1.000e+00       Anamalous diffusion exponent (1=normal diffusion)
 
      Failed to converge Fit failed to converge (flat axis)
 
 Looking at the plot produced by `fcs-corr`, we find the reason for the
 fit failing is quite clear,
 
-![Poorly fitting correlation function](doc/fcs-fit-2.png)
+![Data from your nightmares](doc/fcs-fit-2.png)
 
 Here we see a pronounced triplet artifact starting at around $\tau = $
 1 microsecond, in addition to a strong indication that the correlation
@@ -184,30 +184,30 @@ questionable, we can nevertheless do so by cutting out the triplet
 (`--early-cutoff=1e-6`) and allowing the model to fit an offset
 (`--set=fitted:offset=0.5`),
 
-     $ fcs-fit --plot 2012-10-25-run_001.timetag.acorr -e1e-6 -sfitted:offset=0.5
+     $ fcs-fit --plot 2012-10-25-run_001.timetag.acorr-0 -e1e-6 -sfitted:offset=0.5
      Fitting 1 curves against model 3d_diff
      
      Initial parameters:
-           a  (fitted)   =    3.000e+00              Aspect ratio
-           F  (fixed )   =    0.000e+00              Fraction of particles in triplet state
-       tau_F  (fixed )   =    1.000e+00 us           Triplet state relaxation time
-       tau_d  (fitted)   =    1.000e+02 us           Diffusion time
-           n  (fitted)   =    5.000e-01              Concentration
-      offset  (fitted)   =    5.000e-01              Offset
-       alpha  (fixed )   =    1.000e+00              Anamalous diffusion exponent (1=normal diffusion)
+           a  (fitted)   =    3.000e+00         Aspect ratio
+           F  (fixed )   =    0.000e+00         Fraction of particles in triplet state
+       tau_F  (fixed )   =    1.000e+00 us      Triplet state relaxation time
+       tau_d  (fitted)   =    1.000e+02 us      Diffusion time
+           n  (fitted)   =    5.000e-01         Concentration
+      offset  (fitted)   =    5.000e-01         Offset
+       alpha  (fixed )   =    1.000e+00         Anamalous diffusion exponent (1=normal diffusion)
      
      
      Fitted parameters:
-           a  (fitted)   =    8.569e+00              Aspect ratio
-           F  (fixed )   =    0.000e+00              Fraction of particles in triplet state
-       tau_F  (fixed )   =    1.000e+00 us           Triplet state relaxation time
-       tau_d  (fitted)   =    4.347e+02 us           Diffusion time
-           n  (fitted)   =    3.356e-01              Concentration
-      offset  (fitted)   =    1.450e-01              Offset
-       alpha  (fixed )   =    1.000e+00              Anamalous diffusion exponent (1=normal diffusion)
+           a  (fitted)   =    8.569e+00         Aspect ratio
+           F  (fixed )   =    0.000e+00         Fraction of particles in triplet state
+       tau_F  (fixed )   =    1.000e+00 us      Triplet state relaxation time
+       tau_d  (fitted)   =    4.347e+02 us      Diffusion time
+           n  (fitted)   =    3.356e-01         Concentration
+      offset  (fitted)   =    1.450e-01         Offset
+       alpha  (fixed )   =    1.000e+00         Anamalous diffusion exponent (1=normal diffusion)
      
      Goodness of fit:
-        2012-10-25-run_001.timetag.acorr
+        2012-10-25-run_001.timetag.acorr-0
          Chi^2 = 1.895113e+02
          Chi^2 / DOF = 1.238636
 
@@ -215,4 +215,8 @@ Here, we have set the `offset` parameter of the model with an initial
 value (0.5) and allowed the parameter to be varied by the fit. We find
 that the fit now fits (only ever so slightly) better,
 
-![Slightly better fitting correlation function](doc/fcs-fit-3.png)
+![Very slightly better fitting correlation function](doc/fcs-fit-3.png)
+
+Occasionally one might want to fit several curves to a model sharing
+some parameters. For example, in an FCS experiment one might take
+several datasets on the same instrument
