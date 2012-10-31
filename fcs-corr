@@ -70,9 +70,9 @@ parser.add_argument('-T', '--stop-time', default=None, type=float,
 args = parser.parse_args()
 verbose = args.verbose
 
-correlations = [(args.a_channel, args.a_channel, 'acorr%d' % args.a_channel),
-                (args.b_channel, args.b_channel, 'acorr%d' % args.b_channel),
-                (args.a_channel, args.b_channel, 'xcorr%d%d' % (args.a_channel, args.b_channel))
+correlations = [(args.a_channel, args.a_channel, 'acorr-%d' % args.a_channel),
+                (args.b_channel, args.b_channel, 'acorr-%d' % args.b_channel),
+                (args.a_channel, args.b_channel, 'xcorr-%d-%d' % (args.a_channel, args.b_channel))
                ]
 if args.single:
     correlations = [(args.a_channel, args.b_channel, args.label)]
