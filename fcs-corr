@@ -90,7 +90,6 @@ for file in args.files:
         print label
         print '  %20s, channel %d: %d events' % (fname, bc, len(a.data))
         print '  %20s, channel %d: %d events' % (fname, ac, len(b.data))
-        print
 
         ad,bd = a.data, b.data
         if args.start_time is not None:
@@ -104,6 +103,10 @@ for file in args.files:
                  jiffy=jiffy,
                  short_grain=args.min_lag, long_lag=args.max_lag,
                  fineness=args.fineness, verbose=args.verbose)
+
+        print '  G(%1.2f s) = %1.3f' % (c[0]['lag'], c[0]['dotnormed'])
+        print '  G(%1.2f s) = %1.3f' % (c[-1]['lag'], c[-1]['dotnormed'])
+        print
 
         np.savetxt(fname+'.'+label, c)
         if args.plot:
