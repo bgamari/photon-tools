@@ -63,6 +63,10 @@ parser.add_argument('-s', '--single', action='store_true',
                     help='Only compute the correlation of the given two channels')
 parser.add_argument('-p', '--plot', action='store_true',
                     help='Plot each computed correlation function')
+parser.add_argument('-t', '--start-time', default=None, type=float,
+                    help='Start time of usable data (seconds)')
+parser.add_argument('-T', '--stop-time', default=None, type=float,
+                    help='Stop time of usable data (seconds)')
 args = parser.parse_args()
 verbose = args.verbose
 
@@ -84,14 +88,23 @@ for file in args.files:
 
         fname = os.path.basename(file.name)
         print label
-        print '%20s, channel %d: %d events' % (fname, bc, len(a.data))
-        print '%20s, channel %d: %d events' % (fname, ac, len(b.data))
+        print '  %20s, channel %d: %d events' % (fname, bc, len(a.data))
+        print '  %20s, channel %d: %d events' % (fname, ac, len(b.data))
         print
 
-        c = corr(a.data, b.data,
+        ad,bd = a.data, b.data
+        if args.start_time is not None:
+            ad = ad[ad >= args.start_time / jiffy]
+            bd = bd[bd >= args.start_time / jiffy]
+        if args.stop_time is not None:
+            ad = ad[ad < args.stop_time / jiffy]
+            bd = bd[bd < args.stop_time / jiffy]
+        
+        c = corr(ad, bd,
                  jiffy=jiffy,
                  short_grain=args.min_lag, long_lag=args.max_lag,
                  fineness=args.fineness, verbose=args.verbose)
+
         np.savetxt(fname+'.'+label, c)
         if args.plot:
             plot_corr(c, fname+'.'+label+'.png')
