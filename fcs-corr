@@ -29,10 +29,11 @@ def chunks(x, n):
 def correlate_multi(x, y, n=10, **kwargs):
     x_chunks = chunks(x, n)
     y_chunks = chunks(y, n)
-    print map(len, x_chunks)
     corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
-    print np.mean(corrs['G'], axis=1)
-    print corrs.shape
+    g = np.mean(corrs['G'], axis=0)
+    var = np.var(corrs['G'], axis=0)
+    return np.rec.fromarrays([corrs[0]['lag'], g, var],
+                             names='lag,G,var')
     
 def plot_corr(corr, output=None):
     pl.clf()
@@ -54,6 +55,8 @@ parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
                     help='Smallest lag to compute')
 parser.add_argument('-L', '--max-lag', type=float, default=1,
                     help='Longest lag to compute')
+parser.add_argument('-n', '--nchunks', type=int, default=1,
+                    help='Number of chunks to split data into for variance computation')
 parser.add_argument('-f', '--fineness', type=int, default=8,
                     help='Granularity of lags')
 parser.add_argument('-v', '--verbose', action='store_true',
@@ -99,10 +102,19 @@ for file in args.files:
             ad = ad[ad < args.stop_time / jiffy]
             bd = bd[bd < args.stop_time / jiffy]
         
-        c = corr(ad, bd,
-                 jiffy=jiffy,
-                 short_grain=args.min_lag, long_lag=args.max_lag,
-                 fineness=args.fineness, verbose=args.verbose)
+        kwargs = {
+            'jiffy': jiffy,
+            'short_grain': args.min_lag,
+            'long_lag': args.max_lag,
+            'fineness': args.fineness,
+            'verbose': args.verbose
+        }
+
+        c = None
+        if args.nchunks > 1:
+            c = correlate_multi(ad, bd, n=10, **kwargs)
+        else:
+            c = corr(ad, bd, **kwargs)
 
         print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G'])
         print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
