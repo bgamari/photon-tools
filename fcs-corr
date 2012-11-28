@@ -24,7 +24,7 @@ def read_data(file):
 
 def chunks(x, n):
     l = len(x) / n
-    return [ x[i*l:(i+1)*l] for i in range(n) ]
+    return [ x[i*l:(i+1)*l] - x[i*l] for i in range(n) ]
 
 def correlate_multi(x, y, n=10, **kwargs):
     x_chunks = chunks(x, n)
