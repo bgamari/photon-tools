@@ -36,9 +36,13 @@ correlation functions
 This is a framework for "global" analysis of FCS correlation functions.
 """
 
-def load_favia(file):
+def load_corr(file):
         dt = [('lag','f'), ('G','f'), ('var','f')]
-        d = np.genfromtxt(file, dtype=dt, usecols=(0,3,4))
+        usecols = None
+        if len(open(file.name).readline().split()) == 5:
+                # favia format
+                usecols = (0,3,4)
+        d = np.genfromtxt(file, dtype=dt, usecols=usecols)
         d['G'] -= 1.0   # Subtract out offset
         return d
 
@@ -181,7 +185,7 @@ if __name__ == '__main__':
 
         curves = []
         for f in args.curves:
-                datum = load_favia(f)
+                datum = load_corr(f)
                 taken = datum[datum['lag'] > args.early_cutoff]
                 curves.append(taken)
 
