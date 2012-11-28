@@ -7,13 +7,18 @@ import numpy as np
 #logging.basicConfig(level=logging.DEBUG)
 keep = False # For debugging
 
-dtype = np.dtype([('lag', 'f8'), ('loglag', 'f8'),
-                  ('dot', 'f8'), ('dotnormed', 'f8'),
-                  ('bar', 'f8')])
+raw_dtype = np.dtype([('lag', 'f8'), ('loglag', 'f8'),
+                      ('dot', 'f8'), ('dotnormed', 'f8'),
+                      ('var', 'f8')])
 
-def read_favia(fname):
-        return np.loadtxt(fname, dtype=dtype)
+def read_favia_raw(fname):
+        return np.loadtxt(fname, dtype=raw_dtype)
         
+def read_favia(fname):
+        c = read_favia_raw(fname)
+        return np.rec.fromarrays([c['lag'], c['dotnormed'], c['var']],
+                                 names='lag,G,var')
+                        
 def acorr(x, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
         return corr(x, x, jiffy, short_grain, long_lag, verbose)
 

@@ -37,7 +37,7 @@ def correlate_multi(x, y, n=10, **kwargs):
 def plot_corr(corr, output=None):
     pl.clf()
     pl.xscale('log')
-    pl.errorbar(corr['lag'], corr['dotnormed'], yerr=corr['bar'], fmt='.')
+    pl.errorbar(corr['lag'], corr['G'], yerr=corr['var'], fmt='.')
     pl.xlabel('Lag (s)')
     pl.ylabel('Correlation')
     if output is not None:
@@ -104,8 +104,8 @@ for file in args.files:
                  short_grain=args.min_lag, long_lag=args.max_lag,
                  fineness=args.fineness, verbose=args.verbose)
 
-        print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['dotnormed'])
-        print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['dotnormed'])
+        print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G'])
+        print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
         print
 
         np.savetxt(fname+'.'+label, c)
