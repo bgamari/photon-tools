@@ -139,13 +139,16 @@ def _compute_error(p, curves, params, model):
 def fit(curves, model, params, epsfcn=0.0, verbose=False):
         """ Run the regression. Returns a new Model object with optimized
             parameters. One can then evaluate the optimized fit
-            functions using this new object's G function. """
+            functions using this new object's G function. Curves is a
+            list of record arrays. """
         from copy import deepcopy
         params = deepcopy(params)
         params.validate()
         p0 = params._pack()
         # TODO: Not sure why epsfcn needs to be changed
-        res = scipy.optimize.leastsq(_compute_error, p0, args=(curves, params, model), full_output=True, epsfcn=epsfcn)
+        res = scipy.optimize.leastsq(_compute_error, p0,
+                                     args=(curves, params, model),
+                                     full_output=True, epsfcn=epsfcn)
         p, cov_x, infodict, mesg, ier = res
         if verbose:
                 print 'Completed after %d evaluations with message: %s' % (infodict['nfev'], mesg)
