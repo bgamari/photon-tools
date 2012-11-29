@@ -39,9 +39,15 @@ This is a framework for "global" analysis of FCS correlation functions.
 def load_corr(file):
         dt = [('lag','f'), ('G','f'), ('var','f')]
         usecols = None
-        if len(open(file.name).readline().split()) == 5:
-                # favia format
-                usecols = (0,3,4)
+        ncols = len(open(file.name).readline().split())
+        if ncols == 5:
+            # favia format
+            usecols = (0,3,4)
+        elif ncols == 3:
+            usecols = None
+        else:
+            raise RuntimeError('Unrecognized file format')
+
         d = np.genfromtxt(file, dtype=dt, usecols=usecols)
         d['G'] -= 1.0   # Subtract out offset
         return d
