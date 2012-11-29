@@ -42,7 +42,7 @@ def plot_corr(corr, output=None):
     pl.xlabel('Lag (s)')
     pl.ylabel('Correlation')
     if output is not None:
-	pl.savefig(output)
+        pl.savefig(output)
     
 parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps')
 parser.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
