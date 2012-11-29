@@ -184,7 +184,7 @@ questionable, we can nevertheless do so by cutting out the triplet
 (`--early-cutoff=1e-6`) and allowing the model to fit an offset
 (`--set=fitted:offset=0.5`),
 
-     $ fcs-fit --plot 2012-10-25-run_001.timetag.acorr-0 -e1e-6 -sfitted:offset=0.5
+     $ fcs-fit --plot 2012-10-25-run_001.timetag.acorr-0 -e 1e-6 -s fit:offset -s fit:tau_F -s fit:F
      Fitting 1 curves against model 3d_diff
      
      Initial parameters:
@@ -193,23 +193,23 @@ questionable, we can nevertheless do so by cutting out the triplet
        tau_F  (fixed )   =    1.000e+00 us      Triplet state relaxation time
        tau_d  (fitted)   =    1.000e+02 us      Diffusion time
            n  (fitted)   =    5.000e-01         Concentration
-      offset  (fitted)   =    5.000e-01         Offset
+      offset  (fitted)   =    0.000e-01         Offset
        alpha  (fixed )   =    1.000e+00         Anamalous diffusion exponent (1=normal diffusion)
      
      
      Fitted parameters:
-           a  (fitted)   =    8.569e+00         Aspect ratio
-           F  (fixed )   =    0.000e+00         Fraction of particles in triplet state
-       tau_F  (fixed )   =    1.000e+00 us      Triplet state relaxation time
-       tau_d  (fitted)   =    4.347e+02 us      Diffusion time
-           n  (fitted)   =    3.356e-01         Concentration
-      offset  (fitted)   =    1.450e-01         Offset
+           a  (fitted)   =    1.193e+01         Aspect ratio
+           F  (fitted)   =    2.128e-01         Fraction of particles in triplet state
+       tau_F  (fixed )   =    4.612e+01 us      Triplet state relaxation time
+       tau_d  (fitted)   =    3.919e+02 us      Diffusion time
+           n  (fitted)   =    3.146e-01         Concentration
+      offset  (fitted)   =    1.441e-01         Offset
        alpha  (fixed )   =    1.000e+00         Anamalous diffusion exponent (1=normal diffusion)
      
      Goodness of fit:
         2012-10-25-run_001.timetag.acorr-0
-         Chi^2 = 1.895113e+02
-         Chi^2 / DOF = 1.238636
+         Chi^2 = 3.26+02
+         Chi^2 / DOF = 2.13
 
 Here, we have set the `offset` parameter of the model with an initial
 value (0.5) and allowed the parameter to be varied by the fit. We find
@@ -219,4 +219,6 @@ that the fit now fits (only ever so slightly) better,
 
 Occasionally one might want to fit several curves to a model sharing
 some parameters. For example, in an FCS experiment one might take
-several datasets on the same instrument
+several datasets on the same instrument expecting parameters such as
+$a$ to remain constant over the course of the day. In this case, one
+can fit these datasets collectively, sharing the common parameters.
