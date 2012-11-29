@@ -254,8 +254,8 @@ if __name__ == '__main__':
                 err = model(params._curve_params(i), d['lag']) - d['G']
                 chi_sq = sum(err**2)
                 print '  ', args.curves[i].name
-                print '    Chi^2 = %e' % chi_sq
-                print '    Chi^2 / DOF = %f' % (chi_sq / (len(curves[i])-len(params)))
+                print '    Chi^2 = %1.2e' % chi_sq
+                print '    Chi^2 / DOF = %1.2f' % (chi_sq / (len(curves[i])-len(params)))
 
         # Plot
         if args.plot:
