@@ -141,10 +141,11 @@ def print_models():
 
 def apply_params(params, param_exprs):
         for s in param_exprs:
-                p,v = s.split('=')
-                scope = None
-                if ':' in s:
-                    scope,p = p.split(':')
+                scope, p, v = None, None, None
+                if ':' not in s:
+                    p = s
+                else:
+                    scope,p = s.split(':')
                     if scope.startswith('fit'):
                             scope = 'fitted'
                     elif scope.startswith('fix'):
@@ -152,9 +153,12 @@ def apply_params(params, param_exprs):
                     else:
                             parser.error('Invalid scope %s' % scope)
 
+                if '=' in p:
+                    p,v = p.split('=')
+
                 if p not in params:
                         parser.error('Unknown parameters %s' % p)
-                params[p].value = parse_param_value(v)
+                if v is not None: params[p].value = parse_param_value(v)
                 if scope is not None: params[p].scope = scope
         return params
         
