@@ -8,4 +8,5 @@ install : ${PROGS}
 clean : 
 	rm -f ${CLEAN} ${PROGS} *.o *.pyc
 
-
+readme.pdf : readme.mkd
+	pandoc $< -o $@
