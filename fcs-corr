@@ -64,7 +64,7 @@ parser.add_argument('-v', '--verbose', action='store_true',
                     help='Produce debugging output')
 parser.add_argument('-l', '--label', type=str, default='corr',
                     help='Descriptive label for dataset shown in plot')
-parser.add_argument('-j', '--jiffy', type=float, default='auto',
+parser.add_argument('-j', '--jiffy', type=float, default=None,
                     help='Acquisition timebase period')
 parser.add_argument('-s', '--single', action='store_true',
                     help="Produce only cross-correlations of given channels, skipping auto-correlations")
@@ -89,9 +89,9 @@ for file in args.files:
         a = TimestampFile(file.name, ac)
         b = TimestampFile(file.name, bc)
         jiffy = a.jiffy
-        if args.jiffy is not 'auto':
+        if args.jiffy is not None:
             jiffy = args.jiffy
-        if jiffy is 'auto':
+        if jiffy is None:
             jiffy = 1. / 128e6
             print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
 
