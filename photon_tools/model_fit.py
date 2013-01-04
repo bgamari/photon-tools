@@ -23,8 +23,9 @@ def register_model(*names):
         return reg
 
 class Parameter(object):
-        def __init__(self, name, description, def_value=None, def_scope=None):
+        def __init__(self, name, description, unit='', def_value=None, def_scope=None):
                 self.name = name
+                self.unit = unit
                 self.description = description
                 self.def_value = def_value
                 self.def_scope = def_scope
@@ -32,7 +33,7 @@ class Parameter(object):
                 self.value = None
 
         def __str__(self):
-                return '<Parameter %s (%s) = %e>' % (self.name, self.scope, self.value)
+                return '<Parameter %s (%s) = %e %s>' % (self.name, self.scope, self.value, self.unit)
 
 class Parameters(dict):
         def __init__(self, model, curves):
@@ -130,7 +131,7 @@ def _compute_error(p, curves, params, model):
                 cparams = params._curve_params(i)
                 G = model(cparams, c['lag'])
                 #err.extend(c['G'] - G)
-                err.extend((c['G'] - G) / c['var']**2)
+                err.extend((c['G'] - G) / np.sqrt(c['var']))
 
         err = np.array(err)
         return err
@@ -138,13 +139,16 @@ def _compute_error(p, curves, params, model):
 def fit(curves, model, params, epsfcn=0.0, verbose=False):
         """ Run the regression. Returns a new Model object with optimized
             parameters. One can then evaluate the optimized fit
-            functions using this new object's G function. """
+            functions using this new object's G function. Curves is a
+            list of record arrays. """
         from copy import deepcopy
         params = deepcopy(params)
         params.validate()
         p0 = params._pack()
         # TODO: Not sure why epsfcn needs to be changed
-        res = scipy.optimize.leastsq(_compute_error, p0, args=(curves, params, model), full_output=True, epsfcn=epsfcn)
+        res = scipy.optimize.leastsq(_compute_error, p0,
+                                     args=(curves, params, model),
+                                     full_output=True, epsfcn=epsfcn)
         p, cov_x, infodict, mesg, ier = res
         if verbose:
                 print 'Completed after %d evaluations with message: %s' % (infodict['nfev'], mesg)
@@ -170,9 +174,10 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                 ax.semilogx(x, m, label='%s (fit)' % name)
 
                 ax2 = divider.append_axes('top', size=1.2, pad=0.1, sharex=ax)
-                ax2.axhline(y=0, linewidth=1, color='k', alpha=0.5)
                 d = params.curves[i]
-                ax2.semilogx(d['lag'], model(cparams, d['lag']) - d['G'])
+                ax2.semilogx(d['lag'], model(cparams, d['lag']) - d['G'], '+')
+                # This appears to be broken at the moment due to Issue #1246
+                #ax2.axhline(y=1, color='k', alpha=0.5)
                 for t in ax2.get_xticklabels():
                         t.set_visible(False)
 

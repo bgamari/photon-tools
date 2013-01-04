@@ -1,23 +1,26 @@
 #!/usr/bin/python
 
 import argparse
+from collections import namedtuple
 
 import numpy as np
 from matplotlib import pyplot as pl
 from matplotlib.ticker import MaxNLocator
 
-import photon_tools.timetag_parse as tp
+from photon_tools.read_photons import TimestampFile
 import photon_tools.bin_photons as bp
+
+colors = 'rgb'
 
 description = 'Utility to plot a binned series of timestamps'
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument('input', metavar='FILE', type=argparse.FileType('r'),
-                    help='Input timestamp data')
+                    nargs='+', help='Input timestamp data')
 parser.add_argument('-w', '--bin-width', metavar='TIME', type=float, default=10e-3,
 		    help='Bin width in seconds')
 parser.add_argument('-r', '--rows', metavar='N', type=int, default=10,
 		    help='Number of plot rows')
-parser.add_argument('-j', '--jiffy', metavar='TIME', type=float, default=1/128e6,
+parser.add_argument('-j', '--jiffy', metavar='TIME', type=float, default=None,
 		    help='Instrument tick period')
 parser.add_argument('-W', '--row-width', metavar='TIME', type=float, default=10,
 		    help='Width of row in seconds')
@@ -25,69 +28,89 @@ parser.add_argument('-y', '--max-count', metavar='COUNT|max|avg', default='max',
 		    help='Maximum count rate of Y axis')
 parser.add_argument('-o', '--output', metavar='FILE', type=argparse.FileType('w'), default=None,
 		    help='Output to named file')
+parser.add_argument('-c', '--channel', metavar='CHANNEL[=LABEL]',
+                    action='append', default=[],
+                    help='Channels to plot')
 parser.add_argument('-O', '--auto-output', action='store_true',
 		    help='Output to file (name automatically generated)')
 args = parser.parse_args()
-
-jiffy = args.jiffy # seconds
 bin_width = args.bin_width # seconds
+if len(args.channel) == 0:
+        args.channel = ['1=acceptor', '0=donor']
 
-fname = args.input.name
-a = tp.get_strobe_events(fname, 2)[100:]
-d = tp.get_strobe_events(fname, 1)[100:]
+def process(fname):
+    DataSet = namedtuple('DataSet', 'data,label')
+    channels = []
+    jiffy = None
+    for c in args.channel:
+            try:
+                chan,_,label = c.partition('=')
+                chan = int(chan)
+                if len(label) == 0:
+                        label = 'Channel %d' % chan
+                t = TimestampFile(fname, chan)
+                if jiffy is None:
+                        jiffy = t.jiffy
+                channels.append(DataSet(t.data, label))
+            except:
+                pass
 
-start_t = min(a[0]['t'], d[0]['t'])
-a['t'] -= start_t
-d['t'] -= start_t
+    if len(channels) == 0:
+            raise RuntimeError("No channels given")
 
-abins = bp.bin_photons(a['t'], round(bin_width / jiffy))
-dbins = bp.bin_photons(d['t'], round(bin_width / jiffy))
+    if jiffy is None:
+            raise RuntimeError("Couldn't identify jiffy")
 
-print fname
-print "Average rates:"
-print "  Donor:    %f / second" % (np.mean(dbins['count']) / bin_width)
-print "  Acceptor: %f / second" % (np.mean(abins['count']) / bin_width)
-print
+    start_t = min(map(lambda c: c.data[0], channels))
+    bin_width_j = round(bin_width / jiffy)
+    bins = map(lambda c: bp.bin_photons(c.data, bin_width_j, start_t), channels)
 
-ymax = None
-if args.max_count == 'max':
-        ymax = max(np.max(abins['count']), np.max(dbins['count']))
-elif args.max_count == 'avg':
-        ymax = 1.5 * max(np.mean(dbins['count']), np.mean(abins['count']))
-else:
-        ymax = float(args.max_count) * bin_width
+    print fname
+    print "Average rates:"
+    for c in channels:
+            dur = c.data[-1] - c.data[0]
+            print "  %20s:    %f / second" % (c.label, len(c.data) / dur / jiffy)
+    print
 
-def plot_bins(bins, style, **kws):
-        times = map(lambda t: t*jiffy, bins['start_t']) 
-        pl.plot(times, bins['count'], style, **kws)
+    ymax = None
+    if args.max_count == 'max':
+            ymax = max(map(lambda c: np.max(c['count']), bins))
+    elif args.max_count == 'avg':
+            ymax = 1.5 * max(map(lambda c: np.mean(c['count']), bins))
+    else:
+            ymax = float(args.max_count) * bin_width
 
-for r in range(args.rows):
-        pl.subplot(args.rows,1,r+1)
-        s = r * args.row_width / jiffy
-        e = (r+1) * args.row_width / jiffy
-        ab = abins[np.logical_and(abins['start_t'] >= s, abins['start_t'] < e)]
-        db = dbins[np.logical_and(dbins['start_t'] >= s, dbins['start_t'] < e)]
-        plot_bins(db, 'g-', label='Donor', alpha=0.7)
-        plot_bins(ab, 'r-', label='Acceptor', alpha=0.7)
+    for r in range(args.rows):
+            pl.subplot(args.rows,1,r+1)
+            s = r * args.row_width + start_t*jiffy
+            e = (r+1) * args.row_width + start_t*jiffy
+            for color,chan,b in zip(colors,channels,bins):
+                ab = b[np.logical_and(b['start_t'] >= s/jiffy, b['start_t'] < e/jiffy)]
+                pl.plot(ab['start_t']*jiffy, ab['count'],
+                        '-', c=color, label=chan.label, alpha=0.7)
 
-        ax = pl.gca()
-        ax.xaxis.set_visible(False)
-        ax.yaxis.set_major_locator(MaxNLocator(2))
-        ax.yaxis.set_minor_locator(MaxNLocator(4))
-        ax.yaxis.grid(which='minor', alpha=0.2, color='black', linestyle='-')
-        pl.xlim(r*args.row_width, (r+1)*args.row_width)
-        pl.ylim(0, ymax)
+            ax = pl.gca()
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_major_locator(MaxNLocator(2))
+            ax.yaxis.set_minor_locator(MaxNLocator(4))
+            ax.yaxis.grid(which='minor', alpha=0.2, color='black', linestyle='-')
+            pl.xlim(s, e)
+            pl.ylim(0, ymax)
 
-pl.gca().axes.get_xaxis().set_visible(True)
+    pl.gca().axes.get_xaxis().set_visible(True)
 
-pl.suptitle(fname + '\nBin Width=%1.1f ms' % (bin_width*1e3))
-pl.xlabel('Time (seconds)')
+    pl.suptitle(fname + '\nBin Width=%1.1f ms' % (bin_width*1e3))
+    pl.xlabel('Time (seconds)')
 
-if args.output is not None:
-	pl.savefig(args.output.name)
-elif args.auto_output:
-        (root,_,_) = f.rpartition('.')
-        pl.savefig('%s-bins.pdf' % root)
-else:
-        pl.show()
+    if args.output is not None:
+            pl.savefig(args.output.name)
+    elif args.auto_output:
+            (root,_,_) = fname.rpartition('.')
+            pl.savefig('%s-bins.pdf' % root)
+    else:
+            pl.show()
+
+for f in args.input:
+    pl.clf()
+    process(f.name)
 
