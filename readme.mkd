@@ -30,11 +30,11 @@ plotting library. On the whole, `photon-tools` depends on,
  * Boost
 
 The scripts and libraries included in `photon-tools` can be installed
-like any distutils package,
+like any Python `distutils` package,
 
      $ sudo ./setup.py install
 
-Note that running scripts within the photon-tools/ root directory will require
+Note that running scripts within the `photon-tools/` root directory will require
 that the Cython code is built in-place, due to limitations of Python's module
 name resolution scheme. To do this, one must run,
 
@@ -50,7 +50,8 @@ Utilities requiring timestamp data as input accept data in the following formats
  * Goldner FPGA timetagger `.timetag` files
  
 In all of these cases, the utilities will attempt to figure out the
-period of the timebase (known as the jiffy).
+period of the timebase (known as the jiffy) from whatever metadata is
+available in the format.
 
 ## Tools
 
@@ -218,7 +219,10 @@ that the fit now fits (only ever so slightly) better,
 ![Very slightly better fitting correlation function](doc/fcs-fit-3.png)
 
 Occasionally one might want to fit several curves to a model sharing
-some parameters. For example, in an FCS experiment one might take
-several datasets on the same instrument expecting parameters such as
-$a$ to remain constant over the course of the day. In this case, one
-can fit these datasets collectively, sharing the common parameters.
+some set of parameters. For example, in an FCS experiment one might
+take several datasets on the same instrument expecting some parameters
+(e.g. the aspect ratio of the observation volume) to remain constant
+over the course of the day. In this case, one can fit these datasets
+collectively, sharing the common parameters. `fcs-fit` enables this
+sort of fit by using
+
