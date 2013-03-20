@@ -13,14 +13,14 @@ raw_dtype = np.dtype([('lag', 'f8'), ('loglag', 'f8'),
 
 def read_favia_raw(fname):
         return np.loadtxt(fname, dtype=raw_dtype)
-        
+
 def read_favia(fname):
         c = read_favia_raw(fname)
         return np.rec.fromarrays([c['lag'], c['dotnormed'], c['var']],
                                  names='lag,G,var')
-                        
-def acorr(x, jiffy=1./128e6, short_grain=1e-6, long_lag=1, verbose=False):
-        return corr(x, x, jiffy, short_grain, long_lag, verbose)
+
+def acorr(x, **kwargs):
+        return corr(x, x, **kwargs)
 
 def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose=False):
         """ Compute the correlation function of the datasets x and y. Jiffy,
@@ -46,4 +46,3 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
                 raise RuntimeError('Favia threw error: exit code %d' % p.returncode)
 
         return read_favia(fo.name)
-
