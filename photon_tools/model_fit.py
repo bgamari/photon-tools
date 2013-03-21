@@ -40,14 +40,12 @@ class Parameters(dict):
                 from copy import copy
                 assert(len(curves) > 0)
                 self.curves = curves
-                self.params = []
-		
+
                 for p in model.params:
                         a = copy(p)
                         a.scope = p.def_scope
                         a.value = p.def_value
                         self[p.name] = a
-                        self.params.append(a)
 
         def validate(self):
                 """ Needs to be called before pack or unpack are used """
@@ -92,8 +90,8 @@ class Parameters(dict):
                 return params
 
         def __str__(self):
-                return "\n".join(map(lambda x: str(x), self.params))
-	
+                return "\n".join(map(lambda x: str(x), self.values()))
+
 class Model(object):
         """
         Represents a fitting model for a multi-curve non-linear regression
