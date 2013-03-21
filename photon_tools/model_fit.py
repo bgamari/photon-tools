@@ -125,7 +125,6 @@ def _compute_error(p, curves, params, model):
         for i,c in enumerate(curves):
                 cparams = params._curve_params(i)
                 G = model(cparams, c['lag'])
-                #err.extend(c['G'] - G)
                 err.extend((c['G'] - G) / np.sqrt(c['var']))
 
         err = np.array(err)
