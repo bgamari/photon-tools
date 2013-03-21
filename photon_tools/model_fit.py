@@ -4,7 +4,7 @@ from numpy import log10
 import scipy
 from scipy.optimize import leastsq
 
-""" 
+"""
 model_fit - A flexible framework for model parameter fitting
 
 This is a framework for doing non-linear least-squares fitting on several
@@ -95,7 +95,7 @@ class Parameters(dict):
 class Model(object):
         """
         Represents a fitting model for a multi-curve non-linear regression
- 
+
         A model has parameters, which can be either fixed or chosen for
         optimization. In the latter case, the parameter can be taken as
         determined by the fit, or fixed per-curve. In either case, the parameter
@@ -151,8 +151,8 @@ def fit(curves, model, params, epsfcn=0.0, verbose=False):
         if verbose:
                 print 'Completed after %d evaluations with message: %s' % (infodict['nfev'], mesg)
                 print mesg
-		print 'Error: ', sum(_compute_error(p, curves, params, model)**2)
-		print ''
+                print 'Error: ', sum(_compute_error(p, curves, params, model)**2)
+                print ''
         if cov_x is None: raise RuntimeError('Fit failed to converge (flat axis)')
         params._unpack(p)
         return params
@@ -212,4 +212,3 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
                         horizontalalignment='left',
                         verticalalignment='top',
                         transform=ax.transAxes)
-

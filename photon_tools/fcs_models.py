@@ -18,17 +18,22 @@ class DiffusionModel(Model):
                 Parameter('offset',     'Offset', def_value=0, def_scope='fixed'),
                 Parameter('tau_F',      'Triplet state relaxation time', def_value=1, unit=u'μs', def_scope='fixed'),
                 Parameter('F',          'Fraction of particles in triplet state', def_value=0, def_scope='fixed'),
+                Parameter('tau_O',      'other state relaxation time', def_value=10, unit=u'μs', def_scope='fixed'),
+                Parameter('O',          'Fraction of particles in other state', def_value=0, def_scope='fixed'),
         ]
 
         def __call__(self, p, x):
                 a = p['a']
                 n = p['n']
                 F = p['F']
+                O = p['O']
                 tau_taud = (x / (p['tau_d']*1e-6))**p['alpha']
                 tau_tauF = x / (p['tau_F']*1e-6)
+                tau_tauO = x / (p['tau_O']*1e-6)
 
                 b = 1. / (1. + tau_taud)
                 c = 1. / (1. + tau_taud * a**-2)
                 d = (1. - F + F * exp(-tau_tauF)) / (1. - F)
-                return d * b * sqrt(c) / n + p['offset']
+                e = (1. - O + O * exp(-tau_tauO)) / (1. - O)
+                return d * e * b * sqrt(c) / n + p['offset']
 
