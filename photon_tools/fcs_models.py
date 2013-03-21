@@ -3,13 +3,14 @@
 from photon_tools.model_fit import Model, Parameter, register_model
 from numpy import min, max, mean, exp, power, sqrt, log10, sum
 
-@register_model('3d_diff')
+@register_model
 class DiffusionModel(Model):
         """ Three-dimensional diffusion model. This includes the
             anamalous diffusion exponent alpha, which can be set to 1
             for normal diffusion. The model also includes triplet
             correction, with parameters F and tau_F. Set F to 0
             (default) to disable this correction. """
+        short_name = '3d_diff'
         params = [
                 Parameter('tau_d',      'Diffusion time', def_value=100, unit=u'μs', def_scope='fitted'),
                 Parameter('a',          'Aspect ratio', def_value=3, def_scope='fitted'),

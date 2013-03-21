@@ -13,14 +13,11 @@ datasets simultaneously.
 """
 
 models = {}
-def register_model(*names):
-        def reg(cls):
-                if not issubclass(cls, Model):
-                        raise Exception("Registering model that doesn't inherit from model")
-                for n in names:
-                        models[n] = cls
-                return cls
-        return reg
+def register_model(cls):
+        if not issubclass(cls, Model):
+                raise Exception("Registering model that doesn't inherit from model")
+        models[cls.short_name] = cls
+        return cls
 
 class Parameter(object):
         def __init__(self, name, description, unit='', def_value=None, def_scope=None):
