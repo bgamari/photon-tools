@@ -13,15 +13,6 @@ import math
 
 verbose = False
 
-def read_data(file):
-    a = TimestampFile(file.name, 0)
-    d = TimestampFile(file.name, 1)
-    jiffy = a.jiffy
-    if jiffy is None:
-        jiffy = 1. / 128e6
-        print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
-    return (jiffy, a.data, d.data)
-
 def chunks(x, n):
     l = len(x) / n
     return [ x[i*l:(i+1)*l] - x[i*l] for i in range(n) ]

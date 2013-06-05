@@ -59,6 +59,8 @@ def process(fname):
             raise RuntimeError("No channels given")
 
     if jiffy is None:
+            jiffy = args.jiffy
+    if jiffy is None:
             raise RuntimeError("Couldn't identify jiffy")
 
     start_t = min(map(lambda c: c.data[0], channels))
