@@ -11,6 +11,12 @@ raw_dtype = np.dtype([('lag', 'f8'), ('loglag', 'f8'),
                       ('dot', 'f8'), ('dotnormed', 'f8'),
                       ('var', 'f8')])
 
+class FaviaError(RuntimeError):
+        def __init__(self, exit_code, error):
+                RuntimeError(self, 'Favia threw an error: exit code %d\n\n%s' % (exit_code, error))
+                self.exit_code = exit_code
+                self.error = error
+
 def read_favia_raw(fname):
         return np.loadtxt(fname, dtype=raw_dtype)
 
@@ -41,8 +47,8 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
         logging.debug(' '.join(args))
         stderr = sys.stderr if verbose else subprocess.PIPE
         p = subprocess.Popen(args, stdout=fo, stderr=stderr)
+        error = p.stderr.read() if not verbose else None
         if p.wait() != 0:
-                if not verbose: print p.stderr.read()
-                raise RuntimeError('Favia threw error: exit code %d' % p.returncode)
+                raise FaviaError(p.returncode, error)
 
         return read_favia(fo.name)
