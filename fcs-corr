@@ -109,7 +109,7 @@ for file in args.files:
 
         c = None
         if args.nchunks > 1:
-            c = correlate_multi(ad, bd, n=10, **kwargs)
+            c = correlate_multi(ad, bd, n=args.nchunks, **kwargs)
         else:
             c = corr(ad, bd, **kwargs)
 
