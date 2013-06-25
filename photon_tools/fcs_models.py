@@ -15,7 +15,7 @@ class DiffusionModel(Model):
                 Parameter('tau_d',      'Diffusion time', def_value=100, unit=u'μs', def_scope='fitted'),
                 Parameter('a',          'Aspect ratio', def_value=3, def_scope='fitted'),
                 Parameter('n',          'Concentration', def_value=0.5, def_scope='fitted'),
-                Parameter('alpha',      'Anamalous diffusion exponent (1=normal diffusion)', def_value=1, def_scope='fixed'),
+                Parameter('alpha',      'Anomalous diffusion exponent (1=normal diffusion)', def_value=1, def_scope='fixed'),
                 Parameter('offset',     'Offset', def_value=0, def_scope='fixed'),
                 Parameter('tau_F',      'Triplet state relaxation time', def_value=1, unit=u'μs', def_scope='fixed'),
                 Parameter('F',          'Fraction of particles in triplet state', def_value=0, def_scope='fixed'),
