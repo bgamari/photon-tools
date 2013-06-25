@@ -119,7 +119,10 @@ for file in args.files:
         print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
         print
 
-        np.savetxt(fname+'.'+label, c,
-                   header='lag            G(tau)            variance\n')
+        with open(fname+'.'+label) as f:
+                f.write('lag            G(tau)            variance\n')
+                np.savetxt(f, c)
+
         if args.plot:
             plot_corr(c, fname+'.'+label+'.png')
+
