@@ -255,9 +255,12 @@ if __name__ == '__main__':
                 d = params.curves[i]
                 err = model(params._curve_params(i), d['lag']) - d['G']
                 chi_sq = sum(err**2)
+                # This isn't quite right, number of parameters could be smaller
+                dof = len(curves[i]) - len(params)
                 print '  ', args.curves[i].name
                 print '    Chi^2 = %1.2e' % chi_sq
-                print '    Chi^2 / DOF = %1.2f' % (chi_sq / (len(curves[i])-len(params)))
+                print '    DoF   = %3d' % dof
+                print '    Chi^2 / DoF = %1.2f' % (chi_sq / dof)
 
         # Plot
         if args.plot:

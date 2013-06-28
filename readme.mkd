@@ -129,7 +129,7 @@ by `fcs-corr`,
         tau_d  (fitted)   =    1.000e+02 us     Diffusion time
             n  (fitted)   =    5.000e-01        Concentration
        offset  (fixed )   =    0.000e+00        Offset
-        alpha  (fixed )   =    1.000e+00        Anamalous diffusion exponent (1=normal diffusion)
+        alpha  (fixed )   =    1.000e+00        Anomalous diffusion exponent (1=normal diffusion)
                                                 
                                                 
      Fitted parameters:                         
@@ -139,7 +139,7 @@ by `fcs-corr`,
         tau_d  (fitted)   =    1.370e+01 us     Diffusion time
             n  (fitted)   =    3.810e+00        Concentration
        offset  (fixed )   =    0.000e+00        Offset
-        alpha  (fixed )   =    1.000e+00        Anamalous diffusion exponent (1=normal diffusion)
+        alpha  (fixed )   =    1.000e+00        Anomalous diffusion exponent (1=normal diffusion)
      
      Goodness of fit:
         9-24-2012-001.pt2.acorr-0
@@ -168,7 +168,7 @@ example (omitting `--model=3d_diff` since this is the default),
          tau_d  (fitted)   =    1.000e+02 us    Diffusion time
              n  (fitted)   =    5.000e-01       Concentration
         offset  (fixed )   =    0.000e+00       Offset
-         alpha  (fixed )   =    1.000e+00       Anamalous diffusion exponent (1=normal diffusion)
+         alpha  (fixed )   =    1.000e+00       Anomalous diffusion exponent (1=normal diffusion)
 
      Failed to converge Fit failed to converge (flat axis)
 
@@ -195,7 +195,7 @@ questionable, we can nevertheless do so by cutting out the triplet
        tau_d  (fitted)   =    1.000e+02 us      Diffusion time
            n  (fitted)   =    5.000e-01         Concentration
       offset  (fitted)   =    0.000e-01         Offset
-       alpha  (fixed )   =    1.000e+00         Anamalous diffusion exponent (1=normal diffusion)
+       alpha  (fixed )   =    1.000e+00         Anomalous diffusion exponent (1=normal diffusion)
      
      
      Fitted parameters:
@@ -205,7 +205,7 @@ questionable, we can nevertheless do so by cutting out the triplet
        tau_d  (fitted)   =    3.919e+02 us      Diffusion time
            n  (fitted)   =    3.146e-01         Concentration
       offset  (fitted)   =    1.441e-01         Offset
-       alpha  (fixed )   =    1.000e+00         Anamalous diffusion exponent (1=normal diffusion)
+       alpha  (fixed )   =    1.000e+00         Anomalous diffusion exponent (1=normal diffusion)
      
      Goodness of fit:
         2012-10-25-run_001.timetag.acorr-0
