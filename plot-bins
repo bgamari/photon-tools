@@ -31,6 +31,8 @@ parser.add_argument('-o', '--output', metavar='FILE', type=argparse.FileType('w'
 parser.add_argument('-c', '--channel', metavar='CHANNEL[=LABEL]',
                     action='append', default=[],
                     help='Channels to plot')
+parser.add_argument('-s', '--start', metavar='TIME', type=float, default=None,
+                    help='Time at which to begin plotting')
 parser.add_argument('-O', '--auto-output', action='store_true',
 		    help='Output to file (name automatically generated)')
 args = parser.parse_args()
@@ -64,6 +66,8 @@ def process(fname):
             raise RuntimeError("Couldn't identify jiffy")
 
     start_t = min(map(lambda c: c.data[0], channels))
+    if args.start is not None:
+            start_t = args.start / jiffy
     bin_width_j = round(bin_width / jiffy)
     bins = map(lambda c: bp.bin_photons(c.data, bin_width_j, start_t), channels)
 
@@ -74,7 +78,7 @@ def process(fname):
             print "  %20s:    %f / second" % (c.label, len(c.data) / dur / jiffy)
     print
 
-    ymax = None
+    ymax = None # counts per bin
     if args.max_count == 'max':
             ymax = max(map(lambda c: np.max(c['count']), bins))
     elif args.max_count == 'avg':
