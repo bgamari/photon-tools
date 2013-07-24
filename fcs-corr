@@ -61,6 +61,8 @@ parser.add_argument('-s', '--single', action='store_true',
                     help="Produce only cross-correlations of given channels, skipping auto-correlations")
 parser.add_argument('-p', '--plot', action='store_true',
                     help='Plot each computed correlation function')
+parser.add_argument('-O', '--output-type', default='png',
+                    help='File format of plot output')
 parser.add_argument('-t', '--start-time', default=None, type=float,
                     help='Start time of usable data (seconds)')
 parser.add_argument('-T', '--stop-time', default=None, type=float,
@@ -124,5 +126,5 @@ for file in args.files:
                 np.savetxt(f, c)
 
         if args.plot:
-            plot_corr(c, fname+'.'+label+'.png')
+            plot_corr(c, fname+'.'+label+'.'+args.output_type)
 
