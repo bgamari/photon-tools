@@ -151,7 +151,7 @@ def fit(curves, model, params, epsfcn=0.0, verbose=False):
                 print ''
         if cov_x is None: raise RuntimeError('Fit failed to converge (flat axis)')
         params._unpack(p)
-        return params
+        return params, cov_x
 
 def plot_model(fig, ax, params, model, curve_names, npts=1e3):
         from mpl_toolkits.axes_grid1 import make_axes_locatable

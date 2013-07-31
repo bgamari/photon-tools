@@ -240,11 +240,19 @@ if __name__ == '__main__':
 
         new = params
         try:
-                new = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
+                new, cov_x = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
         except RuntimeError as e:
                 print 'Fit failed to converge: ', e
                 sys.exit(1)
 
+        print 'Covariance:'
+        print ' '*8 + '      '.join('%-9s ' % name for name in new._fitted)
+        print ' '*8 + '      '.join('='*10 for name in new._fitted)
+        for var,cov in zip(new._fitted, cov_x):
+                print '%6s ' % var,
+                print '    '.join('%+1.2e   ' % x for x in cov)
+        print
+        
         print
         print 'Fitted parameters:'
         print_parameters(new)
