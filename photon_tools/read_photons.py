@@ -7,6 +7,7 @@ def determine_filetype(fname):
     raise RuntimeError("Unrecognized file type")
     
 class TimestampFile(object):
+    """ A portable interface for reading photon timestamp files """
     def __init__(self, fname, channel, ftype=None):
         """ Channel number of zero-based """
         self.jiffy = None
