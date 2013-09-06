@@ -51,11 +51,10 @@ pt3_record pt3_file::read_record() {
 	return r;
 }
 
-uint64_t *get_pt3_timestamps(const char *filename,
+uint64_t *get_pt3_timestamps(std::istream& is,
                              unsigned int channel,
                              unsigned int *n_records)
 {
-    std::ifstream is(filename);
     pt3_file *pt3 = new pt3_file(is);
     unsigned int n_rec = pt3->tttr_hdr.n_records;
     uint64_t *buffer = new uint64_t[n_rec];

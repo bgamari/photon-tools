@@ -134,4 +134,9 @@ protected:
 
 private:
 	void read_headers();
+
+public: 
+        static uint64_t* get_timestamps(std::istream& is,
+                                        unsigned int channel,
+                                        unsigned int* n_records);
 };

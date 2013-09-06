@@ -18,10 +18,13 @@
  * Author: Ben Gamari <bgamari@physics.umass.edu>
  */
 
+#include "picoharp.h"
 #include "pt2.h"
+#include "pt3.h"
 #include <cstring>
 
-void picoharp_file::read_headers() {
+void picoharp_file::read_headers()
+{
 	is.read((char*) &text_hdr, sizeof(pt_text_hdr));
 	if (strcmp(text_hdr.ident, "PicoHarp 300"))
 		throw std::runtime_error("File identifier not found");
@@ -32,4 +35,19 @@ void picoharp_file::read_headers() {
 	is.read((char*) &board_hdr, sizeof(pt_board_hdr));
 	is.read((char*) &tttr_hdr, sizeof(pt_tttr_hdr));
 	is.ignore(4*tttr_hdr.imaging_hdr_sz);
+}
+
+uint64_t* picoharp_file::get_timestamps(std::istream& is,
+                                        unsigned int channel,
+                                        unsigned int* n_records)
+{
+        picoharp_file pf(is);
+        switch (pf.binary_hdr.meas_mode) {
+        case PT2_MEASMODE_T2:
+                return get_pt2_timestamps(is, channel, n_records);
+        case PT2_MEASMODE_T3:
+                return get_pt3_timestamps(is, channel, n_records);
+        default:
+                return NULL;
+        }
 }

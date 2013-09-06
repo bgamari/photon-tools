@@ -26,7 +26,7 @@
 #include "picoharp.h"
 
 #define PT3_WRAPAROUND_TIME 0x00010000 
-:
+
 /* T3 mode event record */
 struct pt3_record { 
 	bool is_special;
@@ -60,7 +60,7 @@ public:
 };
 
 // A convenient helper
-uint64_t *get_pt3_timestamps(const char *filename,
+uint64_t *get_pt3_timestamps(std::istream& is,
                              unsigned int channel,
                              unsigned int *n_records);
 

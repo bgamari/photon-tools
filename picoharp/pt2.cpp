@@ -59,11 +59,10 @@ std::vector<pt2_record> pt2_file::read_all_records() {
 	return records;
 }
 
-uint64_t *get_pt2_timestamps(const char *filename,
+uint64_t *get_pt2_timestamps(std::istream& is,
                              unsigned int channel,
                              unsigned int *n_records)
 {
-    std::ifstream is(filename);
     pt2_file *pt2 = new pt2_file(is);
     unsigned int n_rec = pt2->tttr_hdr.n_records;
     uint64_t *buffer = new uint64_t[n_rec];

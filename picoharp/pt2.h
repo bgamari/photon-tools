@@ -50,7 +50,7 @@ public:
 };
 
 // A convenient helper
-uint64_t *get_pt2_timestamps(const char *filename,
+uint64_t *get_pt2_timestamps(std::istream& is,
                              unsigned int channel,
                              unsigned int *n_records);
 
