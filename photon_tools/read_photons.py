@@ -18,7 +18,7 @@ class TimestampFile(object):
             ftype = determine_filetype(fname)
 
         if ftype == 'pt2':
-            self.jiffy = 1e-12
+            self.jiffy = 4e-12
             self.data = pt2_parse.read_pt2(fname, channel)
 
         elif ftype == 'timetag':
