@@ -18,6 +18,7 @@
  * Author: Ben Gamari <bgamari@physics.umass.edu>
  */
 
+#pragma once
 #include <stdint.h>
 #include <stdexcept>
 #include <istream>

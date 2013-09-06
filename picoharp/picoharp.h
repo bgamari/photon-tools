@@ -18,6 +18,7 @@
  * Author: Ben Gamari <bgamari@physics.umass.edu>
  */
 
+#pragma once
 #include <istream>
 
 #define PT_DISPCURVES 8
