@@ -1,4 +1,10 @@
+PROGS=
+
+all : programs
+
 include picoharp/Makefile
+
+programs : ${PROGS}
 
 .PHONY : install
 install : ${PROGS}
