@@ -1,3 +1,4 @@
+import numpy as np
 from photon_tools import timetag_parse, pt2_parse, metadata
 
 def determine_filetype(fname):
