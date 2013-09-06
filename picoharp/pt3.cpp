@@ -51,23 +51,20 @@ pt3_record pt3_file::read_record() {
 	return r;
 }
 
-uint64_t *get_pt3_timestamps(std::istream& is,
-                             unsigned int channel,
-                             unsigned int *n_records)
+uint64_t* pt3_file::get_timestamps(unsigned int channel,
+                                   unsigned int *n_records)
 {
-    pt3_file *pt3 = new pt3_file(is);
-    unsigned int n_rec = pt3->tttr_hdr.n_records;
+    unsigned int n_rec = tttr_hdr.n_records;
     uint64_t *buffer = new uint64_t[n_rec];
     unsigned int n = 0;
 
     for (int i=0; i < n_rec; i++) {
-	pt3_record rec = pt3->read_record();
+	pt3_record rec = read_record();
 	if (!rec.is_special && (channel == 0xf || channel == rec.channel)) {
 	    buffer[i] = rec.normal.time;
 	    n++;
 	}
     }
-    delete pt3;
     
     uint64_t *new_buffer = (uint64_t *) malloc(n * sizeof(uint64_t));
     memcpy(new_buffer, buffer, n*sizeof(uint64_t));

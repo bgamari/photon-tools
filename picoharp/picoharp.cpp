@@ -44,9 +44,9 @@ uint64_t* picoharp_file::get_timestamps(std::istream& is,
         picoharp_file pf(is);
         switch (pf.binary_hdr.meas_mode) {
         case PT2_MEASMODE_T2:
-                return get_pt2_timestamps(is, channel, n_records);
+                return pt2_file(pf).get_timestamps(channel, n_records);
         case PT2_MEASMODE_T3:
-                return get_pt3_timestamps(is, channel, n_records);
+                return pt3_file(pf).get_timestamps(channel, n_records);
         default:
                 return NULL;
         }

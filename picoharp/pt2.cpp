@@ -59,23 +59,20 @@ std::vector<pt2_record> pt2_file::read_all_records() {
 	return records;
 }
 
-uint64_t *get_pt2_timestamps(std::istream& is,
-                             unsigned int channel,
-                             unsigned int *n_records)
+uint64_t* pt2_file::get_timestamps(unsigned int channel,
+                                   unsigned int *n_records)
 {
-    pt2_file *pt2 = new pt2_file(is);
-    unsigned int n_rec = pt2->tttr_hdr.n_records;
+    unsigned int n_rec = tttr_hdr.n_records;
     uint64_t *buffer = new uint64_t[n_rec];
     unsigned int n = 0;
 
     for (int i=0; i < n_rec; i++) {
-	pt2_record rec = pt2->read_record();
+	pt2_record rec = read_record();
 	if (!rec.special && (channel == 0xf || channel == rec.channel)) {
 	    buffer[i] = rec.time;
 	    n++;
 	}
     }
-    delete pt2;
     
     uint64_t *new_buffer = (uint64_t *) malloc(n * sizeof(uint64_t));
     memcpy(new_buffer, buffer, n*sizeof(uint64_t));

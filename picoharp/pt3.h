@@ -64,10 +64,9 @@ public:
 	}
 	pt3_record read_record();
 	std::vector<pt3_record> read_all_records();
+
+        uint64_t* get_timestamps(unsigned int channel,
+                                 unsigned int *n_records);
 };
 
-// A convenient helper
-uint64_t *get_pt3_timestamps(std::istream& is,
-                             unsigned int channel,
-                             unsigned int *n_records);
 
