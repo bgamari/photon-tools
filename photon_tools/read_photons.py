@@ -3,6 +3,7 @@ from photon_tools import timetag_parse, pt2_parse, metadata
 
 def determine_filetype(fname):
     if fname.endswith('pt2'):       return 'pt2'
+    elif fname.endswith('pt3'):     return 'pt2'
     elif fname.endswith('timetag'): return 'timetag'
     elif fname.endswith('times'):   return 'raw'
     raise RuntimeError("Unrecognized file type")
