@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
 	std::ifstream is(argv[1]);
 	pt3_file pt3(is);
 
+	printf("# jiffy = %f\n", pt3.board_hdr.resolution);
 	for (unsigned int i=0; i < pt3.tttr_hdr.n_records; i++) {
 		pt3_record rec = pt3.read_record();
 		if (rec.is_special) {
