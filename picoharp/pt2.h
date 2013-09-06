@@ -38,12 +38,13 @@ struct pt2_record {
 
 class pt2_file : public picoharp_file {
 private:
-        unsigned int nsync;
+	unsigned int nsync;
 public:
-	pt2_file(std::istream& is) : picoharp_file(is), nsync(0) {
-                if (binary_hdr.meas_mode != PT2_MEASMODE_T2)
-                        throw std::runtime_error("Unsupported measurement mode");
-        }
+	pt2_file(picoharp_file& pf) : picoharp_file(pf), nsync(0) {
+		if (binary_hdr.meas_mode != PT2_MEASMODE_T2)
+			throw std::runtime_error("Unsupported measurement mode");
+	}
+	pt2_file(std::istream& is) : pt2_file(is) {}
 	pt2_record read_record();
 	std::vector<pt2_record> read_all_records();
 };

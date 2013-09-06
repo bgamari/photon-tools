@@ -1,6 +1,8 @@
 PROGS=
 DESTDIR?=/usr
 
+CXXFLAGS += -std=c++11
+
 all : programs
 
 include picoharp/Makefile

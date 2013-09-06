@@ -26,34 +26,35 @@
 #include "picoharp.h"
 
 #define PT3_WRAPAROUND_TIME 0x00010000 
-
+:
 /* T3 mode event record */
 struct pt3_record { 
 	bool is_special;
-        uint16_t numsync;
-        uint8_t channel;
-        union {
-                struct {
-                        uint64_t time;
-                } normal;
-                struct {
-                        uint8_t markers;
-                } special;
-        };
+	uint16_t numsync;
+	uint8_t channel;
+	union {
+		struct {
+			uint64_t time;
+		} normal;
+		struct {
+			uint8_t markers;
+		} special;
+	};
 };
 
 class pt3_file : public picoharp_file {
-        unsigned int nsync;
-        unsigned int sync_period; // in cycles
+	unsigned int nsync;
+	unsigned int sync_period; // in cycles
 public:
-	pt3_file(std::istream& is) :
-                picoharp_file(is),
-                nsync(0),
-                sync_period(1e-9 * tttr_hdr.counter_rate[0] / board_hdr.resolution)
-        {
-                if (binary_hdr.meas_mode != PT2_MEASMODE_T3)
-                        throw std::runtime_error("Unsupported measurement mode");
-        }
+	pt3_file(std::istream& is) : pt3_file(is) { }
+	pt3_file(picoharp_file& pf) :
+		picoharp_file(pf),
+		nsync(0),
+		sync_period(1e-9 * tttr_hdr.counter_rate[0] / board_hdr.resolution)
+	{
+		if (binary_hdr.meas_mode != PT2_MEASMODE_T3)
+			throw std::runtime_error("Unsupported measurement mode");
+	}
 	pt3_record read_record();
 	std::vector<pt3_record> read_all_records();
 };
