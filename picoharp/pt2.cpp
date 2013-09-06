@@ -20,7 +20,6 @@
 
 
 #include "pt2.h"
-#include <stdexcept>
 #include <cstring>
 #include <cstdlib>
 #include <fstream>
@@ -60,23 +59,9 @@ std::vector<pt2_record> pt2_file::read_all_records() {
 	return records;
 }
 
-void pt2_file::read_headers() {
-	is.read((char*) &text_hdr, sizeof(pt2_text_hdr));
-	if (strcmp(text_hdr.ident, "PicoHarp 300"))
-		throw std::runtime_error("File identifier not found");
-	if (strncmp(text_hdr.format_version, "2.0", 3))
-		throw std::runtime_error("Unsupported file format version");
-
-	is.read((char*) &binary_hdr, sizeof(pt2_binary_hdr));
-	if (binary_hdr.meas_mode != PT2_MEASMODE_T2)
-		throw std::runtime_error("Unsupported measurement mode");
-
-	is.read((char*) &board_hdr, sizeof(pt2_board_hdr));
-	is.read((char*) &tttr_hdr, sizeof(pt2_tttr_hdr));
-	is.ignore(4*tttr_hdr.imaging_hdr_sz);
-}
-
-uint64_t *get_pt2_timestamps(const char *filename, unsigned int channel, unsigned int *n_records)
+uint64_t *get_pt2_timestamps(const char *filename,
+                             unsigned int channel,
+                             unsigned int *n_records)
 {
     std::ifstream is(filename);
     pt2_file *pt2 = new pt2_file(is);

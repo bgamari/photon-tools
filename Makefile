@@ -1,4 +1,4 @@
-include pt2/Makefile
+include picoharp/Makefile
 
 .PHONY : install
 install : ${PROGS}
