@@ -1,4 +1,5 @@
 PROGS=
+DESTDIR?=/usr
 
 all : programs
 
