@@ -37,16 +37,14 @@ void picoharp_file::read_headers()
 	is.ignore(4*tttr_hdr.imaging_hdr_sz);
 }
 
-uint64_t* picoharp_file::get_timestamps(std::istream& is,
-                                        unsigned int channel,
+uint64_t* picoharp_file::get_timestamps(unsigned int channel,
                                         unsigned int* n_records)
 {
-        picoharp_file pf(is);
-        switch (pf.binary_hdr.meas_mode) {
+        switch (binary_hdr.meas_mode) {
         case PT2_MEASMODE_T2:
-                return pt2_file(pf).get_timestamps(channel, n_records);
+                return pt2_file(*this).get_timestamps(channel, n_records);
         case PT2_MEASMODE_T3:
-                return pt3_file(pf).get_timestamps(channel, n_records);
+                return pt3_file(*this).get_timestamps(channel, n_records);
         default:
                 return NULL;
         }
