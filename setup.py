@@ -8,6 +8,7 @@ ext_modules = [
         Extension('photon_tools.bin_photons', ['photon_tools/bin_photons.pyx'], include_dirs=['.']),
         Extension('photon_tools.timetag_parse', ['photon_tools/timetag_parse.pyx'], include_dirs=['.']),
         Extension('photon_tools.filter_photons', ['photon_tools/filter_photons.pyx'], include_dirs=['.']),
+        Extension('photon_tools.picoharp', ['photon_tools/picoharp.pyx', 'photon_tools/picoharp_helper.cpp'], include_dirs=['picoharp'], language='c++'),
 ]
 
 setup(name = 'photon-tools',
