@@ -127,7 +127,6 @@ public:
 	pt_board_hdr board_hdr;
 	pt_tttr_hdr tttr_hdr;
 
-protected:
 	picoharp_file(std::istream& is) : is(is), overflow_time(0), records_read(0) {
 		read_headers();
 	}
