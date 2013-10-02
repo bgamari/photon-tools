@@ -21,8 +21,8 @@ def correlate_multi(x, y, n=10, **kwargs):
     x_chunks = split_chunks(x, n)
     y_chunks = split_chunks(y, n)
     corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
-    g = np.mean(corrs['G'], axis=0)
-    var = np.var(corrs['G'], axis=0)
+    g = corr(x, y, **kwargs)['G']
+    var = np.var(corrs['G'], axis=0) / n
     return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
     
 def plot_corr(corr, output=None):
