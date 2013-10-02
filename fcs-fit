@@ -179,8 +179,8 @@ if __name__ == '__main__':
                             help="Don't attempt to fit data; to be used with --plot")
         parser.add_argument('-p', '--plot', action='store_true',
                             help='Produce plot of data and fits')
-        parser.add_argument('-o', '--output', metavar='FILE',
-                            help='Save plot to FILE')
+        parser.add_argument('-o', '--output', metavar='[FILE]', nargs='?', const='AUTO',
+                            help='Save plot to FILE (defaulting to input filename+.png')
         parser.add_argument('-m', '--model', metavar='MODEL', default='3d_diff',
                             help='Specify a fit function to use (options: %s)' % ', '.join(models.keys()))
         parser.add_argument('-E', '--edit', action='store_true',
@@ -271,6 +271,9 @@ if __name__ == '__main__':
                 print '    Chi^2 / DoF = %1.2f' % (chi_sq / dof)
 
         # Plot
+        if args.output == 'AUTO':
+                args.output = args.curves[0].name+'.png'
+
         if args.plot:
                 from matplotlib import pyplot as pl
                 fig = pl.figure()
