@@ -81,6 +81,10 @@ for file in args.files:
     for (ac,bc,label) in correlations:
         a = TimestampFile(file.name, ac)
         b = TimestampFile(file.name, bc)
+        if len(a.data) == 0 or len(b.data) == 0:
+            print "No data in one channel, skipping"
+            continue
+
         jiffy = a.jiffy
         if args.jiffy is not None:
             jiffy = args.jiffy
