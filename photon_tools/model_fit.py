@@ -153,7 +153,13 @@ def fit(curves, model, params, epsfcn=0.0, verbose=False):
         params._unpack(p)
         return params, cov_x
 
-def plot_model(fig, ax, params, model, curve_names, npts=1e3):
+def plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False):
+        """ plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False)
+
+            npts: Number of model points to plot
+            uncertainty: Plot residuals with error bars showing uncertainty of data points
+            curve_names: Curve labels for legend
+        """
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         divider = make_axes_locatable(ax)
         for i,curve in enumerate(params.curves):
@@ -171,7 +177,12 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3):
 
                 ax2 = divider.append_axes('top', size=1.2, pad=0.1, sharex=ax)
                 d = params.curves[i]
-                ax2.semilogx(d['lag'], model(cparams, d['lag']) - d['G'], '+')
+                resid = model(cparams, d['lag']) - d['G']
+                if with_uncertainty:
+                        ax2.scatter(d['lag'], resid, '+', yerr=np.sqrt(d['var']))
+                else:
+                        ax2.scatter(d['lag'], resid, '+')
+                ax2.set_xscale('log')
                 # This was broken in matplotlib <1.2 due to Issue #1246
                 ax2.axhline(y=0, color='k', alpha=0.5)
                 for t in ax2.get_xticklabels():
