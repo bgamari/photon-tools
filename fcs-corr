@@ -28,7 +28,7 @@ def correlate_multi(x, y, n=10, **kwargs):
 def plot_corr(corr, output=None):
     pl.clf()
     pl.xscale('log')
-    pl.errorbar(corr['lag'], corr['G'], yerr=corr['var'], fmt='.')
+    pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), fmt='.')
     pl.xlabel('Lag (s)')
     pl.ylabel('Correlation')
     if output is not None:
