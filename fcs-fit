@@ -39,7 +39,8 @@ This is a framework for "global" analysis of FCS correlation functions.
 def load_corr(file):
         dt = [('lag','f'), ('G','f'), ('var','f')]
         usecols = None
-        ncols = len(open(file.name).readline().split())
+        lines = [l for l in open(file.name).readlines() if not l.startswith('#')]
+        ncols = len(lines[0].split())
         if ncols == 5:
             # favia format
             usecols = (0,3,4)
