@@ -126,7 +126,7 @@ for file in args.files:
         print
 
         with open(fname+'.'+label, 'w') as f:
-                f.write('lag            G(tau)            variance\n')
+                f.write('# lag            G(tau)            variance\n')
                 np.savetxt(f, c)
 
         if args.plot:
