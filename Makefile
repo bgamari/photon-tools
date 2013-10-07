@@ -1,4 +1,13 @@
-include pt2/Makefile
+PROGS=
+DESTDIR?=/usr
+
+CXXFLAGS += -std=c++11
+
+all : programs
+
+include picoharp/Makefile
+
+programs : ${PROGS}
 
 .PHONY : install
 install : ${PROGS}

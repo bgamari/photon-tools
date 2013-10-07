@@ -1,6 +1,6 @@
 /* fcs-tools - Tools for FCS data analysis
  *
- * Copyright © 2010 Ben Gamari
+ * Copyright © 2013 Ben Gamari
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,22 +21,23 @@
 
 #include <fstream>
 #include <cstdio>
-#include "pt2.h"
+#include "pt3.h"
 
 int main(int argc, char** argv) {
 	std::ifstream is(argv[1]);
-	pt2_file pt2(is);
+	pt3_file pt3(is);
 
-	for (unsigned int i=0; i < pt2.tttr_hdr.n_records; i++) {
-		pt2_record rec = pt2.read_record();
-		if (rec.special) {
+	printf("# jiffy = %f\n", pt3.board_hdr.resolution);
+	for (unsigned int i=0; i < pt3.tttr_hdr.n_records; i++) {
+		pt3_record rec = pt3.read_record();
+		if (rec.is_special) {
 			printf("# ");
-			if (rec.markers == 0)
+			if (rec.special.markers == 0)
 				printf("overflow\n");
 			else
-				printf("marker %d\n", rec.markers);
+				printf("marker %d\n", rec.special.markers);
 		} else
-			printf("%7llu\t%d\n", rec.time, rec.channel);
+			printf("%7lu\t%d\n", rec.normal.time, rec.channel);
 	}
 	return 0;
 }

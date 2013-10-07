@@ -39,7 +39,8 @@ This is a framework for "global" analysis of FCS correlation functions.
 def load_corr(file):
         dt = [('lag','f'), ('G','f'), ('var','f')]
         usecols = None
-        ncols = len(open(file.name).readline().split())
+        lines = [l for l in open(file.name).readlines() if not l.startswith('#')]
+        ncols = len(lines[0].split())
         if ncols == 5:
             # favia format
             usecols = (0,3,4)
@@ -179,8 +180,8 @@ if __name__ == '__main__':
                             help="Don't attempt to fit data; to be used with --plot")
         parser.add_argument('-p', '--plot', action='store_true',
                             help='Produce plot of data and fits')
-        parser.add_argument('-o', '--output', metavar='FILE',
-                            help='Save plot to FILE')
+        parser.add_argument('-o', '--output', metavar='[FILE]', nargs='?', const='AUTO',
+                            help='Save plot to FILE (defaulting to input filename+.png')
         parser.add_argument('-m', '--model', metavar='MODEL', default='3d_diff',
                             help='Specify a fit function to use (options: %s)' % ', '.join(models.keys()))
         parser.add_argument('-E', '--edit', action='store_true',
@@ -240,11 +241,19 @@ if __name__ == '__main__':
 
         new = params
         try:
-                new = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
+                new, cov_x = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
         except RuntimeError as e:
                 print 'Fit failed to converge: ', e
                 sys.exit(1)
 
+        print 'Covariance:'
+        print ' '*8 + '      '.join('%-9s ' % name for name in new._fitted)
+        print ' '*8 + '      '.join('='*10 for name in new._fitted)
+        for var,cov in zip(new._fitted, cov_x):
+                print '%6s ' % var,
+                print '    '.join('%+1.2e   ' % x for x in cov)
+        print
+        
         print
         print 'Fitted parameters:'
         print_parameters(new)
@@ -263,6 +272,9 @@ if __name__ == '__main__':
                 print '    Chi^2 / DoF = %1.2f' % (chi_sq / dof)
 
         # Plot
+        if args.output == 'AUTO':
+                args.output = args.curves[0].name+'.png'
+
         if args.plot:
                 from matplotlib import pyplot as pl
                 fig = pl.figure()

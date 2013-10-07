@@ -1,12 +1,15 @@
+import numpy as np
 from photon_tools import timetag_parse, pt2_parse, metadata
 
 def determine_filetype(fname):
     if fname.endswith('pt2'):       return 'pt2'
+    elif fname.endswith('pt3'):     return 'pt2'
     elif fname.endswith('timetag'): return 'timetag'
     elif fname.endswith('times'):   return 'raw'
     raise RuntimeError("Unrecognized file type")
     
 class TimestampFile(object):
+    """ A portable interface for reading photon timestamp files """
     def __init__(self, fname, channel, ftype=None):
         """ Channel number of zero-based """
         self.jiffy = None
@@ -16,7 +19,7 @@ class TimestampFile(object):
             ftype = determine_filetype(fname)
 
         if ftype == 'pt2':
-            self.jiffy = 1e-12
+            self.jiffy = 4e-12
             self.data = pt2_parse.read_pt2(fname, channel)
 
         elif ftype == 'timetag':

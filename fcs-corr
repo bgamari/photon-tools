@@ -21,14 +21,14 @@ def correlate_multi(x, y, n=10, **kwargs):
     x_chunks = split_chunks(x, n)
     y_chunks = split_chunks(y, n)
     corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
-    g = np.mean(corrs['G'], axis=0)
-    var = np.var(corrs['G'], axis=0)
+    g = corr(x, y, **kwargs)['G']
+    var = np.var(corrs['G'], axis=0) / n
     return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
     
 def plot_corr(corr, output=None):
     pl.clf()
     pl.xscale('log')
-    pl.errorbar(corr['lag'], corr['G'], yerr=corr['var'], fmt='.')
+    pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), fmt='.')
     pl.xlabel('Lag (s)')
     pl.ylabel('Correlation')
     if output is not None:
@@ -61,6 +61,8 @@ parser.add_argument('-s', '--single', action='store_true',
                     help="Produce only cross-correlations of given channels, skipping auto-correlations")
 parser.add_argument('-p', '--plot', action='store_true',
                     help='Plot each computed correlation function')
+parser.add_argument('-O', '--output-type', default='png',
+                    help='File format of plot output')
 parser.add_argument('-t', '--start-time', default=None, type=float,
                     help='Start time of usable data (seconds)')
 parser.add_argument('-T', '--stop-time', default=None, type=float,
@@ -79,6 +81,10 @@ for file in args.files:
     for (ac,bc,label) in correlations:
         a = TimestampFile(file.name, ac)
         b = TimestampFile(file.name, bc)
+        if len(a.data) == 0 or len(b.data) == 0:
+            print "No data in one channel, skipping"
+            continue
+
         jiffy = a.jiffy
         if args.jiffy is not None:
             jiffy = args.jiffy
@@ -120,9 +126,9 @@ for file in args.files:
         print
 
         with open(fname+'.'+label, 'w') as f:
-                f.write('lag            G(tau)            variance\n')
+                f.write('# lag            G(tau)            variance\n')
                 np.savetxt(f, c)
 
         if args.plot:
-            plot_corr(c, fname+'.'+label+'.png')
+            plot_corr(c, fname+'.'+label+'.'+args.output_type)
 

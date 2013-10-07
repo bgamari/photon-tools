@@ -45,16 +45,21 @@ def process(fname):
     channels = []
     jiffy = None
     for c in args.channel:
+            chan,_,label = c.partition('=')
+            chan = int(chan)
+            if len(label) == 0:
+                    label = 'Channel %d' % chan
+
             try:
-                chan,_,label = c.partition('=')
-                chan = int(chan)
-                if len(label) == 0:
-                        label = 'Channel %d' % chan
                 t = TimestampFile(fname, chan)
                 if jiffy is None:
                         jiffy = t.jiffy
+                if len(t.data) == 0:
+                        print 'Channel %d has no photons, ignoring' % chan
+                        continue
                 channels.append(DataSet(t.data, label))
-            except:
+            except Exception as e:
+                print e
                 pass
 
     if len(channels) == 0:
