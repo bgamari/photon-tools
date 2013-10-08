@@ -79,6 +79,7 @@ if args.single:
 
 for file in args.files:
     for (ac,bc,label) in correlations:
+        fname = os.path.basename(file.name)
         a = TimestampFile(file.name, ac)
         b = TimestampFile(file.name, bc)
         if len(a.data) == 0 or len(b.data) == 0:
@@ -92,18 +93,20 @@ for file in args.files:
             jiffy = 1. / 128e6
             print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
 
-        fname = os.path.basename(file.name)
-        print label
-        print '  %20s, channel %d: %d events' % (fname, bc, len(a.data))
-        print '  %20s, channel %d: %d events' % (fname, ac, len(b.data))
-
         ad,bd = a.data, b.data
+        t0 = min(ad[0], bd[0])
         if args.start_time is not None:
-            ad = ad[ad >= args.start_time / jiffy]
-            bd = bd[bd >= args.start_time / jiffy]
+            ad = ad[ad - t0 >= args.start_time / jiffy]
+            bd = bd[bd - t0 >= args.start_time / jiffy]
         if args.stop_time is not None:
-            ad = ad[ad < args.stop_time / jiffy]
-            bd = bd[bd < args.stop_time / jiffy]
+            ad = ad[ad - t0 < args.stop_time / jiffy]
+            bd = bd[bd - t0 < args.stop_time / jiffy]
+
+        print label
+        print '  %20s, channel %d: %d events (%d after filtering)' % \
+              (fname, bc, len(a.data), len(ad))
+        print '  %20s, channel %d: %d events (%d after filtering)' % \
+              (fname, ac, len(b.data), len(bd))
         
         kwargs = {
             'jiffy': jiffy,
