@@ -25,10 +25,11 @@ def correlate_multi(x, y, n=10, **kwargs):
     var = np.var(corrs['G'], axis=0) / n
     return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
     
-def plot_corr(corr, output=None):
+def plot_corr(corrs, output=None):
     pl.clf()
     pl.xscale('log')
-    pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), fmt='.')
+    for corr in corrs:
+        pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), fmt='.')
     pl.xlabel('Lag (s)')
     pl.ylabel('Correlation')
     if output is not None:
@@ -49,6 +50,7 @@ parser.add_argument('-L', '--max-lag', type=float, default=1,
 parser.add_argument('-n', '--nchunks', type=int, default=10,
                     help='Number of chunks to split data into for variance computation')
 parser.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
+parser.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation of each chunk')
 parser.add_argument('-f', '--fineness', type=int, default=8,
                     help='Number of lags per octave')
 parser.add_argument('-v', '--verbose', action='store_true',
@@ -121,6 +123,11 @@ for file in args.files:
             c,chunks = correlate_multi(ad, bd, n=args.nchunks, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
+            if args.plot_chunks:
+                plot_corr([np.rec.fromarrays([c['lag'],chunks[i,:],np.zeros(c.shape)],
+                                             names='lag,G,var')
+                           for i in range(chunks.shape[0])],
+                          fname+'.'+label+'.chunks.'+args.output_type)
         else:
             c = corr(ad, bd, **kwargs)
 
@@ -133,5 +140,5 @@ for file in args.files:
                 np.savetxt(f, c)
 
         if args.plot:
-            plot_corr(c, fname+'.'+label+'.'+args.output_type)
+            plot_corr([c], fname+'.'+label+'.'+args.output_type)
 
