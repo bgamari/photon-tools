@@ -179,9 +179,9 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3, with_uncertainty=F
                 d = params.curves[i]
                 resid = model(cparams, d['lag']) - d['G']
                 if with_uncertainty:
-                        ax2.scatter(d['lag'], resid, '+', yerr=np.sqrt(d['var']))
+                        ax2.errorbar(d['lag'], resid, marker='+', yerr=np.sqrt(d['var']))
                 else:
-                        ax2.scatter(d['lag'], resid, '+')
+                        ax2.scatter(d['lag'], resid, marker='+')
                 ax2.set_xscale('log')
                 # This was broken in matplotlib <1.2 due to Issue #1246
                 ax2.axhline(y=0, color='k', alpha=0.5)
