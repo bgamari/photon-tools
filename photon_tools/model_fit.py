@@ -153,8 +153,8 @@ def fit(curves, model, params, epsfcn=0.0, verbose=False):
         params._unpack(p)
         return params, cov_x
 
-def plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False):
-        """ plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False)
+def plot_model(fig, ax, params, model, curve_names, npts=1e3, with_uncertainty=False):
+        """ plot_model(fig, ax, params, model, curve_names, npts=1e3, with_uncertainty=False)
 
             npts: Number of model points to plot
             uncertainty: Plot residuals with error bars showing uncertainty of data points
