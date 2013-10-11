@@ -190,6 +190,8 @@ if __name__ == '__main__':
                             help='Set an initial fit parameter')
         parser.add_argument('-f', '--file', metavar='FILE', dest='params_file',
                             help='Specify parameters file for initial fit parameters')
+        parser.add_argument('--with-uncertainty', action='store_true',
+                            help='Show estimated standard deviation as errorbars on residuals')
         parser.add_argument('-v', '--verbose', action='store_true',
                             help='Enable verbose output')
         parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
@@ -286,7 +288,8 @@ if __name__ == '__main__':
 
                 if not args.no_fit:
                         fig.subplots_adjust(right=0.7, left=0.1)
-                        plot_model(fig, ax, new, model, args.curves)
+                        plot_model(fig, ax, new, model, args.curves,
+                                   with_uncertainty=args.with_uncertainty)
 
                 ax.set_xlabel(r'$\tau$')
                 ax.set_ylabel(r'$G$')
