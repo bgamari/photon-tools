@@ -26,7 +26,7 @@ from numpy import min, max, mean, exp, power, sqrt, log10, sum
 from photon_tools import suffix_parse
 from photon_tools import read_photons
 from photon_tools import favia
-from photon_tools.model_fit import models, Parameters, fit, plot_model
+from photon_tools.model_fit import models, Parameters, fit, plot_model, degrees_of_freedom, chi_squared
 from photon_tools import fcs_models
 
 """
@@ -262,12 +262,10 @@ if __name__ == '__main__':
         print
 
         print 'Goodness of fit:'
-        for i,c in enumerate(curves):
+        for i,curve in enumerate(curves):
                 d = params.curves[i]
-                err = model(params._curve_params(i), d['lag']) - d['G']
-                chi_sq = sum(err**2 / d['var'])
-                # This isn't quite right, number of parameters could be smaller
-                dof = len(curves[i]) - len(params)
+                dof = degrees_of_freedom(new, curve)
+                chi_sq = chi_squared(model, new._curve_params(i), d)
                 print '  ', args.curves[i].name
                 print '    Chi^2 = %1.2e' % chi_sq
                 print '    DoF   = %3d' % dof
