@@ -162,6 +162,7 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3, with_uncertainty=F
         """
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         divider = make_axes_locatable(ax)
+        ax.axhline(0, color='0.7')
         for i,curve in enumerate(params.curves):
                 err = model(params._curve_params(i), curve['lag']) - curve['G']
                 chi_sq = sum(err**2)
