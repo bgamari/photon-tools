@@ -32,6 +32,7 @@ def plot_corr(corrs, output=None):
     pl.xscale('log')
     for corr in corrs:
         pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), fmt='.')
+    pl.axhline(1, color='0.7')
     pl.xlabel('Lag (s)')
     pl.ylabel('Correlation')
     if output is not None:
