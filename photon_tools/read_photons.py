@@ -25,7 +25,9 @@ def verify_continuity(times, gap_factor=1000):
 class TimestampFile(object):
     """ A portable interface for reading photon timestamp files """
     def __init__(self, fname, channel, ftype=None):
-        """ Channel number of zero-based """
+        """ TimestampFile(filename, channel)
+
+            Channel number is zero-based """
         self.jiffy = None
         self.metadata = None
 
