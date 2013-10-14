@@ -153,8 +153,15 @@ def fit(curves, model, params, epsfcn=0.0, verbose=False):
         params._unpack(p)
         return params, cov_x
 
-def plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False):
-        """ plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False)
+def chi_squared(model, params, curve):
+        err = model(params, curve['lag']) - curve['G']
+        return sum(err**2 / curve['var'])
+
+def degrees_of_freedom(params, curve):
+        return len(curve) - len(params)
+                 
+def plot_model(fig, ax, params, model, curve_names, npts=1e3, with_uncertainty=False):
+        """ plot_model(fig, ax, params, model, curve_names, npts=1e3, with_uncertainty=False)
 
             npts: Number of model points to plot
             uncertainty: Plot residuals with error bars showing uncertainty of data points
@@ -162,12 +169,13 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False)
         """
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         divider = make_axes_locatable(ax)
+        ax.axhline(0, color='0.7')
         for i,curve in enumerate(params.curves):
-                err = model(params._curve_params(i), curve['lag']) - curve['G']
-                chi_sq = sum(err**2)
-                dof = len(params.curves[i]) - len(params)
-
+                d = params.curves[i]
+                dof = degrees_of_freedom(params, curve)
+                chi_sq = chi_squared(model, params._curve_params(i), d)
                 name = curve_names[i].name
+
                 start = log10(min(curve['lag']))
                 stop = log10(max(curve['lag']))
                 x = np.logspace(start, stop, npts)
@@ -176,21 +184,20 @@ def plot_model(fig, ax, params, model, curve_names, npts=1e3, uncertainty=False)
                 ax.semilogx(x, m, label='%s (fit)' % name)
 
                 ax2 = divider.append_axes('top', size=1.2, pad=0.1, sharex=ax)
-                d = params.curves[i]
                 resid = model(cparams, d['lag']) - d['G']
                 if with_uncertainty:
-                        ax2.scatter(d['lag'], resid, '+', yerr=np.sqrt(d['var']))
+                        ax2.errorbar(d['lag'], resid, marker='+', yerr=np.sqrt(d['var']))
                 else:
-                        ax2.scatter(d['lag'], resid, '+')
+                        ax2.scatter(d['lag'], resid, marker='+')
                 ax2.set_xscale('log')
                 # This was broken in matplotlib <1.2 due to Issue #1246
                 ax2.axhline(y=0, color='k', alpha=0.5)
                 for t in ax2.get_xticklabels():
                         t.set_visible(False)
 
-                text =    'chi^2             = %1.1e' % chi_sq
+                text =    'chi^2             = %1.2e' % chi_sq
                 text += '\ndof               = %3d' % dof
-                text += '\nchi^2/DOF         = %1.1e' % (chi_sq / dof)
+                text += '\nchi^2/DOF         = %1.2f' % (chi_sq / dof)
                 ptext = ["%3s  %-12s = %1.3e" % (p.scope[0:3], p.name, p.value)
                                 for p in params.values() if isinstance(p.value, list)]
                 text += '\n' + '\n'.join(sorted(ptext))

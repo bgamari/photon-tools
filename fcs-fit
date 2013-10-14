@@ -26,7 +26,7 @@ from numpy import min, max, mean, exp, power, sqrt, log10, sum
 from photon_tools import suffix_parse
 from photon_tools import read_photons
 from photon_tools import favia
-from photon_tools.model_fit import models, Parameters, fit, plot_model
+from photon_tools.model_fit import models, Parameters, fit, plot_model, degrees_of_freedom, chi_squared
 from photon_tools import fcs_models
 
 """
@@ -190,6 +190,8 @@ if __name__ == '__main__':
                             help='Set an initial fit parameter')
         parser.add_argument('-f', '--file', metavar='FILE', dest='params_file',
                             help='Specify parameters file for initial fit parameters')
+        parser.add_argument('--with-uncertainty', action='store_true',
+                            help='Show estimated standard deviation as errorbars on residuals')
         parser.add_argument('-v', '--verbose', action='store_true',
                             help='Enable verbose output')
         parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
@@ -260,12 +262,10 @@ if __name__ == '__main__':
         print
 
         print 'Goodness of fit:'
-        for i,c in enumerate(curves):
+        for i,curve in enumerate(curves):
                 d = params.curves[i]
-                err = model(params._curve_params(i), d['lag']) - d['G']
-                chi_sq = sum(err**2)
-                # This isn't quite right, number of parameters could be smaller
-                dof = len(curves[i]) - len(params)
+                dof = degrees_of_freedom(new, curve)
+                chi_sq = chi_squared(model, new._curve_params(i), d)
                 print '  ', args.curves[i].name
                 print '    Chi^2 = %1.2e' % chi_sq
                 print '    DoF   = %3d' % dof
@@ -286,7 +286,8 @@ if __name__ == '__main__':
 
                 if not args.no_fit:
                         fig.subplots_adjust(right=0.7, left=0.1)
-                        plot_model(fig, ax, new, model, args.curves)
+                        plot_model(fig, ax, new, model, args.curves,
+                                   with_uncertainty=args.with_uncertainty)
 
                 ax.set_xlabel(r'$\tau$')
                 ax.set_ylabel(r'$G$')

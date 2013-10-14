@@ -8,10 +8,26 @@ def determine_filetype(fname):
     elif fname.endswith('times'):   return 'raw'
     raise RuntimeError("Unrecognized file type")
     
+def verify_monotonic(times):
+    """ Verify that timestamps are monotonically increasing """
+    negatives = times[1:] <= times[:-1]
+    if np.count_nonzero(negatives) > 0:
+        raise RuntimeError('Found %d non-monotonic timestamps' %
+                           np.count_nonzero(negatives))
+
+def verify_continuity(times, gap_factor=1000):
+    """ Search for improbably long gaps in the photon stream """
+    tau = (times[-1] - times[0]) / len(times)
+    gaps = (times[1:] - times[:-1]) > gap_factor*tau
+    if np.count_nonzero(gaps) > 0:
+        raise RuntimeError('Found %d large gaps' % np.count_nonzero(gaps))
+
 class TimestampFile(object):
     """ A portable interface for reading photon timestamp files """
     def __init__(self, fname, channel, ftype=None):
-        """ Channel number of zero-based """
+        """ TimestampFile(filename, channel)
+
+            Channel number is zero-based """
         self.jiffy = None
         self.metadata = None
 
@@ -29,7 +45,7 @@ class TimestampFile(object):
             if self.metadata is not None:
                 self.jiffy = 1. / self.metadata['clockrate']
             open(fname) # Ensure a reasonable error is generated
-            self.data = timetag_parse.get_strobe_events(fname, 1<<channel)[1024:]['t']
+            self.data = timetag_parse.get_strobe_events(fname, 1<<channel)['t']
 
         elif ftype == 'raw':
             if channel != 0:
@@ -38,4 +54,7 @@ class TimestampFile(object):
 
         else:
             raise RuntimeError("Unknown file type")
+
+        verify_monotonic(self.data)
+        verify_continuity(self.data)
             

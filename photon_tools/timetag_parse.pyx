@@ -24,7 +24,7 @@ ELIF ENDIANESS == "little":
 ELSE:
         print 'Invalid ENDIANESS'
 
-def get_strobe_events(f, channel_mask, skip_wraps=0):
+def get_strobe_events(f, channel_mask, skip_wraps=1):
         cdef char* fname 
         if isinstance(f, str):
                 fname = f
@@ -79,7 +79,7 @@ def get_strobe_events(f, channel_mask, skip_wraps=0):
         fclose(fl)
         return np.hstack(chunks)
 
-def get_delta_events(f, channel, skip_wraps=0):
+def get_delta_events(f, channel, skip_wraps=1):
         """
         Returns a list of delta channel events. The event is defined by a start
         time past which the state is the given value.
