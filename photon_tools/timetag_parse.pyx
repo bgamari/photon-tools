@@ -44,6 +44,7 @@ def get_strobe_events(f, channel_mask, skip_wraps=1):
 
         cdef unsigned int wraps = 0
         cdef uint64_t rec
+        cdef unsigned int rec_n = 0
         cdef np.ndarray[StrobeEvent] chunk
         chunk = np.empty(chunk_sz, dtype=strobe_event_dtype)
         chunks = []
@@ -52,13 +53,16 @@ def get_strobe_events(f, channel_mask, skip_wraps=1):
                 res = fread(&rec, 6, 1, fl)
                 if res != 1: break
                 rec = swap_record(rec)
+                rec_n += 1
 
                 # Handle timer wraparound
                 wrapped = rec & (1ULL<<46) != 0
                 wraps += wrapped
-                if wraps < skip_wraps:
+                if wraps <= skip_wraps:
+                        if rec_n > 1024: skip_wraps = 0
                         continue
                 elif wrapped and wraps > skip_wraps:
+                        print 'wrap',wraps,'at', rec_n, wrapped
                         time_offset += (1ULL<<36)
 
                 # Record event
@@ -104,6 +108,7 @@ def get_delta_events(f, channel, skip_wraps=1):
 
         cdef unsigned int wraps = 0
         cdef uint64_t rec
+        cdef unsigned int rec_n = 0
         cdef np.ndarray[DeltaEvent] chunk
         chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
         chunks = [chunk]
@@ -112,11 +117,13 @@ def get_delta_events(f, channel, skip_wraps=1):
                 res = fread(&rec, 6, 1, fl)
                 if res != 1: break
                 rec = swap_record(rec)
+                rec_n += 1
 
                 # Handle timer wraparound
                 wrapped = rec & (1ULL<<46) != 0
                 wraps += wrapped
-                if wraps < skip_wraps:
+                if wraps <= skip_wraps:
+                        if rec_n > 1024: skip_wraps = 0
                         continue
                 elif wrapped and wraps > skip_wraps:
                         time_offset += (1ULL<<36)
@@ -167,6 +174,7 @@ def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1, on_
 
         cdef unsigned int wraps = 0
         cdef uint64_t rec
+        cdef unsigned int rec_n = 0
         cdef np.ndarray[StrobeEvent] chunk
         chunk = np.empty(chunk_sz, dtype=strobe_event_dtype)
         chunks = []
@@ -177,11 +185,13 @@ def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1, on_
                 res = fread(&rec, 6, 1, fl)
                 if res != 1: break
                 rec = swap_record(rec)
+                rec_n += 1
 
                 # Handle timer wraparound
                 wrapped = rec & (1ULL<<46) != 0
                 wraps += wrapped
-                if wraps < skip_wraps:
+                if wraps <= skip_wraps:
+                        if rec_n > 1024: skip_wraps = 0
                         continue
                 elif wrapped and wraps > skip_wraps:
                         time_offset += (1ULL<<36)
@@ -212,3 +222,4 @@ def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1, on_
         chunks.append(chunk[:j])
         fclose(fl)
         return np.hstack(chunks)
+
