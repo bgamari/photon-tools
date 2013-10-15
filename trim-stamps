@@ -2,6 +2,7 @@
 
 from photon_tools.read_photons import TimestampFile
 import argparse
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('file', type=str, help='Input file')
@@ -32,8 +33,14 @@ def parse_time(t):
                 return int(unit * float(t[:-len(suffix)]) / args.jiffy)
         return int(t)
 
-ranges = [ map(parse_time, a.split('-')) for a in args.drop.split(',') ]
-print ranges
+def parse_range(s):
+    (s,e) = a.split('-')
+    (start,end) = map(parse_time, (s,e))
+    if start > end:
+        raise RuntimeError('Start of range (%s) is greater than end (%s)' % (s,e))
+    return (start,end)
+
+ranges = [ parse_range for a in args.drop.split(',') ]
 
 ts = TimestampFile(args.file, args.channel).data
 
