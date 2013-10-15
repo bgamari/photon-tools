@@ -40,7 +40,7 @@ def parse_range(s):
         raise RuntimeError('Start of range (%s) is greater than end (%s)' % (s,e))
     return (start,end)
 
-ranges = [ parse_range for a in args.drop.split(',') ]
+ranges = [ parse_range(a) for a in args.drop.split(',') ]
 
 ts = TimestampFile(args.file, args.channel).data
 
