@@ -48,4 +48,5 @@ for (start,end) in ranges:
     mask = np.logical_or(ts < start, ts >= end)
     ts = ts[mask]
 
-np.tofile(ts, args.output)
+ts.astype('u8').tofile(args.output)
+
