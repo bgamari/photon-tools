@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+
+from photon_tools.read_photons import TimestampFile
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('file', type=str, help='Input file')
+parser.add_argument('-o', '--output', help='Output file')
+parser.add_argument('-c', '--channel', type=int,
+                    help='Export only timestamps from given channel')
+parser.add_argument('-d', '--drop', metavar='START-END,...', type=str,
+                    help='Drop timestamps in range')
+parser.add_argument('-j', '--jiffy', metavar='TIME', type=float,
+                    help='Acquisition clockrate')
+args = parser.parse_args()
+
+def parse_time(t):
+    units = [ ('us', 1e6),
+              ('ms', 1e-3),
+              ('s', 1),
+              ('m', 60),
+              ('h', 60*60),
+              ]
+
+    if t.__class__ is int:
+        return t
+    elif t.__class__ is str:
+        for suffix,unit in units:
+            if t.endswith(suffix):
+                if args.jiffy is None:
+                    raise RuntimeError("Need --jiffy to use real time units")
+                return int(unit * float(t[:-len(suffix)]) / args.jiffy)
+        return int(t)
+
+ranges = [ map(parse_time, a.split('-')) for a in args.drop.split(',') ]
+print ranges
+
+ts = TimestampFile(args.file, args.channel).data
+
+for (start,end) in ranges:
+    mask = np.logical_or(ts < start, ts >= end)
+    ts = ts[mask]
+
+np.tofile(ts, args.output)
