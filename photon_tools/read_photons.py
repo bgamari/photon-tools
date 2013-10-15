@@ -6,6 +6,7 @@ def determine_filetype(fname):
     elif fname.endswith('pt3'):     return 'pt2'
     elif fname.endswith('timetag'): return 'timetag'
     elif fname.endswith('times'):   return 'raw'
+    elif fname.endswith('timech'):     return 'timech'
     raise RuntimeError("Unrecognized file type")
     
 def verify_monotonic(times):
@@ -56,6 +57,12 @@ class TimestampFile(object):
             if channel != 0:
                 raise RuntimeError("Raw timetag files have only channel 0")
             self.data = np.fromfile(fname, dtype='u8')
+
+        elif ftype == 'timech':
+            if channel > 255:
+                raise RuntimeError("Raw timetag files have only 256 channels")
+            d = np.fromfile(fname, dtype='u8,u1', names='time,chan'])
+	    self.data = d[d['chan'] == channel]['time']
 
         else:
             raise RuntimeError("Unknown file type")
