@@ -12,8 +12,9 @@ def verify_monotonic(times):
     """ Verify that timestamps are monotonically increasing """
     negatives = times[1:] <= times[:-1]
     if np.count_nonzero(negatives) > 0:
-        raise RuntimeError('Found %d non-monotonic timestamps' %
-                           np.count_nonzero(negatives))
+        indices = np.nonzero(negatives)
+        raise RuntimeError('Found %d non-monotonic timestamps: photon indices %s' %
+                           (np.count_nonzero(negatives), indices))
 
 def verify_continuity(times, gap_factor=1000):
     """ Search for improbably long gaps in the photon stream """
