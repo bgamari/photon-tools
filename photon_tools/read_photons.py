@@ -61,7 +61,7 @@ class TimestampFile(object):
         elif ftype == 'timech':
             if channel > 255:
                 raise RuntimeError("Raw timetag files have only 256 channels")
-            d = np.fromfile(fname, dtype='u8,u1', names='time,chan'])
+            d = np.fromfile(fname, dtype='u8,u1', names='time,chan')
 	    self.data = d[d['chan'] == channel]['time']
 
         else:
