@@ -4,7 +4,7 @@ import argparse
 from argparse import ArgumentParser
 
 import os.path
-from photon_tools.favia import corr
+from photon_tools.favia import corr, acorr
 from photon_tools.read_photons import TimestampFile
 
 import numpy as np
@@ -70,6 +70,8 @@ parser.add_argument('-t', '--start-time', default=None, type=float,
                     help='Start time of usable data (seconds)')
 parser.add_argument('-T', '--stop-time', default=None, type=float,
                     help='Stop time of usable data (seconds)')
+parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
+                    help='Uncorrelated data for afterpulsing correction')
 args = parser.parse_args()
 verbose = args.verbose
 
@@ -80,6 +82,37 @@ correlations = [(args.a_channel, args.a_channel, 'acorr-%d' % args.a_channel),
 if args.single:
     correlations = [(args.a_channel, args.b_channel, args.label)]
 
+def get_jiffy(timestamps):
+    jiffy = timestamps.jiffy
+    if args.jiffy is not None:
+        jiffy = args.jiffy
+    if jiffy is None:
+        jiffy = 1. / 128e6
+        print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
+    return jiffy
+    
+# Afterpulsing correction as described by,
+#   M. Zhao, L. Jin, B. Chen, et al.
+#   "Afterpulsing and its correction in fluorescence correlation spectroscopy
+#   experiments." _Applied Optics_ (2003)
+#
+afterpulse_corr = None
+if args.afterpulse is not None:
+    f = TimestampFile(args.afterpulse.name, 0)
+    jiffy = get_jiffy(f)
+    kwargs = {
+        'jiffy': jiffy,
+        'short_grain': args.min_lag,
+        'long_lag': args.max_lag,
+        'fineness': args.fineness,
+    }
+
+    # TODO: Propagate variance
+    # TODO: Verify compatible jiffy
+    uncorr_G = acorr(f.data, **kwargs)
+    mean_I = 1. * len(f.data) / (f.data[-1] - f.data[0])
+    afterpulse_corr = (uncorr_G['G'] - 1) * mean_I / jiffy
+    
 for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
@@ -88,13 +121,7 @@ for file in args.files:
         if len(a.data) == 0 or len(b.data) == 0:
             print "No data in one channel, skipping"
             continue
-
-        jiffy = a.jiffy
-        if args.jiffy is not None:
-            jiffy = args.jiffy
-        if jiffy is None:
-            jiffy = 1. / 128e6
-            print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
+        jiffy = get_jiffy(a)
 
         ad,bd = a.data, b.data
         t0 = min(ad[0], bd[0])
@@ -131,6 +158,12 @@ for file in args.files:
                           fname+'.'+label+'.chunks.'+args.output_type)
         else:
             c = corr(ad, bd, **kwargs)
+
+        if afterpulse_corr is not None:
+            if ac != bc:
+                raise RuntimeError("Can only perform afterpulsing correction on autocorrelations")
+            mu = 1.0 * len(a.data) / (a.data[-1] - a.data[0])
+            c['G'] -= jiffy / mu * afterpulse_corr
 
         print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G'])
         print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
