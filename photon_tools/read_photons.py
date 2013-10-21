@@ -11,6 +11,7 @@ def determine_filetype(fname):
     
 def verify_monotonic(times):
     """ Verify that timestamps are monotonically increasing """
+    if len(times) == 0: return
     negatives = times[1:] <= times[:-1]
     if np.count_nonzero(negatives) > 0:
         indices = np.nonzero(negatives)
@@ -19,6 +20,7 @@ def verify_monotonic(times):
 
 def verify_continuity(times, gap_factor=1000):
     """ Search for improbably long gaps in the photon stream """
+    if len(times) == 0: return
     tau = (times[-1] - times[0]) / len(times)
     gaps = (times[1:] - times[:-1]) > gap_factor*tau
     if np.count_nonzero(gaps) > 0:
