@@ -109,6 +109,24 @@ each of these functions,
 
 ![Correlation function plotted by fcs-corr](doc/fcs-corr-1.png)
 
+In addition, `fcs-corr` supports a simple means of afterpulsing
+correction correction. If we have a dataset with large afterpulsing
+signal,
+
+![Correlation function with afterpulsing](doc/fcs-corr-2.png)
+
+We can take a dataset of uncorrelated emissions (say of a large
+background signal from room light) and correct for this contribution
+with,
+
+    $ fcs-corr my-data.timetag -A room-light.timetag --plot
+
+This will produce a signal with the afterpulsing contribution
+removed. Note, however, that the points at small lags will likely
+still be quite scattered due to count statistics,
+
+![Correlation function with afterpulsing correction](doc/fcs-corr-3.png)
+
 ### fcs-fit
 
 After one has computed the correlation function to a data set, it is
