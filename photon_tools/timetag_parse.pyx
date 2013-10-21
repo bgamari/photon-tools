@@ -62,7 +62,6 @@ def get_strobe_events(f, channel_mask, skip_wraps=1):
                         if rec_n > 1024: skip_wraps = 0
                         continue
                 elif wrapped and wraps > skip_wraps:
-                        print 'wrap',wraps,'at', rec_n, wrapped
                         time_offset += (1ULL<<36)
 
                 # Record event
