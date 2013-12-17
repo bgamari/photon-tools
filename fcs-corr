@@ -165,7 +165,7 @@ for file in args.files:
                 raise RuntimeError("Can only perform afterpulsing correction on autocorrelations")
             mu = 1.0 * len(a.data) / (a.data[-1] - a.data[0])
             c['G'] -= jiffy / mu * afterpulse_corr
-            c['var'] += jiffy / mu * afterpulse_var
+            c['var'] += jiffy / (mu * afterpulse_var)**2
 
         print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G'])
         print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
