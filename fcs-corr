@@ -92,6 +92,7 @@ def get_jiffy(timestamps):
     return jiffy
     
 # Afterpulsing correction as described by,
+#
 #   M. Zhao, L. Jin, B. Chen, et al.
 #   "Afterpulsing and its correction in fluorescence correlation spectroscopy
 #   experiments." _Applied Optics_ (2003)
@@ -107,11 +108,11 @@ if args.afterpulse is not None:
         'fineness': args.fineness,
     }
 
-    # TODO: Propagate variance
     # TODO: Verify compatible jiffy
     uncorr_G = acorr(f.data, **kwargs)
     mean_I = 1. * len(f.data) / (f.data[-1] - f.data[0])
     afterpulse_corr = (uncorr_G['G'] - 1) * mean_I / jiffy
+    afterpulse_var = uncorr_G['var'] * (mean_I / jiffy)**2
     
 for file in args.files:
     for (ac,bc,label) in correlations:
@@ -164,6 +165,7 @@ for file in args.files:
                 raise RuntimeError("Can only perform afterpulsing correction on autocorrelations")
             mu = 1.0 * len(a.data) / (a.data[-1] - a.data[0])
             c['G'] -= jiffy / mu * afterpulse_corr
+            c['var'] += afterpulse_var
 
         print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G'])
         print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
