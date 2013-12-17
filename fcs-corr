@@ -71,7 +71,8 @@ parser.add_argument('-t', '--start-time', default=None, type=float,
 parser.add_argument('-T', '--stop-time', default=None, type=float,
                     help='Stop time of usable data (seconds)')
 parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
-                    help='Uncorrelated data for afterpulsing correction')
+                    metavar='FILE',
+                    help='Uncorrelated timestamps for afterpulsing correction')
 parser.add_argument('--afterpulse-cutoff', default=None,
                     help="Don't apply afterpulsing correction beyond given lag")
 args = parser.parse_args()
