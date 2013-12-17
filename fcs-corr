@@ -72,6 +72,8 @@ parser.add_argument('-T', '--stop-time', default=None, type=float,
                     help='Stop time of usable data (seconds)')
 parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
                     help='Uncorrelated data for afterpulsing correction')
+parser.add_argument('--afterpulse-cutoff', default=None,
+                    help="Don't apply afterpulsing correction beyond given lag")
 args = parser.parse_args()
 verbose = args.verbose
 
@@ -113,6 +115,10 @@ if args.afterpulse is not None:
     mean_I = 1. * len(f.data) / (f.data[-1] - f.data[0])
     afterpulse_corr = (uncorr_G['G'] - 1) * mean_I / jiffy
     afterpulse_var = uncorr_G['var'] * (mean_I / jiffy)**2
+    cutoff = args.afterpulse_cutoff
+    if cutoff is not None:
+        afterpulse_corr[uncorr_G['lag'] > cutoff] = 0
+        afterpulse_var[uncorr_G['lag'] > cutoff] = 0
     
 for file in args.files:
     for (ac,bc,label) in correlations:
@@ -165,7 +171,7 @@ for file in args.files:
                 raise RuntimeError("Can only perform afterpulsing correction on autocorrelations")
             mu = 1.0 * len(a.data) / (a.data[-1] - a.data[0])
             c['G'] -= jiffy / mu * afterpulse_corr
-            c['var'] += jiffy / (mu * afterpulse_var)**2
+            c['var'] += (jiffy / mu)**2 * afterpulse_var
 
         print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G'])
         print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
