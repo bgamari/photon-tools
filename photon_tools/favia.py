@@ -26,11 +26,22 @@ def read_favia(fname):
                                  names='lag,G,var')
 
 def acorr(x, **kwargs):
+        """
+        Compute an auto-correlation function of the datasets x. See
+        corr for a complete description of available options.
+        """
         return corr(x, x, **kwargs)
 
 def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose=False):
-        """ Compute the correlation function of the datasets x and y. Jiffy,
-        short_grain, and long_lag are given in seconds """
+        """
+        Compute the correlation function of the datasets `x` and
+        `y`. `x` and `y` should be unsigned integer timestamps with
+        timestep `jiffy` (given in seconds). The correlation function
+        will be computed for logarithmically-spaced lags starting from
+        `short_grain` up to `long_lag` (given in seconds). The
+        `fineness` parameter gives the number of lags computed per
+        octave.
+        """
         fo = NamedTemporaryFile(delete=not keep)
         fx = NamedTemporaryFile(delete=not keep)
         fy = NamedTemporaryFile(delete=not keep)
