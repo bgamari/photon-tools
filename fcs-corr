@@ -25,6 +25,8 @@ def correlate_multi(x, y, n=10, **kwargs):
     return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
     
 def plot_corr(corrs, output=None):
+    import matplotlib
+    matplotlib.use('Agg')
     from matplotlib import pyplot as pl
     pl.clf()
     pl.xscale('log')
