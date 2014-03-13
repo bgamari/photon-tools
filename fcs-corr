@@ -143,11 +143,17 @@ for file in args.files:
             bd = bd[bd - t0 < args.stop_time / jiffy]
 
         print label
-        print '  %20s, channel %d: %d events (%d after filtering)' % \
-              (fname, bc, len(a.data), len(ad))
-        print '  %20s, channel %d: %d events (%d after filtering)' % \
-              (fname, ac, len(b.data), len(bd))
-        
+
+        print '  %20s, channel %d:' % (fname, ac)
+        print '    %d events, %d after filtering' % (len(a.data), len(ad))
+        dur = ad[-1] - ad[0]
+        print '    duration = %d = %1.2f seconds' % (dur, (dur * a.jiffy))
+
+        print '  %20s, channel %d:' % (fname, bc)
+        print '    %d events, %d after filtering' % (len(b.data), len(bd))
+        dur = bd[-1] - bd[0]
+        print '    duration = %d = %1.2f seconds' % (dur, (dur * b.jiffy))
+
         kwargs = {
             'jiffy': jiffy,
             'short_grain': args.min_lag,
