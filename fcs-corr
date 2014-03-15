@@ -52,6 +52,8 @@ parser.add_argument('-L', '--max-lag', type=float, default=1,
                     help='Longest lag to compute')
 parser.add_argument('-n', '--nchunks', type=int, default=10,
                     help='Number of chunks to split data into for variance computation')
+parser.add_argument('-O', '--output', default='.',
+                     help='Output directory')
 parser.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
 parser.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation of each chunk')
 parser.add_argument('-f', '--fineness', type=int, default=8,
@@ -66,8 +68,8 @@ parser.add_argument('-s', '--single', action='store_true',
                     help="Produce only cross-correlations of given channels, skipping auto-correlations")
 parser.add_argument('-p', '--plot', action='store_true',
                     help='Plot each computed correlation function')
-parser.add_argument('-O', '--output-type', default='png',
-                    help='File format of plot output')
+parser.add_argument('-P', '--plot-type', default='png',
+                    help='File format of plot output (svg, png, pdf, or ps)')
 parser.add_argument('-t', '--start-time', default=None, type=float,
                     help='Start time of usable data (seconds)')
 parser.add_argument('-T', '--stop-time', default=None, type=float,
@@ -127,6 +129,7 @@ def afterpulsing_correction(ch):
 for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
+        output_base = os.path.join(args.output, fname+'.'+label)
         a = TimestampFile(file.name, ac)
         b = TimestampFile(file.name, bc)
         if len(a.data) == 0 or len(b.data) == 0:
@@ -172,7 +175,7 @@ for file in args.files:
                 plot_corr([np.rec.fromarrays([c['lag'],chunks[i,:],np.zeros(c.shape)],
                                              names='lag,G,var')
                            for i in range(chunks.shape[0])],
-                          fname+'.'+label+'.chunks.'+args.output_type)
+                          output_base+'.chunks.'+args.plot_type)
         else:
             c = corr(ad, bd, **kwargs)
 
@@ -189,10 +192,10 @@ for file in args.files:
         print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
         print
 
-        with open(fname+'.'+label, 'w') as f:
+        with open(output_base, 'w') as f:
                 f.write('# lag            G(tau)            variance\n')
                 np.savetxt(f, c)
 
         if args.plot:
-            plot_corr([c], fname+'.'+label+'.'+args.output_type)
+            plot_corr([c], output_base+'.'+args.plot_type)
 
