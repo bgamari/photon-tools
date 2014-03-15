@@ -96,15 +96,15 @@ def get_jiffy(timestamps):
         print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
     return jiffy
     
-# Afterpulsing correction as described by,
-#
-#   M. Zhao, L. Jin, B. Chen, et al.
-#   "Afterpulsing and its correction in fluorescence correlation spectroscopy
-#   experiments." _Applied Optics_ (2003)
-#
-afterpulse_corr = None
-if args.afterpulse is not None:
-    f = TimestampFile(args.afterpulse.name, 0)
+def afterpulsing_correction(ch):
+    """
+    Afterpulsing correction as described by,
+    
+      M. Zhao, L. Jin, B. Chen, et al.
+      "Afterpulsing and its correction in fluorescence correlation spectroscopy
+      experiments." _Applied Optics_ (2003)
+    """
+    f = TimestampFile(args.afterpulse.name, ch)
     jiffy = get_jiffy(f)
     kwargs = {
         'jiffy': jiffy,
@@ -122,6 +122,7 @@ if args.afterpulse is not None:
     if cutoff is not None:
         afterpulse_corr[uncorr_G['lag'] > cutoff] = 0
         afterpulse_var[uncorr_G['lag'] > cutoff] = 0
+    return (afterpulse_corr, afterpulse_var)
     
 for file in args.files:
     for (ac,bc,label) in correlations:
@@ -175,11 +176,12 @@ for file in args.files:
         else:
             c = corr(ad, bd, **kwargs)
 
-        if afterpulse_corr is not None:
+        if args.afterpulse is not None:
             if ac != bc:
                 print "Can only perform afterpulsing correction on autocorrelations"
             else:
                 mu = 1.0 * len(a.data) / (a.data[-1] - a.data[0])
+                afterpulse_corr, afterpulse_var = afterpulsing_correction(ac)
                 c['G'] -= jiffy / mu * afterpulse_corr
                 c['var'] += (jiffy / mu)**2 * afterpulse_var
 
