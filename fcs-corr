@@ -125,6 +125,9 @@ def afterpulsing_correction(ch):
         afterpulse_corr[uncorr_G['lag'] > cutoff] = 0
         afterpulse_var[uncorr_G['lag'] > cutoff] = 0
     return (afterpulse_corr, afterpulse_var)
+
+if not os.path.isdir(args.output):
+    os.makedirs(args.output)
     
 for file in args.files:
     for (ac,bc,label) in correlations:
