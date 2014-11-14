@@ -109,12 +109,7 @@ print_params(p0)
 
 offsets = [0] + range(-10,10)
 #offsets = [0]
-fits = {}
-for offset in offsets:
-        popt, pcov = fit(times, corr, p0, offset)
-        p0 = popt
-        fits[offset] = (popt, pcov)
-
+fits = {offset: fit(times, corr, p0, offset) for offset in offsets}
 (opt_offset, (popt, pcov)) = min(fits.items(),
                                  key=lambda (off,(p,_)): np.sum(scaled_residuals(times, corr, off, *p)))
 
