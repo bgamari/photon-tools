@@ -1,0 +1,136 @@
+#!/usr/bin/python
+
+from __future__ import division
+import numpy as np
+from numpy import sum, newaxis, sqrt
+import scipy.signal, scipy.optimize
+from matplotlib import pyplot as pl
+
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument('corr', metavar='FILE',
+                    help="correlation function")
+parser.add_argument('--irf', '-i', metavar='FILE',
+                    help='instrument response function')
+parser.add_argument('--components', '-c', type=int, default=1,
+                    help='number of fit components')
+parser.add_argument('--jiffy', '-j', type=float, default=8e-12,
+                    help='bin width (seconds)')
+parser.add_argument('--rep-rate', '-r', type=float, default=80e6,
+                    help='pulse repetition rate (Hertz)')
+parser.add_argument('--periods', '-p', type=int, default=2,
+                    help='how many pulse periods we should fit to')
+args = parser.parse_args()
+
+# Various parameters
+jiffy = args.jiffy
+rep_rate = args.rep_rate
+window = args.periods
+per = int(1 / rep_rate / jiffy)
+
+print '%s with IRF from %s' % (args.corr, args.irf)
+print 
+n = int(window / rep_rate / jiffy)
+corr = np.genfromtxt(args.corr)[:n,1]
+irf = np.genfromtxt(args.irf)[:n,1]
+
+# Ensure we have no zero counts
+#corr = corr[corr > 0]
+corr_norm = np.sum(corr)
+corr /= corr_norm
+
+# Subtract background from and normalize IRF
+print 'IRF background = ', np.median(irf)
+irf -= np.median(irf)
+irf /= np.sum(irf)
+
+times = np.arange(corr.shape[0])
+
+def fit_func(t, *components):
+        a = np.zeros_like(t, dtype='f')
+        for i in range(len(components) // 2):
+                tau, amp = components[2*i:2*i+2]
+                a += amp * np.exp(-t/tau) / tau
+        return a
+
+def convolved_fit_func(t, *components):
+        from numpy.fft import irfft, rfft
+        assert(t.shape[0] >= irf.shape[0])
+        f = fit_func(t, *components)
+        n = 2*(t.shape[0] // per + 1)
+        shift = t.shape[0] % per
+        periodic_irf = np.roll(np.hstack(n*[irf[:per]]), shift)
+        a = scipy.signal.convolve(periodic_irf, f, 'valid')
+        #a = irfft(rfft(irf) * rfft(f), len(t))
+        if False:
+                pl.subplot(411); pl.plot(irf); pl.xlim(0,4000)
+                pl.subplot(412); pl.plot(corr); pl.xlim(0,4000)
+                pl.subplot(413); pl.plot(a); pl.xlim(0, 4000)
+                pl.subplot(414); pl.plot(f); pl.xlim(0,4000)
+                pl.show()
+        a = a[:t.shape[0]]
+        a += components[-1]
+        return a
+
+def print_params(p):
+    for i in range(args.components):
+        print '  component %d:' % i
+        print '    amplitude = %f' % p[2*i+1]
+        print '    tau = %f ns' % (p[2*i] * jiffy / 1e-9)
+
+    print
+    print '  background = %f / bin' % (corr_norm * p[-1])
+    print
+
+p0 = []
+for i in range(args.components):
+        p0.extend([10**i * 1e-9/jiffy, 1e4 / 10**i])
+
+p0 = [2.5e-9/jiffy, 1]
+background = np.median(corr)
+p0.append(background)
+
+print 'initial parameters:'
+print_params(p0)
+
+# HACK: +1 to avoid division by zero
+# Ideally we'd just drop these bins
+popt, pcov = scipy.optimize.curve_fit(convolved_fit_func, times, corr, p0,
+                                      sigma=sqrt(corr_norm*corr+1))
+
+# Print fit parameters
+print 'final parameters:'
+print_params(popt)
+print 'covariance =  '
+print pcov
+
+resid = corr_norm * (convolved_fit_func(times, *popt) - corr)
+chiSq = np.sum(resid**2 / (corr_norm * corr+1))
+dof = len(corr) - len(popt) - 1
+reduced = chiSq / dof
+print 'chi-squared = ', chiSq
+print 'reduced = ', reduced
+
+# Plot
+pl.suptitle('%s with IRF from %s\nreduced $\\chi^2 = %1.2f$' % (args.corr, args.irf, reduced))
+pl.subplot(211)
+pl.plot(times * jiffy / 1e-9, corr, '+', label='signal')
+pl.plot(times * jiffy / 1e-9, irf, '+', label='IRF')
+pl.yscale('log')
+pl.legend()
+pl.ylabel('normalized counts')
+
+pl.subplot(212)
+pl.yscale('log')
+pl.plot(times * jiffy / 1e-9, corr_norm * corr, '+', label='deconvolved')
+ts = np.arange(times[0], times[-1] + 1e-9/jiffy, dtype='f')
+label = ', '.join(['\\tau_%d = %1.2f' % (i, popt[2*i] * jiffy / 1e-9)
+                   for i in range(args.components)])
+pl.plot(times * jiffy / 1e-9, corr_norm * convolved_fit_func(times, *popt), 'r+',
+        label='convolved ($%s$ ns)' % label)
+pl.legend(loc='lower right')
+pl.xlabel('Lag (ns)')
+pl.ylabel('counts')
+
+pl.savefig('%s.svg' % args.corr)
