@@ -118,7 +118,7 @@ print 'final parameters:'
 print '  IRF offset: %g seconds' % (jiffy * opt_offset)
 print_params(popt)
 print '  covariance =  '
-print '  ' + str(pcov).split().join('\n  ')
+print '  ' + '\n  '.join(str(pcov).split())
 
 chiSq = np.sum(scaled_residuals(times, corr, opt_offset, *popt))
 dof = len(corr) - len(popt) - 1
