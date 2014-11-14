@@ -10,6 +10,14 @@ from photon_tools.read_photons import TimestampFile
 import numpy as np
 import math
 
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    from matplotlib import pyplot as pl
+    mpl_available = True
+except:
+    mpl_available = False
+
 verbose = False
 
 def split_chunks(x, n):
@@ -25,9 +33,8 @@ def correlate_multi(x, y, n=10, **kwargs):
     return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
     
 def plot_corr(corrs, output=None):
-    import matplotlib
-    matplotlib.use('Agg')
-    from matplotlib import pyplot as pl
+    if not mpl_available:
+        raise RuntimeError('Matplotlib import failed, plotting not available')
     pl.clf()
     pl.xscale('log')
     for corr in corrs:
