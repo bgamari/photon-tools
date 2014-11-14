@@ -92,7 +92,7 @@ def scaled_residuals(times, corr, offset, *params):
 
 def fit(times, corr, p0, offset=0):
     fit_func = lambda p: scaled_residuals(times, corr, offset, *p)
-    popt, pcov = scipy.optimize.leastsq(fit_func, p0)
+    popt, pcov, info, mesg, ier = scipy.optimize.leastsq(fit_func, p0, full_output=True)
     return popt, pcov
 
 p0 = []
