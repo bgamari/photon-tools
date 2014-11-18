@@ -43,8 +43,6 @@ corr /= corr_norm
 
 # Subtract background from and normalize IRF
 print 'IRF background = ', np.median(irf)
-irf -= np.median(irf)
-irf /= np.sum(irf)
 
 times = np.arange(corr.shape[0])
 
@@ -55,13 +53,19 @@ def fit_func(t, *components):
                 a += amp * np.exp(-t/tau) / tau
         return a
 
-def convolved_fit_func(t, offset, *components):
+def convolved_fit_func(t, offset, *params):
         from numpy.fft import irfft, rfft
         assert(t.shape[0] >= irf.shape[0])
+        components = params[:-2]
+        corr_bg = params[-2]
+        irf_bg = params[-1]
+
         f = fit_func(t, *components)
         n = 2*(t.shape[0] // per + 1)
         shift = t.shape[0] % per
-        periodic_irf = np.roll(np.hstack(n*[irf[:per]]), shift + offset)
+        irf_ = irf - irf_bg
+        irf_ /= np.sum(irf_)
+        periodic_irf = np.roll(np.hstack(n*[irf_[:per]]), shift + offset)
         a = scipy.signal.convolve(periodic_irf, f, 'valid')
         #a = irfft(rfft(irf) * rfft(f), len(t))
         if False:
@@ -71,7 +75,7 @@ def convolved_fit_func(t, offset, *components):
                 pl.subplot(414); pl.plot(f); pl.xlim(0,4000)
                 pl.show()
         a = a[:t.shape[0]]
-        a += components[-1]
+        a += corr_bg
         return a
 
 def print_params(p):
@@ -81,7 +85,8 @@ def print_params(p):
         print '    tau = %f ns' % (p[2*i] * jiffy / 1e-9)
 
     print
-    print '  background = %f / bin' % (corr_norm * p[-1])
+    print '  IRF background = %f / bin' % (p[-1])
+    print '  background = %f / bin' % (corr_norm * p[-2])
     print
 
 def scaled_residuals(times, corr, offset, *params):
@@ -89,7 +94,7 @@ def scaled_residuals(times, corr, offset, *params):
     # HACK: +1 to avoid division by zero
     # Ideally we'd just drop these bins
     resid = corr_norm * (corr - m)
-    return resid**2 / (corr_norm * corr + 1)
+    return resid / sqrt(corr_norm * corr + 1)
 
 def fit(times, corr, p0, offset=0):
     fit_func = lambda p: scaled_residuals(times, corr, offset, *p)
@@ -98,20 +103,22 @@ def fit(times, corr, p0, offset=0):
 
 p0 = []
 for i in range(args.components):
-    p0.extend([10**i * 1e-9/jiffy, 1e4 / 10**i])
+    p0.extend([(1 + 5*i) * 1e-9 / jiffy, 1 / args.components])
 
-p0 = [2.5e-9/jiffy, 1]
+#p0 = [2.5e-9/jiffy, 0.5, 5e-9/jiffy, 0.5]
 background = np.median(corr)
 p0.append(background)
+irf_background = np.median(irf)
+p0.append(irf_background)
 
 print 'initial parameters:'
 print_params(p0)
 
-offsets = [0] + range(-10,10)
+offsets = [0] + range(-5, +5)
 #offsets = [0]
 fits = {offset: fit(times, corr, p0, offset) for offset in offsets}
 (opt_offset, (popt, pcov)) = min(fits.items(),
-                                 key=lambda (off,(p,_)): np.sum(scaled_residuals(times, corr, off, *p)))
+                                 key=lambda (off,(p,_)): np.sum(scaled_residuals(times, corr, off, *p)**2))
 
 # Print fit parameters
 print 'final parameters:'
@@ -120,7 +127,7 @@ print_params(popt)
 print '  covariance =  '
 print '  ' + '\n  '.join(str(pcov).split('\n'))
 
-chiSq = np.sum(scaled_residuals(times, corr, opt_offset, *popt))
+chiSq = np.sum(scaled_residuals(times, corr, opt_offset, *popt)**2)
 dof = len(corr) - len(popt) - 1
 reduced = chiSq / dof
 print '  chi-squared = ', chiSq
@@ -130,7 +137,7 @@ print '  reduced = ', reduced
 pl.suptitle('%s with IRF from %s\nreduced $\\chi^2 = %1.2f$' % (args.corr, args.irf, reduced))
 pl.subplot(211)
 pl.plot(times * jiffy / 1e-9, corr, '+', label='signal')
-pl.plot(times * jiffy / 1e-9, irf, '+', label='IRF')
+pl.plot(times * jiffy / 1e-9, irf / np.sum(irf), '+', label='IRF')
 pl.yscale('log')
 pl.legend()
 pl.ylabel('normalized counts')
