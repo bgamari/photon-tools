@@ -77,13 +77,6 @@ def convolved_fit_func(t, offset, *params):
         irf_ /= np.sum(irf_)
         periodic_irf = np.roll(np.hstack(n*[irf_[:per]]), shift + offset)
         a = scipy.signal.convolve(periodic_irf, f, 'valid')
-        #a = irfft(rfft(irf) * rfft(f), len(t))
-        if False:
-                pl.subplot(411); pl.plot(irf); pl.xlim(0,4000)
-                pl.subplot(412); pl.plot(corr); pl.xlim(0,4000)
-                pl.subplot(413); pl.plot(a); pl.xlim(0, 4000)
-                pl.subplot(414); pl.plot(f); pl.xlim(0,4000)
-                pl.show()
         a = a[:t.shape[0]]
         a += corr_bg
         return a
