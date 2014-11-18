@@ -25,6 +25,8 @@ parser.add_argument('--periods', '-p', type=int, default=2,
                     help='how many pulse periods we should fit to')
 parser.add_argument('--output', '-o', type=str,
                     help='where to send output')
+parser.add_argument('--no-offset', action='store_true',
+                    help='do not fit temporal offset between data and IRF')
 args = parser.parse_args()
 
 # Various parameters
@@ -108,7 +110,6 @@ p0 = []
 for i in range(args.components):
     p0.extend([(1 + 5*i) * 1e-9 / jiffy, 1 / args.components])
 
-#p0 = [2.5e-9/jiffy, 0.5, 5e-9/jiffy, 0.5]
 background = np.median(corr)
 p0.append(background)
 irf_background = np.median(irf)
@@ -117,8 +118,7 @@ p0.append(irf_background)
 log('initial parameters:')
 print_params(p0)
 
-offsets = [0] + range(-5, +5)
-#offsets = [0]
+offsets = range(-5, +5) if not args.no_offset else [0]
 fits = {offset: fit(times, corr, p0, offset) for offset in offsets}
 (opt_offset, (popt, pcov)) = min(fits.items(),
                                  key=lambda (off,(p,_)): np.sum(scaled_residuals(times, corr, off, *p)**2))
