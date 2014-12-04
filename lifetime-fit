@@ -93,7 +93,6 @@ def irf_model(irf, period, decay, decay_model, offset=0):
     shift = ts.shape[0] % per
     periodic_irf = np.roll(np.hstack(n_periods*[irf_normed[:period]]),
                            shift + offset)
-    print periodic_irf.shape
     return ConvolveModel(periodic_irf, decay_model)
 
 shifts = {}
