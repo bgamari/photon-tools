@@ -98,7 +98,7 @@ def tabulate_parameters(fit, corr_thresh = 0.2, **kwargs):
     cells = []
     row_labels = []
     col_labels = ['best-fit', 'std err', 'corr']
-    for i in fit.params:
+    for i in sorted(fit.params):
         p = fit.params[i]
         corrs = ['%s (%1.1f)' % (k,v)
                  for k,v in sorted(p.correl.items(), key=lambda (k,v): v, reverse=True)
