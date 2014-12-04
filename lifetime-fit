@@ -98,9 +98,12 @@ print 'shift', shift
 print fit.fit_report()
 log(fit.fit_report())
 
-pl.suptitle('%s with IRF from %s\nreduced $\\chi^2 = %1.2f$' % (args.corr, args.irf, fit.redchi))
+pl.suptitle('%s with IRF from %s\n%d component%s, reduced $\\chi^2 = %1.2f$' % \
+            (args.corr, args.irf,
+             args.components, 's' if args.components > 1 else '',
+             fit.redchi))
 pl.plot(ts, corr, '+', label='signal')
-pl.plot(ts, fit.best_fit, label='ffit')
+pl.plot(ts, fit.best_fit, label='fit')
 pl.yscale('log')
 pl.legend(loc='lower right')
 pl.xlabel('lag (ns)')
