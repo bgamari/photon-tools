@@ -3,15 +3,16 @@
 from __future__ import division
 import sys
 
-import lmfit
+from argparse import ArgumentParser
 import numpy as np
 from numpy import sum, newaxis, sqrt
 import scipy.signal, scipy.optimize
 from matplotlib import pyplot as pl
+
+import lmfit
 from lmfit.models import ExponentialModel, ExponentialGaussianModel, ConstantModel
 from lmfit import Parameters
-
-from argparse import ArgumentParser
+from convolve_model import ConvolveModel
 
 parser = ArgumentParser()
 parser.add_argument('corr', metavar='FILE',
@@ -50,10 +51,6 @@ n = int(window / rep_rate / jiffy)
 irf = irf[:n,1]
 
 corr = np.genfromtxt(args.corr)[:n,1]
-# Ensure we have no zero counts
-#corr = corr[corr > 0]
-corr_norm = np.sum(corr)
-corr /= corr_norm
 times = np.arange(corr.shape[0])
 
 # Subtract background from and normalize IRF
@@ -61,7 +58,6 @@ irf_bg = np.median(irf)
 log('IRF background = %1.2f' % irf_bg)
 irf -= irf_bg
 
-from convolve_model import ConvolveModel
 def irf_model(irf, period, decay, decay_model, offset=0):
     ts = np.arange(len(irf))
     n_periods = 2*(ts.shape[0] // period + 1)
@@ -84,7 +80,7 @@ background = ConstantModel(prefix='bg_')
 ts = np.arange(len(corr)) * jiffy * 1e12
 shifts = {}
 shift_range = 10
-weights = np.sqrt(corr_norm / corr)
+weights = 1 / np.sqrt(corr)
 for shift in range(-shift_range, shift_range):
     model = irf_model(irf, per, corr, decay_model, offset=shift) + background
     pars = model.make_params(bg_c=np.median(corr), **decay_params)
@@ -99,7 +95,6 @@ print fit.fit_report()
 log(fit.fit_report())
 
 def tabulate_parameters(fit, corr_thresh = 0.2, **kwargs):
-    # Tabulate parameters
     cells = []
     row_labels = []
     col_labels = ['best-fit', 'std err', 'corr']
