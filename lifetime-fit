@@ -76,7 +76,7 @@ if fit_irf:
     model = irf_model + ConstantModel(prefix='bg_')
     pars = model.make_params(center=261, amplitude=2000, bg_c=4,
                              d_shift=400, d_decay=50, d_amplitude=200)
-    ts = np.arange(len(irf))
+    ts = np.arange(len(irf)) * jiffy * 1e12
     fit = model.fit(irf, pars, x=ts)
     print pars
     print fit.fit_report()
@@ -95,17 +95,25 @@ def irf_model(irf, period, decay, decay_model, offset=0):
                            shift + offset)
     return ConvolveModel(periodic_irf, decay_model)
 
-shifts = {}
-for shift in range(-20, 20):
-    decay_model = sum([lmfit.models.ExponentialModel(prefix='c%d_' % i)
-                       for i in range(1)])
-    background = ConstantModel(prefix='bg_')
-    model = irf_model(irf, per, corr, decay_model, offset=shift) + background
-    pars = model.make_params(c0_decay=2000, c0_amplitude=3000,
-                             bg_c=np.median(corr))
+# Build decay model
+decay_models = []
+decay_params = {}
+for i in range(args.components):
+    decay_models.append(lmfit.models.ExponentialModel(prefix='c%d_' % i))
+    decay_params['c%d_decay'%i] = 1000 * (i+1)
+    decay_params['c%d_amplitude'%i] = 3000
 
-    ts = np.arange(len(corr))
+decay_model = sum(decay_models)
+background = ConstantModel(prefix='bg_')
+ts = np.arange(len(corr)) * jiffy * 1e12
+shifts = {}
+shift_range = 10
+for shift in range(-shift_range, shift_range):
+    model = irf_model(irf, per, corr, decay_model, offset=shift) + background
+    pars = model.make_params(bg_c=np.median(corr), **decay_params)
+    print 'Fitting shift %d ps...\t' % ((shift * jiffy) * 1e12),
     fit = model.fit(corr, pars, x=ts, weights=1/corr)
+    print('chi-squared = %1.2f' % fit.redchi)
     shifts[shift] = fit
 
 shift,fit = min(shifts.items(), key=lambda (k,v): v.chisqr)
@@ -114,7 +122,7 @@ print fit.fit_report()
 log(fit.fit_report())
 
 pl.suptitle('%s with IRF from %s\nreduced $\\chi^2 = %1.2f$' % (args.corr, args.irf, fit.redchi))
-pl.plot(ts, corr, label='signal')
+pl.plot(ts, corr, '+', label='signal')
 pl.plot(ts, fit.best_fit, label='ffit')
 pl.yscale('log')
 pl.legend(loc='lower right')
