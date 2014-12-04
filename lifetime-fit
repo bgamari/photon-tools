@@ -103,7 +103,9 @@ def tabulate_parameters(fit, corr_thresh = 0.2, **kwargs):
         corrs = ['%s (%1.1f)' % (k,v)
                  for k,v in sorted(p.correl.items(), key=lambda (k,v): v, reverse=True)
                  if v > corr_thresh]
-        row = ['%1.2g' % p.value, '%1.2g' % p.stderr, ', '.join(corrs)]
+        # TODO: At some point display more correlations
+        corrs = corrs[0] if len(corrs) > 0 else ''
+        row = ['%3.4g' % p.value, '%3.3g' % p.stderr, corrs]
         row_labels.append(i)
         cells.append(row)
     tbl = pl.table(cellText = cells,
