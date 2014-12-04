@@ -3,6 +3,7 @@
 from __future__ import division
 import sys
 
+import lmfit
 import numpy as np
 from numpy import sum, newaxis, sqrt
 import scipy.signal, scipy.optimize
@@ -19,7 +20,7 @@ parser.add_argument('--components', '-c', type=int, default=1,
                     help='number of fit components')
 parser.add_argument('--rep-rate', '-r', type=float, default=80e6,
                     help='pulse repetition rate (Hertz)')
-parser.add_argument('--periods', '-p', type=int, default=2,
+parser.add_argument('--periods', '-p', type=int, default=1,
                     help='how many pulse periods we should fit to')
 parser.add_argument('--output', '-o', type=str,
                     help='where to send output')
@@ -33,10 +34,10 @@ window = args.periods
 
 log_file = sys.stdout
 if args.output is not None:
-        log_file = open(args.output, 'w')
+    log_file = open(args.output, 'w')
 
 def log(s):
-        log_file.write(s + '\n')
+    log_file.write(s + '\n')
 
 log('%s with IRF from %s' % (args.corr, args.irf))
 
@@ -57,103 +58,62 @@ log('IRF background = %1.2f' % np.median(irf))
 
 times = np.arange(corr.shape[0])
 
-def fit_func(t, *components):
-        a = np.zeros_like(t, dtype='f')
-        for i in range(len(components) // 2):
-                tau, amp = components[2*i:2*i+2]
-                a += amp * np.exp(-t/tau) / tau
-        return a
+from lmfit.models import ExponentialModel, ExponentialGaussianModel, ConstantModel
+from lmfit import Parameters
 
-def convolved_fit_func(t, offset, *params):
-        from numpy.fft import irfft, rfft
-        assert(t.shape[0] >= irf.shape[0])
-        components = params[:-2]
-        corr_bg = params[-2]
-        irf_bg = params[-1]
+def shifted_exponential(x, amplitude=1, decay=1, shift=0):
+    ret = amplitude * np.exp(-(x + shift) / decay)
+    ret[x < shift] = 0
+    return ret
 
-        f = fit_func(t, *components)
-        n = 2*(t.shape[0] // per + 1)
-        shift = t.shape[0] % per
-        irf_ = irf - irf_bg
-        irf_ /= np.sum(irf_)
-        periodic_irf = np.roll(np.hstack(n*[irf_[:per]]), shift + offset)
-        a = scipy.signal.fftconvolve(periodic_irf, f, 'valid')
-        a = a[:t.shape[0]]
-        a += corr_bg
-        return a
+class ShiftedExponentialModel(lmfit.Model):
+    def __init__(self, *args, **kwargs):
+        super(ShiftedExponentialModel, self).__init__(shifted_exponential, *args, **kwargs)
 
-def print_params(p):
-    for i in range(args.components):
-        log('  component %d:' % i)
-        log('    amplitude = %f' % p[2*i+1])
-        log('    tau = %f ns' % (p[2*i] * jiffy / 1e-9))
+fit_irf = False
+if fit_irf:
+    irf_model = ExponentialGaussianModel() + ShiftedExponentialModel(prefix='d_')
+    model = irf_model + ConstantModel(prefix='bg_')
+    pars = model.make_params(center=261, amplitude=2000, bg_c=4,
+                             d_shift=400, d_decay=50, d_amplitude=200)
+    ts = np.arange(len(irf))
+    fit = model.fit(irf, pars, x=ts)
+    print pars
+    print fit.fit_report()
+    pl.plot(ts, irf)
+    pl.plot(ts, fit.best_fit)
+    pl.yscale('log')
+    pl.show()
 
-    log('')
-    log('  IRF background = %f / bin' % (p[-1]))
-    log('  background = %f / bin' % (corr_norm * p[-2]))
-    log('')
+from convolve_model import ConvolveModel
+def irf_model(irf, period, decay, decay_model, offset=0):
+    ts = np.arange(len(irf))
+    n_periods = 2*(ts.shape[0] // period + 1)
+    irf_normed = irf / sum(irf)
+    shift = ts.shape[0] % per
+    periodic_irf = np.roll(np.hstack(n_periods*[irf_normed[:period]]),
+                           shift + offset)
+    print periodic_irf.shape
+    return ConvolveModel(periodic_irf, decay_model)
 
-def scaled_residuals(times, corr, offset, *params):
-    m = convolved_fit_func(times, offset, *params)
-    # HACK: +1 to avoid division by zero
-    # Ideally we'd just drop these bins
-    resid = corr_norm * (corr - m)
-    return resid / sqrt(corr_norm * corr + 1)
+decay_model = sum([lmfit.models.ExponentialModel(prefix='c%d_' % i)
+                   for i in range(1)])
+background = ConstantModel(prefix='bg_')
+model = irf_model(irf, per, corr, decay_model) + background
+pars = model.make_params(c0_decay=2000, c0_amplitude=3000,
+                         bg_c=np.median(corr))
 
-def fit(times, corr, p0, offset=0):
-    fit_func = lambda p: scaled_residuals(times, corr, offset, *p)
-    popt, pcov, info, mesg, ier = scipy.optimize.leastsq(fit_func, p0, full_output=True)
-    return popt, pcov
+ts = np.arange(len(corr))
+fit = model.fit(corr, pars, x=ts, weights=1/corr)
+print fit.fit_report()
+log(fit.fit_report())
 
-p0 = []
-for i in range(args.components):
-    p0.extend([(1 + 5*i) * 1e-9 / jiffy, 1 / args.components])
-
-background = np.median(corr)
-p0.append(background)
-irf_background = np.median(irf)
-p0.append(irf_background)
-
-log('initial parameters:')
-print_params(p0)
-
-offsets = range(-5, +5) if not args.no_offset else [0]
-fits = {offset: fit(times, corr, p0, offset) for offset in offsets}
-(opt_offset, (popt, pcov)) = min(fits.items(),
-                                 key=lambda (off,(p,_)): np.sum(scaled_residuals(times, corr, off, *p)**2))
-
-# Print fit parameters
-log('final parameters:')
-log('  IRF offset: %g seconds' % (jiffy * opt_offset))
-print_params(popt)
-log('  covariance =  ')
-log('  ' + '\n  '.join(str(pcov).split('\n')))
-
-chiSq = np.sum(scaled_residuals(times, corr, opt_offset, *popt)**2)
-dof = len(corr) - len(popt) - 1
-reduced = chiSq / dof
-log('  chi-squared = %1.2g' % chiSq)
-log('  reduced = %1.2f' % reduced)
-
-# Plot
-pl.suptitle('%s with IRF from %s\nreduced $\\chi^2 = %1.2f$' % (args.corr, args.irf, reduced))
-pl.subplot(211)
-pl.plot(times * jiffy / 1e-9, corr, '+', label='signal')
-pl.plot(times * jiffy / 1e-9, irf / np.sum(irf), '+', label='IRF')
+pl.suptitle('%s with IRF from %s\nreduced $\\chi^2 = %1.2f$' % (args.corr, args.irf, fit.redchi))
+pl.plot(ts, corr, label='signal')
+pl.plot(ts, fit.best_fit, label='ffit')
 pl.yscale('log')
-pl.legend()
-pl.ylabel('normalized counts')
-
-pl.subplot(212)
-pl.yscale('log')
-pl.plot(times * jiffy / 1e-9, corr_norm * corr, '+', label='observed')
-ts = np.arange(times[0], times[-1] + 1e-9/jiffy, dtype='f')
-label = ', '.join(['\\tau_%d = %1.2f' % (i, popt[2*i] * jiffy / 1e-9)
-                   for i in range(args.components)])
-pl.plot(times * jiffy / 1e-9, corr_norm * convolved_fit_func(times, opt_offset, *popt), 'r+',
-        label='convolved ($%s$ ns)' % label)
 pl.legend(loc='lower right')
-pl.xlabel('Lag (ns)')
+pl.xlabel('lag (ns)')
 pl.ylabel('counts')
-
+pl.show()
 pl.savefig('%s.svg' % args.corr)
