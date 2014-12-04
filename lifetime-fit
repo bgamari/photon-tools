@@ -96,15 +96,21 @@ def irf_model(irf, period, decay, decay_model, offset=0):
     print periodic_irf.shape
     return ConvolveModel(periodic_irf, decay_model)
 
-decay_model = sum([lmfit.models.ExponentialModel(prefix='c%d_' % i)
-                   for i in range(1)])
-background = ConstantModel(prefix='bg_')
-model = irf_model(irf, per, corr, decay_model) + background
-pars = model.make_params(c0_decay=2000, c0_amplitude=3000,
-                         bg_c=np.median(corr))
+shifts = {}
+for shift in range(-20, 20):
+    decay_model = sum([lmfit.models.ExponentialModel(prefix='c%d_' % i)
+                       for i in range(1)])
+    background = ConstantModel(prefix='bg_')
+    model = irf_model(irf, per, corr, decay_model, offset=shift) + background
+    pars = model.make_params(c0_decay=2000, c0_amplitude=3000,
+                             bg_c=np.median(corr))
 
-ts = np.arange(len(corr))
-fit = model.fit(corr, pars, x=ts, weights=1/corr)
+    ts = np.arange(len(corr))
+    fit = model.fit(corr, pars, x=ts, weights=1/corr)
+    shifts[shift] = fit
+
+shift,fit = min(shifts.items(), key=lambda (k,v): v.chisqr)
+print 'shift', shift
 print fit.fit_report()
 log(fit.fit_report())
 
