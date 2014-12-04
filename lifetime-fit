@@ -97,7 +97,7 @@ log(fit.fit_report())
 def tabulate_parameters(fit, corr_thresh = 0.2, **kwargs):
     cells = []
     row_labels = []
-    col_labels = ['best-fit', 'std err', 'corr']
+    col_labels = ['best-fit', 'std err', 'correlations']
     for i in sorted(fit.params):
         p = fit.params[i]
         corrs = ['%s (%1.1f)' % (k,v)
@@ -109,10 +109,13 @@ def tabulate_parameters(fit, corr_thresh = 0.2, **kwargs):
         row_labels.append(i)
         cells.append(row)
     tbl = pl.table(cellText = cells,
-                   colWidths=[0.2, 0.15, 0.4],
+                   colWidths=[0.2, 0.15, 0.3],
                    colLabels = col_labels,
                    rowLabels = row_labels,
                    **kwargs)
+    for (r,c),cell in tbl.get_celld().items():
+        if r == 0 or c == -1:
+            cell.set_text_props(weight='bold')
     tbl.auto_set_font_size(False)
     return tbl
 
