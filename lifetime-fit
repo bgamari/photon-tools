@@ -8,6 +8,8 @@ import numpy as np
 from numpy import sum, newaxis, sqrt
 import scipy.signal, scipy.optimize
 from matplotlib import pyplot as pl
+from lmfit.models import ExponentialModel, ExponentialGaussianModel, ConstantModel
+from lmfit import Parameters
 
 from argparse import ArgumentParser
 
@@ -52,38 +54,12 @@ corr = np.genfromtxt(args.corr)[:n,1]
 #corr = corr[corr > 0]
 corr_norm = np.sum(corr)
 corr /= corr_norm
-
-# Subtract background from and normalize IRF
-log('IRF background = %1.2f' % np.median(irf))
-
 times = np.arange(corr.shape[0])
 
-from lmfit.models import ExponentialModel, ExponentialGaussianModel, ConstantModel
-from lmfit import Parameters
-
-def shifted_exponential(x, amplitude=1, decay=1, shift=0):
-    ret = amplitude * np.exp(-(x + shift) / decay)
-    ret[x < shift] = 0
-    return ret
-
-class ShiftedExponentialModel(lmfit.Model):
-    def __init__(self, *args, **kwargs):
-        super(ShiftedExponentialModel, self).__init__(shifted_exponential, *args, **kwargs)
-
-fit_irf = False
-if fit_irf:
-    irf_model = ExponentialGaussianModel() + ShiftedExponentialModel(prefix='d_')
-    model = irf_model + ConstantModel(prefix='bg_')
-    pars = model.make_params(center=261, amplitude=2000, bg_c=4,
-                             d_shift=400, d_decay=50, d_amplitude=200)
-    ts = np.arange(len(irf)) * jiffy * 1e12
-    fit = model.fit(irf, pars, x=ts)
-    print pars
-    print fit.fit_report()
-    pl.plot(ts, irf)
-    pl.plot(ts, fit.best_fit)
-    pl.yscale('log')
-    pl.show()
+# Subtract background from and normalize IRF
+irf_bg = np.median(irf)
+log('IRF background = %1.2f' % irf_bg)
+irf -= irf_bg
 
 from convolve_model import ConvolveModel
 def irf_model(irf, period, decay, decay_model, offset=0):
@@ -108,11 +84,12 @@ background = ConstantModel(prefix='bg_')
 ts = np.arange(len(corr)) * jiffy * 1e12
 shifts = {}
 shift_range = 10
+weights = np.sqrt(corr_norm / corr)
 for shift in range(-shift_range, shift_range):
     model = irf_model(irf, per, corr, decay_model, offset=shift) + background
     pars = model.make_params(bg_c=np.median(corr), **decay_params)
     print 'Fitting shift %d ps...\t' % ((shift * jiffy) * 1e12),
-    fit = model.fit(corr, pars, x=ts, weights=1/corr)
+    fit = model.fit(corr, pars, x=ts, weights=weights)
     print('chi-squared = %1.2f' % fit.redchi)
     shifts[shift] = fit
 
@@ -128,5 +105,4 @@ pl.yscale('log')
 pl.legend(loc='lower right')
 pl.xlabel('lag (ns)')
 pl.ylabel('counts')
-pl.show()
 pl.savefig('%s.svg' % args.corr)
