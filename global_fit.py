@@ -19,13 +19,17 @@ class GlobalFit(lmfit.Minimizer):
     """
     This represents a fit over a number of curves, each against its
     own model. These models can potentially share parameters (known as
-    "tying").
+    "tying" of the parameters).
 
-    Parameters have their curve name prepended to their name
-    to ensure that they remain unique.
+    The parameters object accepted by global fits contain two types of
+    parameters: per-curve parameters are parameters which correspond
+    to a parameter of a curve, and global parameters which tie
+    together several per-curve parameters. Per-curve parameters have
+    the name of their curve prepended to their name to ensure
+    uniqueness.
     """
 
-    def __init__(self, curves={}, method=None):
+    def __init__(self, curves={}, method='leastsq'):
         self.method = method
         self.curves = curves
         self.best_fit = None
