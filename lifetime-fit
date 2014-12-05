@@ -125,7 +125,7 @@ def plot_fit(fit):
                  args.components, 's' if args.components > 1 else '',
                  fit.redchi))
     pl.plot(ts, corr, '+', label='signal')
-    pl.plot(ts, fit.best_fit, label='fit')
+    pl.plot(ts, fit.best_fit, 'r', label='fit')
     tabulate_parameters(fit, loc='upper right', fontsize=1e-3)
     pl.yscale('log')
     pl.legend(loc='lower right')
