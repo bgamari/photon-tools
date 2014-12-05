@@ -1,5 +1,5 @@
 from __future__ import division
-from copy import deepcopy
+from copy import deepcopy, copy
 import lmfit
 
 class Curve(object):
@@ -110,15 +110,10 @@ class GlobalFit(lmfit.Minimizer):
         """
         Generate a Parameters object for each curve
         """
-        real = {}
+        real = copy(params)
         tied = self._all_tied()
-        for curve in self.curves.values():
-            p = curve.model.make_params()
-            for name in p:
-                pname ='%s_%s' % (curve.name, name)
-                src = tied.get(pname, pname)
-                p[name].value = params[src].value
-            real[curve.name] = p
+        for param, global_param in self._all_tied().items():
+            real[param] = lmfit.Parameter(expr=global_param)
         return real
 
     def eval(self, params, **kwargs):
@@ -128,7 +123,7 @@ class GlobalFit(lmfit.Minimizer):
         """
         fits = {}
         real = self._real_params(params)
-        fits = {name: curve.model.eval(params=real[name], **kwargs)
+        fits = {name: curve.model.eval(params=real, **kwargs)
                 for name,curve in self.curves.items()}
         return fits
 
@@ -136,7 +131,7 @@ class GlobalFit(lmfit.Minimizer):
         residuals = {}
         real = self._real_params(params)
         for curve in self.curves.values():
-            r = curve.model._residual(real[curve.name],
+            r = curve.model._residual(real,
                                       curve.data, curve.weights, **kwargs)
             residuals[curve.name] = r
         return np.hstack(residuals.values())
@@ -148,34 +143,43 @@ class GlobalFit(lmfit.Minimizer):
         if params is not None:
             self.params = params
 
+        # It would be cleaner if we could just build the real
+        # submodel parameters in eval and _residual. Unfortunate
+        # minimize assumes that all of the model's parameters are
+        # present. For this reason we need to add the missing tied
+        # parameters and remove them after we're done.
+        self.params = self._real_params(self.params)
         self.fcn_args = args
         self.userkws = kwargs
         self.init_params = deepcopy(self.params)
         self.init_fits = self.eval(params=self.init_params, **self.userkws)
 
         # run fit
-        self.minimize() #method=self.method)
+        self.minimize(method=self.method)
         self.best_fit = self.eval(params=self.params, **self.userkws)
 
 
 test = True
 if test:
     import numpy as np
-    from lmfit.models import ExponentialModel
-    xs = np.arange(1000)
-    ys =  np.exp(-xs / 800)
-    ys1 = 3*np.exp(-xs / 400) + ys
-    ys2 = 10*np.exp(-xs / 100) + ys
+    from lmfit.models import GaussianModel
+    xs  = np.arange(1000)
+    ys  =  np.exp(-(xs - 200)**2 / 100)
+    ys1 = 3*np.exp(-(xs - 800)**2 / 200) + ys
+    ys2 = 10*np.exp(-(xs - 500)**2 / 50) + ys
     
     gf = GlobalFit()
-    m = ExponentialModel(prefix='m_') # common model
-    m1 = ExponentialModel(prefix='m1_') + m
-    m2 = ExponentialModel(prefix='m2_') + m
+    m = GaussianModel(prefix='m_') # common model
+    m1 = GaussianModel(prefix='m1_') + m
+    m2 = GaussianModel(prefix='m2_') + m
     gf.add_curve('c1', m1, ys1)
     gf.add_curve('c2', m2, ys2)
-    gf.tie_all('m_decay')
+    gf.tie_all('m_center')
     params = gf.make_params()
-    params['m_decay'].value = 100
+    params['m_center'].value = 200
+    params['c1_m1_center'].value = 700
+    params['c2_m2_center'].value = 600
+    print params
     gf.fit(params, x=xs)
     print gf.params
     
