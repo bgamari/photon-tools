@@ -252,5 +252,7 @@ residuals.set_xlabel('time (ps)')
 residuals.axhline(0, color='k')
 plots.set_yscale('log')
 plots.legend()
-pl.show()
-#pl.savefig(args.output)
+if args.output is not None:
+    pl.savefig(args.output, figsize=(5,5))
+else:
+    pl.show()
