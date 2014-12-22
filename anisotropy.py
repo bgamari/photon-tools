@@ -5,6 +5,13 @@ import numpy as np
 import squmfit
 from squmfit import Fit, Model
 from matplotlib import pyplot as pl
+from collections import namedtuple
+
+class Aniso(object):
+    """ Anisotropy detection channels """
+    def __init__(self, par, perp):
+        self.par = par
+        self.perp = perp
 
 def exponential(t, rate, amplitude):
     """ Note that this should contain a prefactor of `rate` that has
@@ -38,7 +45,7 @@ class ConvolvedModel(squmfit.Expr):
         model = pad(model, n)
         a = fftconvolve(periodic_irf, model, 'same')
         return a[n_periods*self.period:n_periods*self.period+n]
-    
+
     def parameters(self):
         return self.model.parameters()
 
@@ -62,16 +69,12 @@ parser.add_argument('--no-offset', action='store_true',
 parser.add_argument('-j', '--jiffy', type=float,
                     help='Bin width')
 args = parser.parse_args()
-polarization = True
+
+corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
 
 irfs = [np.genfromtxt(irf, dtype=None, names='time,counts') for irf in args.irf]
-
-if polarization:
-    if len(irfs) != 2:
-        raise RuntimeError('Expected two IRFs')
-else:
-    if len(irfs) != 1:
-        raise RuntimeError('Expected one IRFs')
+if len(irfs) != 2:
+    raise RuntimeError('Expected two IRFs')
 
 times = irfs[0]['time']
 irfs = [irf['counts'] for irf in irfs]
@@ -114,13 +117,14 @@ def background_subtract(irf):
     print('IRF background = %1.2f' % bg)
     return irf - bg
 irfs = map(background_subtract, irfs)
+irfs = Aniso(irfs[0], irfs[1])
 
 # Fix normalization of IRF
-if polarization:
-    # We need to take care to preserve the relative magnitude of the
-    # perpendicular/parallel IRFs
-    irfs[1] /= sum(irfs[1])
-irfs[0] /= sum(irfs[0])
+# We need to take care to preserve the relative magnitude of the
+# perpendicular/parallel IRFs
+norm = sum(irfs.par)
+irfs.perp /= sum(irfs.perp)
+irfs.par /= norm
 
 fit = Fit()
 
@@ -131,50 +135,53 @@ for i in range(args.components):
     rate = fit.param('lambda%d' % i, initial=1/tau)
     rates.append(rate)
 
-if polarization:
-    r0 = fit.param('r0', initial=0.4)
-    rate_rot = fit.param('lambda_rot', initial=1/1000)
-    imbalance = fit.param('g', initial=1)
+# Parameters for anisotropy model
+r0 = fit.param('r0', initial=0.4)
+rate_rot = fit.param('lambda_rot', initial=1/1000)
+imbalance = fit.param('g', initial=1)
 
 convolutions = []
-for curve_idx,f in enumerate(args.corr):
-    corr = np.genfromtxt(f)[:,1]
-    assert len(corr) >= n
-    corr = corr[:n] # FIXME?
-    times = jiffy_ps * np.arange(corr.shape[0])
-    weights = np.zeros_like(corr)
-    weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
-    name = f
-    norm = np.sum(corr)
+for pair_idx,corr in enumerate(corrs):
+    def read_histogram(path):
+        # read histogram
+        corr = np.genfromtxt(path)[:,1]
+        assert len(corr) >= n
+        corr = corr[:n] # FIXME?
+        return corr
 
-    if polarization:
-        irf = irfs[curve_idx % 2]
-        if curve_idx % 2 == 0:
-            # Parallel channel
-            rot_model = 1 + 2 * r0 * np.exp(-rate_rot * times)
-            name += 'par'
-            norm2 = 1
-        else:
-            # Perpendicular channel
-            rot_model = 1 - r0 * np.exp(-rate_rot * times)
-            name += 'perp'
-            norm2 = imbalance
-    else:
-        rot_model = 1
-        irf = irfs[0]
-
+    # generate fluorescence decay model
+    par = read_histogram(corr.par)
+    perp = read_histogram(corr.perp)
     decay_models = []
-    if curve_idx % 2 == 0:
-        for comp_idx, rate in enumerate(rates):
-            amp = fit.param('c%d_amplitude%d' % (curve_idx, comp_idx),
-                            initial=np.max(corr) / norm)
-            decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
-        decay_model = sum(decay_models)
+    initial_amp = np.max(par) / np.sum(par)
+    for comp_idx, rate in enumerate(rates):
+        amp = fit.param('c%d_amplitude%d' % (pair_idx, comp_idx), initial=initial_amp)
+        decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
+    decay_model = sum(decay_models)
 
-    convolved = ConvolvedModel(irf, per, decay_model * rot_model, offset=0)
-    convolutions.append(convolved)
-    model = norm2 * norm * convolved
-    fit.add_curve(f, model, corr, weights=weights, t=times)
+    def analyze(corr, name, rot_model, norm, irf):
+        times = jiffy_ps * np.arange(corr.shape[0])
+
+        # generate weights
+        weights = np.zeros_like(corr)
+        weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
+
+        # generate model
+        convolved = ConvolvedModel(irf, per, decay_model * rot_model(times), offset=0)
+        convolutions.append(convolved)
+        model = norm * np.sum(corr) * convolved
+        fit.add_curve(name, model, corr, weights=weights, t=times)
+
+    analyze(corr = par,
+            rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
+            norm = 1,
+            name = corr.par+'_par',
+            irf = irfs.par)
+    analyze(corr = perp,
+            rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
+            norm = imbalance,
+            name = corr.perp+'_perp',
+            irf = irfs.perp)
 
 def fit_with_offset(offset):
     for m in convolutions:
@@ -188,22 +195,20 @@ offset,res = min(fits.items(), key=lambda (_, fit): fit.total_chi_sqr)
 print 'optimal offset', offset
 
 def print_params(p):
-    if polarization:
-        print '  g', p['g']
-        print '  r0', p['r0']
-        print '  tau_rot', 1/p['lambda_rot']
+    print '  g', p['g']
+    print '  r0', p['r0']
+    print '  tau_rot', 1/p['lambda_rot']
 
     for comp_idx in range(args.components):
         rate = p['lambda%d' % comp_idx]
         print '  Component %d' % comp_idx
         print '    tau', 1/rate
 
-    for curve_idx,name in enumerate(args.corr):
-        if curve_idx % 2 != 0: continue
-        print '  Curve %s' % name
+    for pair_idx,pair in enumerate(corrs):
+        print '  Curve %d' % pair_idx
         for comp_idx in range(args.components):
             rate = p['lambda%d' % comp_idx]
-            amp = p['c%d_amplitude%d' % (curve_idx, comp_idx)] / rate
+            amp = p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
             print '    amplitude%d' % comp_idx, amp
 
 print
@@ -217,15 +222,15 @@ print_params(res.params)
 
 # Fix covariance
 for comp_idx1 in range(args.components):
-    for curve_idx1,_ in enumerate(args.corr):
+    for pair_idx1,_ in enumerate(args.corr):
         for comp_idx2 in range(args.components):
-            for curve_idx2,_ in enumerate(args.corr):
-                p1 = 'c%d_amplitude%d' % (curve_idx1, comp_idx1)
-                p2 = 'c%d_amplitude%d' % (curve_idx2, comp_idx2)
+            for pair_idx2,_ in enumerate(args.corr):
+                p1 = 'c%d_amplitude%d' % (pair_idx1, comp_idx1)
+                p2 = 'c%d_amplitude%d' % (pair_idx2, comp_idx2)
                 rate1 = res.params['lambda%d' % comp_idx1]
                 rate2 = res.params['lambda%d' % comp_idx2]
                 #res.covar[p1][p2] *= rate1 * rate2
-    
+
 print
 print 'Reduced chi-squared'
 for name, curve in res.curves.items():
@@ -255,14 +260,16 @@ else:
 plots = pl.subplot(211)
 residuals = pl.subplot(212)
 color_cycle = pl.rcParams['axes.color_cycle']
-for curve_idx, name in enumerate(args.corr):
-    cres = res.curves[name]
-    #plots.plot(times, res.initial.curves[name].fit, '+', label='Initial')
-    sym = '+' if curve_idx % 2 == 0 else 'x'
-    color = color_cycle[curve_idx // 2 % len(color_cycle)]
-    plots.plot(times, cres.curve.data, sym, label='Observed', color=color)
-    plots.plot(times, cres.fit, label='Fit', color=color)
-    residuals.plot(times, res.curves[name].residuals, color=color)
+for pair_idx, aniso in enumerate(corrs):
+    for name, ch in [(aniso.par, 'par'), (aniso.perp, 'perp')]:
+        cres = res.curves['%s_%s' % (name, ch)]
+        sym = '+' if ch == 'par' else 'x'
+        color = color_cycle[pair_idx % len(color_cycle)]
+        times = jiffy * np.arange(cres.fit.shape[0])
+        #plots.plot(times, res.initial.curves[name].fit, '+', label='Initial')
+        plots.plot(times, cres.curve.data, sym, label='Observed', color=color)
+        plots.plot(times, cres.fit, label='Fit', color=color)
+        residuals.plot(times, cres.residuals, color=color)
 
 plots.set_ylabel('number of occurences')
 residuals.set_ylabel('residual')
