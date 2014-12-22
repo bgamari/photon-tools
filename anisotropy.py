@@ -212,6 +212,18 @@ print
 print 'Fitted parameters'
 print_params(res.params)
 
+
+# Fix covariance
+for comp_idx1 in range(args.components):
+    for curve_idx1,_ in enumerate(args.corr):
+        for comp_idx2 in range(args.components):
+            for curve_idx2,_ in enumerate(args.corr):
+                p1 = 'c%d_amplitude%d' % (curve_idx1, comp_idx1)
+                p2 = 'c%d_amplitude%d' % (curve_idx2, comp_idx2)
+                rate1 = res.params['lambda%d' % comp_idx1]
+                rate2 = res.params['lambda%d' % comp_idx2]
+                #res.covar[p1][p2] *= rate1 * rate2
+    
 print
 print 'Reduced chi-squared'
 for name, curve in res.curves.items():
