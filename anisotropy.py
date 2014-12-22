@@ -87,7 +87,7 @@ else:
 # Determine the pulse repetition rate
 if args.rep_rate is None:
     irf = irfs[0]
-    middle = 0.5 * (np.max(irf) - np.min(irf)) + np.min(irf)
+    middle = (np.max(irf) - np.min(irf)) / 2 + np.min(irf)
     idxs, = np.nonzero(np.logical_and(irf[:-1] < middle, middle < irf[1:]))
     a,b = sorted(idxs)[:2]
     per = b - a
