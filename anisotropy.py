@@ -139,7 +139,7 @@ if polarization:
 convolutions = []
 for curve_idx,f in enumerate(args.corr):
     corr = np.genfromtxt(f)[:,1]
-    assert len(corr) > n
+    assert len(corr) >= n
     corr = corr[:n] # FIXME?
     times = jiffy_ps * np.arange(corr.shape[0])
     weights = np.zeros_like(corr)
