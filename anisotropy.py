@@ -166,7 +166,7 @@ for curve_idx,f in enumerate(args.corr):
     decay_models = []
     for comp_idx, rate in enumerate(rates):
         amp = fit.param('c%d_amplitude%d' % (curve_idx, comp_idx),
-                        initial=1/rate.initial)
+                        initial=np.max(corr) / norm)
         decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
     decay_model = sum(decay_models)
 
