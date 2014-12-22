@@ -144,12 +144,12 @@ for curve_idx,f in enumerate(args.corr):
     times = jiffy_ps * np.arange(corr.shape[0])
     weights = np.zeros_like(corr)
     weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
-    name = 'curve%d_' % (i // 2)
+    name = 'curve%d_' % (curve_idx // 2)
     norm = np.sum(corr)
 
     if polarization:
-        irf = irfs[i % 2]
-        if i % 2 == 0:
+        irf = irfs[curve_idx % 2]
+        if curve_idx % 2 == 0:
             # Parallel channel
             rot_model = 1 + 2 * r0 * np.exp(-rate_rot * times)
             name += 'par'
