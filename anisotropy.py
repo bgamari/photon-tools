@@ -144,7 +144,7 @@ for curve_idx,f in enumerate(args.corr):
     times = jiffy_ps * np.arange(corr.shape[0])
     weights = np.zeros_like(corr)
     weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
-    name = 'curve%d_' % (curve_idx // 2)
+    name = f
     norm = np.sum(corr)
 
     if polarization:
@@ -197,8 +197,8 @@ def print_params(p):
         print '  Component %d' % comp_idx
         print '    tau', 1/rate
 
-    for curve_idx,_ in enumerate(args.corr):
-        print '  Curve %d' % curve_idx
+    for curve_idx,name in enumerate(args.corr):
+        print '  Curve %s' % name
         for comp_idx in range(args.components):
             rate = p['lambda%d' % comp_idx]
             amp = p['c%d_amplitude%d' % (curve_idx, comp_idx)] / rate
@@ -252,12 +252,16 @@ else:
 
 plots = pl.subplot(211)
 residuals = pl.subplot(212)
-for (name,cres) in res.curves.items():
+color_cycle = pl.rcParams['axes.color_cycle']
+for curve_idx, name in enumerate(args.corr):
+    cres = res.curves[name]
     #plots.plot(times, res.initial.curves[name].fit, '+', label='Initial')
-    plots.plot(times, cres.curve.data, '+', label='Observed')
-    a, = plots.plot(times, cres.fit, label='Fit')
-    residuals.plot(times, res.curves[name].residuals, color=a.get_color())
-    
+    sym = '+' if curve_idx % 2 == 0 else 'x'
+    color = color_cycle[curve_idx // 2 % len(color_cycle)]
+    plots.plot(times, cres.curve.data, sym, label='Observed', color=color)
+    plots.plot(times, cres.fit, label='Fit', color=color)
+    residuals.plot(times, res.curves[name].residuals, color=color)
+
 plots.set_ylabel('number of occurences')
 residuals.set_ylabel('residual')
 residuals.set_xlabel('time (ps)')
