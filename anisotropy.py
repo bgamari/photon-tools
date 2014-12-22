@@ -180,7 +180,7 @@ def fit_with_offset(offset):
         m.offset = offset
     return fit.fit()
 
-offsets = range(-10, 10)
+offsets = [0] if args.no_offset else range(-5, 5)
 fits = {i: fit_with_offset(i) for i in offsets}
 print 'offsets', {i: fit.total_chi_sqr for i,fit in fits.items()}
 offset,res = min(fits.items(), key=lambda (_, fit): fit.total_chi_sqr)
