@@ -164,11 +164,12 @@ for curve_idx,f in enumerate(args.corr):
         irf = irfs[0]
 
     decay_models = []
-    for comp_idx, rate in enumerate(rates):
-        amp = fit.param('c%d_amplitude%d' % (curve_idx, comp_idx),
-                        initial=np.max(corr) / norm)
-        decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
-    decay_model = sum(decay_models)
+    if curve_idx % 2 == 0:
+        for comp_idx, rate in enumerate(rates):
+            amp = fit.param('c%d_amplitude%d' % (curve_idx, comp_idx),
+                            initial=np.max(corr) / norm)
+            decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
+        decay_model = sum(decay_models)
 
     convolved = ConvolvedModel(irf, per, decay_model * rot_model, offset=0)
     convolutions.append(convolved)
@@ -198,6 +199,7 @@ def print_params(p):
         print '    tau', 1/rate
 
     for curve_idx,name in enumerate(args.corr):
+        if curve_idx % 2 != 0: continue
         print '  Curve %s' % name
         for comp_idx in range(args.components):
             rate = p['lambda%d' % comp_idx]
