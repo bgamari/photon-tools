@@ -123,7 +123,7 @@ irfs = Aniso(irfs[0], irfs[1])
 # We need to take care to preserve the relative magnitude of the
 # perpendicular/parallel IRFs
 norm = sum(irfs.par)
-irfs.perp /= sum(irfs.perp)
+irfs.perp /= norm
 irfs.par /= norm
 
 fit = Fit()
