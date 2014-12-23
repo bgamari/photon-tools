@@ -1,0 +1,136 @@
+#!/usr/bin/python
+
+from __future__ import division
+import sys
+
+from argparse import ArgumentParser
+import numpy as np
+from numpy import sum, newaxis, sqrt
+import scipy.signal, scipy.optimize
+from matplotlib import pyplot as pl
+
+import lmfit
+from lmfit.models import ExponentialModel, ExponentialGaussianModel, ConstantModel
+from lmfit import Parameters
+from convolve_model import ConvolveModel
+
+parser = ArgumentParser()
+parser.add_argument('corr', metavar='FILE',
+                    help="correlation function")
+parser.add_argument('--irf', '-i', metavar='FILE',
+                    help='instrument response function')
+parser.add_argument('--components', '-c', type=int, default=1,
+                    help='number of fit components')
+parser.add_argument('--rep-rate', '-r', type=float, default=80e6,
+                    help='pulse repetition rate (Hertz)')
+parser.add_argument('--periods', '-p', type=int, default=1,
+                    help='how many pulse periods we should fit to')
+parser.add_argument('--output', '-o', type=str,
+                    help='where to send output')
+parser.add_argument('--no-offset', action='store_true',
+                    help='do not fit temporal offset between data and IRF')
+args = parser.parse_args()
+
+# Various parameters
+rep_rate = args.rep_rate
+window = args.periods
+
+log_file = sys.stdout
+if args.output is not None:
+    log_file = open(args.output, 'w')
+
+def log(s):
+    log_file.write(s + '\n')
+
+log('%s with IRF from %s' % (args.corr, args.irf))
+
+irf = np.genfromtxt(args.irf)
+jiffy = (irf[1,0] - irf[0,0]) * 1e-12
+per = int(1 / rep_rate / jiffy)
+n = int(window / rep_rate / jiffy)
+irf = irf[:n,1]
+
+corr = np.genfromtxt(args.corr)[:n,1]
+times = np.arange(corr.shape[0])
+
+# Subtract background from and normalize IRF
+irf_bg = np.median(irf)
+log('IRF background = %1.2f' % irf_bg)
+irf -= irf_bg
+
+def irf_model(irf, period, decay, decay_model, offset=0):
+    ts = np.arange(len(irf))
+    n_periods = 2*(ts.shape[0] // period + 1)
+    irf_normed = irf / sum(irf)
+    shift = ts.shape[0] % per
+    periodic_irf = np.roll(np.hstack(n_periods*[irf_normed[:period]]),
+                           shift + offset)
+    return ConvolveModel(periodic_irf, decay_model)
+
+# Build decay model
+decay_models = []
+decay_params = {}
+for i in range(args.components):
+    decay_models.append(lmfit.models.ExponentialModel(prefix='c%d_' % i))
+    decay_params['c%d_decay'%i] = 1000 * (i+1)
+    decay_params['c%d_amplitude'%i] = 3000
+
+decay_model = sum(decay_models)
+background = ConstantModel(prefix='bg_')
+ts = np.arange(len(corr)) * jiffy * 1e12
+shifts = {}
+shift_range = 10
+weights = 1 / np.sqrt(corr)
+for shift in range(-shift_range, shift_range):
+    model = irf_model(irf, per, corr, decay_model, offset=shift) + background
+    pars = model.make_params(bg_c=np.median(corr), **decay_params)
+    print 'Fitting shift %d ps...\t' % ((shift * jiffy) * 1e12),
+    fit = model.fit(corr, pars, x=ts, weights=weights)
+    print('chi-squared = %1.2f' % fit.redchi)
+    shifts[shift] = fit
+
+shift,fit = min(shifts.items(), key=lambda (k,v): v.chisqr)
+print 'shift', shift
+print fit.fit_report()
+log(fit.fit_report())
+
+def tabulate_parameters(fit, corr_thresh = 0.2, **kwargs):
+    cells = []
+    row_labels = []
+    col_labels = ['best-fit', 'std err', 'correlations']
+    for i in sorted(fit.params):
+        p = fit.params[i]
+        corrs = ['%s (%1.1f)' % (k,v)
+                 for k,v in sorted(p.correl.items(), key=lambda (k,v): v, reverse=True)
+                 if v > corr_thresh]
+        # TODO: At some point display more correlations
+        corrs = corrs[0] if len(corrs) > 0 else ''
+        row = ['%3.4g' % p.value, '%3.3g' % p.stderr, corrs]
+        row_labels.append(i)
+        cells.append(row)
+    tbl = pl.table(cellText = cells,
+                   colWidths=[0.2, 0.15, 0.3],
+                   colLabels = col_labels,
+                   rowLabels = row_labels,
+                   **kwargs)
+    for (r,c),cell in tbl.get_celld().items():
+        if r == 0 or c == -1:
+            cell.set_text_props(weight='bold')
+    tbl.auto_set_font_size(False)
+    return tbl
+
+def plot_fit(fit):
+    pl.suptitle('%s with IRF from %s\n%d component%s, reduced $\\chi^2 = %1.2f$' % \
+                (args.corr, args.irf,
+                 args.components, 's' if args.components > 1 else '',
+                 fit.redchi))
+    pl.plot(ts, corr, '+', label='signal')
+    pl.plot(ts, fit.best_fit, 'r', label='fit')
+    tabulate_parameters(fit, loc='upper right', fontsize=1e-3)
+    pl.yscale('log')
+    pl.legend(loc='lower right')
+    pl.xlabel('lag (ns)')
+    pl.ylabel('counts')
+    pl.savefig('%s.svg' % args.corr)
+
+plot_fit(fit)

@@ -244,3 +244,39 @@ over the course of the day. In this case, one can fit these datasets
 collectively, sharing the common parameters. `fcs-fit` enables this
 sort of fit by using
 
+### lifetime-fit
+
+`lifetime-fit` is a tool for the instrument response correction and
+fitting of fluorescence lifetime histograms.
+
+The analysis of fluorescence lifetime data roughly resembles the
+traditionally fitting analysis of FCS data.  A histogram from a
+typical fluorescence lifetime experiment will look something like
+this,
+
+![A typical fluorescence lifetime histogram](doc/lifetime-1.png)
+
+Here the $x$ axis shows the time since the last excitation.
+Data such as the above is modelled as some decay
+model (typically one or more exponential decays) convolved with an
+*instrument response function* (IRF). The IRF characterizes the
+response of the experimental apparatus to an instantaneous emission
+and is typically measured using a scatterer along with the
+fluorescence measurements. An IRF histogram might look something like
+the following,
+
+![A typical fluorescence lifetime histogram](doc/lifetime-2.png)
+
+There are two (at least) means of accounting for the IRF in the analysis:
+
+ * *Deconvolving* the IRF from the observed histogram to recover the
+   underlying decay dynamics. The decay model can then be fit directly
+   to this curve.
+
+ * Fit the decay model convolved with the IRF to the observed
+   histogram. This is often known as *reconvolution*.
+
+The problem of deconvolution is a difficult, and often ill-posed,
+inverse problem. For this reason `lifetime-fit` uses the reconvolution
+method to account for the IRF.
+
