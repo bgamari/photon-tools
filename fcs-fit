@@ -242,34 +242,36 @@ if __name__ == '__main__':
         print
 
         new = params
+        fitted = False
         try:
                 new, cov_x = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
+                fitted = True
         except RuntimeError as e:
                 print 'Fit failed to converge: ', e
-                sys.exit(1)
 
-        print 'Covariance:'
-        print ' '*8 + '      '.join('%-9s ' % name for name in new._fitted)
-        print ' '*8 + '      '.join('='*10 for name in new._fitted)
-        for var,cov in zip(new._fitted, cov_x):
-                print '%6s ' % var,
-                print '    '.join('%+1.2e   ' % x for x in cov)
-        print
-        
-        print
-        print 'Fitted parameters:'
-        print_parameters(new)
-        print
+        if fitted:
+            print 'Covariance:'
+            print ' '*8 + '      '.join('%-9s ' % name for name in new._fitted)
+            print ' '*8 + '      '.join('='*10 for name in new._fitted)
+            for var,cov in zip(new._fitted, cov_x):
+                    print '%6s ' % var,
+                    print '    '.join('%+1.2e   ' % x for x in cov)
+            print
 
-        print 'Goodness of fit:'
-        for i,curve in enumerate(curves):
-                d = params.curves[i]
-                dof = degrees_of_freedom(new, curve)
-                chi_sq = chi_squared(model, new._curve_params(i), d)
-                print '  ', args.curves[i].name
-                print '    Chi^2 = %1.2e' % chi_sq
-                print '    DoF   = %3d' % dof
-                print '    Chi^2 / DoF = %1.2f' % (chi_sq / dof)
+            print
+            print 'Fitted parameters:'
+            print_parameters(new)
+            print
+
+            print 'Goodness of fit:'
+            for i,curve in enumerate(curves):
+                    d = params.curves[i]
+                    dof = degrees_of_freedom(new, curve)
+                    chi_sq = chi_squared(model, new._curve_params(i), d)
+                    print '  ', args.curves[i].name
+                    print '    Chi^2 = %1.2e' % chi_sq
+                    print '    DoF   = %3d' % dof
+                    print '    Chi^2 / DoF = %1.2f' % (chi_sq / dof)
 
         # Plot
         if args.output == 'AUTO':
