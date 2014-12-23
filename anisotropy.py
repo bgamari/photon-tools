@@ -43,7 +43,8 @@ class ConvolvedModel(squmfit.Expr):
         model = self.model.evaluate(params, **user_args)
 
         shift = len(model) % period
-        periodic_irf_f = interp1d(np.arange(len(self.response)), self.response)
+        periodic_irf_f = interp1d(np.arange(len(self.response)), self.response,
+                                  assume_sorted=True)
         ts = np.arange(10 * len(self.response)) + shift + offset
         ts %= period
         interpolated_irf = periodic_irf_f(ts)
