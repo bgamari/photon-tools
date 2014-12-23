@@ -279,8 +279,10 @@ if res.correl is not None:
 else:
     print "  Failed to compute due to flat axis"
 
-plots = pl.subplot(211)
-residuals = pl.subplot(212)
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+plots = pl.subplot()
+divider = make_axes_locatable(plots)
+residuals = divider.append_axes('bottom', size='10%', pad=0.05)
 color_cycle = pl.rcParams['axes.color_cycle']
 for pair_idx, aniso in enumerate(corrs):
     for name, ch in [(aniso.par, 'par'), (aniso.perp, 'perp')]:
