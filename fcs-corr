@@ -146,6 +146,9 @@ for file in args.files:
             print "No data in one channel, skipping"
             continue
         jiffy = get_jiffy(a)
+        if args.jiffy is not None:
+            a.jiffy = args.jiffy
+            b.jiffy = args.jiffy
 
         ad,bd = a.data, b.data
         t0 = min(ad[0], bd[0])
