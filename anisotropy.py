@@ -290,7 +290,7 @@ for pair_idx, aniso in enumerate(corrs):
         #plots.plot(times, res.initial.curves[name].fit, '+', label='Initial')
         plots.plot(times, cres.curve.data, sym, label='Observed', color=color)
         plots.plot(times, cres.fit, label='Fit', color=color)
-        residuals.plot(times, cres.residuals, color=color)
+        residuals.plot(times, cres.residuals, sym, color=color)
 
 plots.set_ylabel('number of occurences')
 residuals.set_ylabel('residual')
