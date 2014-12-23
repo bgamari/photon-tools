@@ -20,6 +20,8 @@ def exponential(t, rate, amplitude):
 
 ExponentialModel = Model(exponential)
 
+count =0
+last_offset = 0
 class ConvolvedModel(squmfit.Expr):
     def __init__(self, response, period, model, offset=0):
         assert isinstance(model, squmfit.Expr)
@@ -29,13 +31,34 @@ class ConvolvedModel(squmfit.Expr):
         self.offset = offset
 
     def evaluate(self, params, **user_args):
+        global count, last_offset
+
         from scipy.signal import fftconvolve
+        offset = self.offset
+        if isinstance(self.offset, squmfit.Expr):
+            offset = offset.evaluate(params, **user_args)
+
         model = self.model.evaluate(params, **user_args)
         n = len(model)
         shift = n % self.period
         n_periods = n // self.period + 1
         periodic_irf = np.roll(np.hstack(10*n_periods*[self.response[:self.period]]),
-                               shift + self.offset)
+                               shift + int(np.floor(offset)))
+
+        # Linear interpolation
+        offset -= np.floor(offset)
+        interpolated_irf = (periodic_irf[1:] - periodic_irf[:-1]) * (1-offset) + periodic_irf[:-1]
+
+        count += 1
+        if False and count % 2 == 0 and last_offset != offset:
+            print last_offset, offset
+            last_offset = offset
+            pl.suptitle('offset = %g' % offset)
+            pl.plot(periodic_irf)
+            pl.plot(interpolated_irf)
+            pl.xlim(0,1500)
+            pl.show()
+
         def pad(arr, n):
             m = arr.shape[0]
             if m < n:
@@ -43,7 +66,7 @@ class ConvolvedModel(squmfit.Expr):
             else:
                 return arr
         model = pad(model, n)
-        a = fftconvolve(periodic_irf, model, 'same')
+        a = fftconvolve(interpolated_irf, model, 'same')
         return a[n_periods*self.period:n_periods*self.period+n]
 
     def parameters(self):
@@ -126,75 +149,69 @@ norm = sum(irfs.par)
 irfs.perp /= norm
 irfs.par /= norm
 
-fit = Fit()
+def analyze(corrs, params0=None):
+    fit = Fit()
+    offset = fit.param('offset', 0)
+    # Build decay model
+    rates = []
+    for i in range(args.components):
+        tau = 1000 + 1000*i
+        rate = fit.param('lambda%d' % i, initial=1/tau)
+        rates.append(rate)
 
-# Build decay model
-rates = []
-for i in range(args.components):
-    tau = 1000 + 1000*i
-    rate = fit.param('lambda%d' % i, initial=1/tau)
-    rates.append(rate)
+    # Parameters for anisotropy model
+    r0 = fit.param('r0', initial=0.4)
+    rate_rot = fit.param('lambda_rot', initial=1/1000)
+    imbalance = fit.param('g', initial=1)
 
-# Parameters for anisotropy model
-r0 = fit.param('r0', initial=0.4)
-rate_rot = fit.param('lambda_rot', initial=1/1000)
-imbalance = fit.param('g', initial=1)
+    for pair_idx,corr in enumerate(corrs):
+        def read_histogram(path):
+            # read histogram
+            corr = np.genfromtxt(path)[:,1]
+            assert len(corr) >= n
+            corr = corr[:n] # FIXME?
+            return corr
 
-convolutions = []
-for pair_idx,corr in enumerate(corrs):
-    def read_histogram(path):
-        # read histogram
-        corr = np.genfromtxt(path)[:,1]
-        assert len(corr) >= n
-        corr = corr[:n] # FIXME?
-        return corr
+        # generate fluorescence decay model
+        par = read_histogram(corr.par)
+        perp = read_histogram(corr.perp)
+        decay_models = []
+        initial_amp = np.max(par) / np.sum(par)
+        for comp_idx, rate in enumerate(rates):
+            amp = fit.param('c%d_amplitude%d' % (pair_idx, comp_idx), initial=initial_amp)
+            decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
+        decay_model = sum(decay_models)
 
-    # generate fluorescence decay model
-    par = read_histogram(corr.par)
-    perp = read_histogram(corr.perp)
-    decay_models = []
-    initial_amp = np.max(par) / np.sum(par)
-    for comp_idx, rate in enumerate(rates):
-        amp = fit.param('c%d_amplitude%d' % (pair_idx, comp_idx), initial=initial_amp)
-        decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
-    decay_model = sum(decay_models)
+        def add_curve(corr, name, rot_model, norm, irf):
+            times = jiffy_ps * np.arange(corr.shape[0])
 
-    def analyze(corr, name, rot_model, norm, irf):
-        times = jiffy_ps * np.arange(corr.shape[0])
+            # generate weights
+            weights = np.zeros_like(corr)
+            weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
 
-        # generate weights
-        weights = np.zeros_like(corr)
-        weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
+            # generate model
+            convolved = ConvolvedModel(irf, per, decay_model * rot_model(times), offset=offset)
+            model = norm * np.sum(corr) * convolved
+            fit.add_curve(name, model, corr, weights=weights, t=times)
 
-        # generate model
-        convolved = ConvolvedModel(irf, per, decay_model * rot_model(times), offset=0)
-        convolutions.append(convolved)
-        model = norm * np.sum(corr) * convolved
-        fit.add_curve(name, model, corr, weights=weights, t=times)
+        add_curve(corr = par,
+                  rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
+                  norm = 1,
+                  name = corr.par+'_par',
+                  irf = irfs.par)
+        add_curve(corr = perp,
+                  rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
+                  norm = imbalance,
+                  name = corr.perp+'_perp',
+                  irf = irfs.perp)
 
-    analyze(corr = par,
-            rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
-            norm = 1,
-            name = corr.par+'_par',
-            irf = irfs.par)
-    analyze(corr = perp,
-            rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
-            norm = imbalance,
-            name = corr.perp+'_perp',
-            irf = irfs.perp)
+    return fit.fit(params0)
 
-def fit_with_offset(offset):
-    for m in convolutions:
-        m.offset = offset
-    return fit.fit()
-
-offsets = [0] if args.no_offset else range(-5, 5)
-fits = {i: fit_with_offset(i) for i in offsets}
-print 'offsets', {i: fit.total_chi_sqr for i,fit in fits.items()}
-offset,res = min(fits.items(), key=lambda (_, fit): fit.total_chi_sqr)
-print 'optimal offset', offset
+# Run the fit
+res = analyze(corrs)
 
 def print_params(p):
+    print '  offset', p['offset']
     print '  g', p['g']
     print '  r0', p['r0']
     print '  tau_rot', 1/p['lambda_rot']
@@ -238,7 +255,7 @@ for name, curve in res.curves.items():
 
 print
 print 'Standard error'
-if res.stderr:
+if res.stderr is not None:
     for param, err in res.stderr.items():
         print '  %-15s     %1.2g' % (param, err)
 else:
@@ -246,7 +263,7 @@ else:
 
 print
 print 'Correlations (coefficients less than 0.2 omitted)'
-if res.correl:
+if res.correl is not None:
     correls = {(param1,param2): res.correl[param1][param2]
                for param1 in res.params.keys()
                for param2 in res.params.keys()
