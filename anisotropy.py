@@ -31,33 +31,24 @@ class ConvolvedModel(squmfit.Expr):
         self.offset = offset
 
     def evaluate(self, params, **user_args):
-        global count, last_offset
-
         from scipy.signal import fftconvolve
+        from scipy.interpolate import interp1d
+
         offset = self.offset
         if isinstance(self.offset, squmfit.Expr):
             offset = offset.evaluate(params, **user_args)
 
+        period = self.period
+        if isinstance(self.period, squmfit.Expr):
+            period = period.evaluate(params, **user_args)
+
         model = self.model.evaluate(params, **user_args)
-        n = len(model)
-        shift = n % self.period
-        n_periods = n // self.period + 1
-        periodic_irf = np.roll(np.hstack(10*n_periods*[self.response[:self.period]]),
-                               shift + int(np.floor(offset)))
 
-        # Linear interpolation
-        offset -= np.floor(offset)
-        interpolated_irf = (periodic_irf[1:] - periodic_irf[:-1]) * (1-offset) + periodic_irf[:-1]
-
-        count += 1
-        if False and count % 2 == 0 and last_offset != offset:
-            print last_offset, offset
-            last_offset = offset
-            pl.suptitle('offset = %g' % offset)
-            pl.plot(periodic_irf)
-            pl.plot(interpolated_irf)
-            pl.xlim(0,1500)
-            pl.show()
+        shift = len(model) % period
+        periodic_irf_f = interp1d(np.arange(len(self.response)), self.response)
+        ts = np.arange(10 * len(self.response)) + shift + offset
+        ts %= period
+        interpolated_irf = periodic_irf_f(ts)
 
         def pad(arr, n):
             m = arr.shape[0]
@@ -65,9 +56,12 @@ class ConvolvedModel(squmfit.Expr):
                 return np.hstack([arr, np.zeros(n-m)])
             else:
                 return arr
-        model = pad(model, n)
+
+        #model = pad(model, n)
         a = fftconvolve(interpolated_irf, model, 'same')
-        return a[n_periods*self.period:n_periods*self.period+n]
+        n_periods = 10
+        n = round(n_periods * period)
+        return a[n:n + len(model)]
 
     def parameters(self):
         return self.model.parameters()
@@ -149,9 +143,14 @@ norm = sum(irfs.par)
 irfs.perp /= norm
 irfs.par /= norm
 
-def analyze(corrs, params0=None):
+def analyze(corrs, params0=None, free_period=False):
     fit = Fit()
+
     offset = fit.param('offset', 0)
+    if free_period:
+        period_par = fit.param('period-par', per)
+        period_perp = fit.param('period-perp', per)
+
     # Build decay model
     rates = []
     for i in range(args.components):
@@ -182,7 +181,7 @@ def analyze(corrs, params0=None):
             decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
-        def add_curve(corr, name, rot_model, norm, irf):
+        def add_curve(corr, name, rot_model, period, norm, irf):
             times = jiffy_ps * np.arange(corr.shape[0])
 
             # generate weights
@@ -190,7 +189,9 @@ def analyze(corrs, params0=None):
             weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
 
             # generate model
-            convolved = ConvolvedModel(irf, per, decay_model * rot_model(times), offset=offset)
+            convolved = ConvolvedModel(irf, period,
+                                       decay_model * rot_model(times),
+                                       offset=offset)
             model = norm * np.sum(corr) * convolved
             fit.add_curve(name, model, corr, weights=weights, t=times)
 
@@ -198,20 +199,25 @@ def analyze(corrs, params0=None):
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
                   norm = 1,
                   name = corr.par+'_par',
+                  period = period_par if free_period else per,
                   irf = irfs.par)
         add_curve(corr = perp,
                   rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
                   norm = imbalance,
                   name = corr.perp+'_perp',
+                  period = period_perp if free_period else per,
                   irf = irfs.perp)
 
     return fit.fit(params0)
 
 # Run the fit
 res = analyze(corrs)
+res = analyze(corrs, free_period=True, params0=res.params)
 
 def print_params(p):
-    print '  offset', p['offset']
+    print '  irf period (parallel)', p['period-par']
+    print '  irf period (perpendicular)', p['period-perp']
+    print '  irf offset', p['offset']
     print '  g', p['g']
     print '  r0', p['r0']
     print '  tau_rot', 1/p['lambda_rot']
