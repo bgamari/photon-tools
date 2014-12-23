@@ -144,7 +144,8 @@ irfs.par /= norm
 def analyze(corrs, params0=None, free_period=False):
     fit = Fit()
 
-    offset = fit.param('offset', 0)
+    offset_par = fit.param('offset-par', 0)
+    offset_perp = fit.param('offset-perp', 0)
     period = fit.param('period', per)
 
     # Build decay model
@@ -177,7 +178,7 @@ def analyze(corrs, params0=None, free_period=False):
             decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
-        def add_curve(corr, name, rot_model, norm, irf):
+        def add_curve(corr, name, rot_model, offset, norm, irf):
             times = jiffy_ps * np.arange(corr.shape[0])
 
             # generate weights
@@ -195,11 +196,13 @@ def analyze(corrs, params0=None, free_period=False):
         add_curve(corr = par,
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
                   norm = 1,
+                  offset = offset_par,
                   name = corr.par+'_par',
                   irf = irfs.par)
         add_curve(corr = perp,
                   rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
                   norm = imbalance,
+                  offset = offset_perp,
                   name = corr.perp+'_perp',
                   irf = irfs.perp)
 
@@ -211,7 +214,8 @@ res = analyze(corrs, free_period=True, params0=res.params)
 
 def print_params(p):
     print '  irf period', p['period']
-    print '  irf offset', p['offset']
+    print '  irf offset (parallel)', p['offset-par']
+    print '  irf offset (perpendicular)', p['offset-perp']
     print '  g', p['g']
     print '  r0', p['r0']
     print '  tau_rot', 1/p['lambda_rot']
