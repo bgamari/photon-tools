@@ -20,8 +20,6 @@ def exponential(t, rate, amplitude):
 
 ExponentialModel = Model(exponential)
 
-count =0
-last_offset = 0
 class ConvolvedModel(squmfit.Expr):
     def __init__(self, response, period, model, offset=0):
         assert isinstance(model, squmfit.Expr)
