@@ -63,7 +63,7 @@ class TimetagFile(TimestampReader):
 
 class RawFile(TimestampReader):
     """ Read raw unsigned 64-bit timestamps """
-    extensions = ['raw']
+    extensions = ['times']
     def __init__(self, fname, channel):
         TimestampReader.__init__(self)
         if channel != 0:
