@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 
 import os.path
 from photon_tools.favia import corr, acorr
-from photon_tools.read_photons import TimestampFile
+from photon_tools import read_photons
 
 import numpy as np
 import math
@@ -113,7 +113,7 @@ def afterpulsing_correction(ch):
       "Afterpulsing and its correction in fluorescence correlation spectroscopy
       experiments." _Applied Optics_ (2003)
     """
-    f = TimestampFile(args.afterpulse.name, ch)
+    f = read_photons.open(args.afterpulse.name, ch)
     jiffy = get_jiffy(f)
     kwargs = {
         'jiffy': jiffy,
@@ -140,8 +140,8 @@ for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
         output_base = os.path.join(args.output, fname+'.'+label)
-        a = TimestampFile(file.name, ac)
-        b = TimestampFile(file.name, bc)
+        a = read_photons.open(file.name, ac)
+        b = read_photons.open(file.name, bc)
         if len(a.data) == 0 or len(b.data) == 0:
             print "No data in one channel, skipping"
             continue

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from photon_tools.read_photons import TimestampFile
+from photon_tools import read_photons
 import argparse
 import numpy as np
 
@@ -42,7 +42,7 @@ def parse_range(s):
 
 ranges = [ parse_range(a) for a in args.drop.split(',') ]
 
-ts = TimestampFile(args.file, args.channel).data
+ts = read_photons.open(args.file, args.channel).data
 
 for (start,end) in ranges:
     mask = np.logical_or(ts < start, ts >= end)

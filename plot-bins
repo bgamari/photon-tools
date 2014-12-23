@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib import pyplot as pl
 from matplotlib.ticker import MaxNLocator
 
-from photon_tools.read_photons import TimestampFile
+from photon_tools import read_photons
 import photon_tools.bin_photons as bp
 
 colors = 'rgb'
@@ -51,7 +51,7 @@ def process(fname):
                     label = 'Channel %d' % chan
 
             try:
-                t = TimestampFile(fname, chan)
+                t = read_photons.open(fname, chan)
                 if jiffy is None:
                         jiffy = t.jiffy
                 if len(t.data) == 0:
