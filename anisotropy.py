@@ -147,9 +147,7 @@ def analyze(corrs, params0=None, free_period=False):
     fit = Fit()
 
     offset = fit.param('offset', 0)
-    if free_period:
-        period_par = fit.param('period-par', per)
-        period_perp = fit.param('period-perp', per)
+    period = fit.param('period', per)
 
     # Build decay model
     rates = []
@@ -181,7 +179,7 @@ def analyze(corrs, params0=None, free_period=False):
             decay_models.append(ExponentialModel(rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
-        def add_curve(corr, name, rot_model, period, norm, irf):
+        def add_curve(corr, name, rot_model, norm, irf):
             times = jiffy_ps * np.arange(corr.shape[0])
 
             # generate weights
@@ -189,7 +187,8 @@ def analyze(corrs, params0=None, free_period=False):
             weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
 
             # generate model
-            convolved = ConvolvedModel(irf, period,
+            convolved = ConvolvedModel(irf,
+                                       period if free_period else per,
                                        decay_model * rot_model(times),
                                        offset=offset)
             model = norm * np.sum(corr) * convolved
@@ -199,13 +198,11 @@ def analyze(corrs, params0=None, free_period=False):
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
                   norm = 1,
                   name = corr.par+'_par',
-                  period = period_par if free_period else per,
                   irf = irfs.par)
         add_curve(corr = perp,
                   rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
                   norm = imbalance,
                   name = corr.perp+'_perp',
-                  period = period_perp if free_period else per,
                   irf = irfs.perp)
 
     return fit.fit(params0)
@@ -215,8 +212,7 @@ res = analyze(corrs)
 res = analyze(corrs, free_period=True, params0=res.params)
 
 def print_params(p):
-    print '  irf period (parallel)', p['period-par']
-    print '  irf period (perpendicular)', p['period-perp']
+    print '  irf period', p['period']
     print '  irf offset', p['offset']
     print '  g', p['g']
     print '  r0', p['r0']
