@@ -243,11 +243,12 @@ if __name__ == '__main__':
 
         new = params
         fitted = False
-        try:
-                new, cov_x = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
-                fitted = True
-        except RuntimeError as e:
-                print 'Fit failed to converge: ', e
+        if not args.no_fit:
+            try:
+                    new, cov_x = fit(curves, model, params, epsfcn=1e-10, verbose=args.verbose)
+                    fitted = True
+            except RuntimeError as e:
+                    print 'Fit failed to converge: ', e
 
         if fitted:
             print 'Covariance:'
@@ -286,10 +287,9 @@ if __name__ == '__main__':
                         ax.semilogx(curve['lag'], curve['G'], label=name.name,
                                     linestyle='None', marker='+')
 
-                if not args.no_fit:
-                        fig.subplots_adjust(right=0.7, left=0.1)
-                        plot_model(fig, ax, new, model, args.curves,
-                                   with_uncertainty=args.with_uncertainty)
+                fig.subplots_adjust(right=0.7, left=0.1)
+                plot_model(fig, ax, new, model, args.curves,
+                           with_uncertainty=args.with_uncertainty)
 
                 ax.set_xlabel(r'$\tau$')
                 ax.set_ylabel(r'$G$')
