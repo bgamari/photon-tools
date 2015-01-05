@@ -13,6 +13,9 @@ class Aniso(object):
         self.par = par
         self.perp = perp
 
+    def map(self, f):
+        return Aniso(f(self.par), f(self.perp))
+
 def exponential(t, rate, amplitude):
     """ Note that this should contain a prefactor of `rate` that has
     been omitted to minimize parameter covariance """
@@ -21,6 +24,7 @@ def exponential(t, rate, amplitude):
 ExponentialModel = Model(exponential)
 
 class ConvolvedModel(squmfit.Expr):
+    """ A model convolved with a response function """
     def __init__(self, response, period, model, offset=0):
         assert isinstance(model, squmfit.Expr)
         self.response = response
@@ -65,51 +69,12 @@ class ConvolvedModel(squmfit.Expr):
     def parameters(self):
         return self.model.parameters()
 
-from argparse import ArgumentParser
-
-parser = ArgumentParser()
-parser.add_argument('corr', metavar='FILE', nargs='+',
-                    help="correlation function")
-parser.add_argument('--irf', '-i', metavar='FILE', action='append',
-                    help='instrument response function')
-parser.add_argument('--components', '-c', type=int, default=1,
-                    help='number of fit components')
-parser.add_argument('--rep-rate', '-r', type=float,
-                    help='pulse repetition rate (Hertz)')
-parser.add_argument('--periods', '-p', type=int, default=1,
-                    help='how many pulse periods we should fit to')
-parser.add_argument('--output', '-o', type=str,
-                    help='where to send output')
-parser.add_argument('--no-offset', action='store_true',
-                    help='do not fit temporal offset between data and IRF')
-parser.add_argument('-j', '--jiffy', type=float,
-                    help='Bin width')
-args = parser.parse_args()
-
-corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
-
-irfs = [np.genfromtxt(irf, dtype=None, names='time,counts') for irf in args.irf]
-if len(irfs) != 2:
-    raise RuntimeError('Expected two IRFs')
-
-times = irfs[0]['time']
-irfs = [irf['counts'] for irf in irfs]
-
-# Determine the channel width (jiffy)
-if args.jiffy is not None:
-    jiffy = args.jiffy # in seconds
-    jiffy_ps = jiffy / 1e-12
-else:
-    jiffy_ps = (times[1] - times[0]) # in picoseconds
-    jiffy = jiffy_ps * 1e-12 # in seconds
-
-# Determine the pulse repetition rate
-if args.rep_rate is None:
-    irf = irfs[0]
+def estimate_rep_rate(irf):
+    """ Estimate excitation repetition rate (measured in bins) from IRF """
     middle = (np.max(irf) - np.min(irf)) / 2 + np.min(irf)
     idxs, = np.nonzero(np.logical_and(irf[:-1] < middle, middle < irf[1:]))
     a,b = sorted(idxs)[:2]
-    per = b - a
+    period = b - a
     debug = False
     if debug:
         pl.plot(irf)
@@ -118,40 +83,64 @@ if args.rep_rate is None:
         pl.axvline(b, c='g')
         pl.yscale('log')
         pl.show()
-else:
-    per = int(1 / args.rep_rate / jiffy) # period in ticks
+    return period
 
-print 'Period', per, 'bins'
-print 'Channel width', jiffy_ps, 'ps'
+def normalize_irfs(irfs):
+    """
+    Subtract background from and normalize IRF
 
-n = args.periods * per
-irfs = [irf[:n] for irf in irfs]
+    :type irfs: Aniso of histograms
+    :rtype: Aniso of histograms
+    """
+    def background_subtract(irf):
+        bg = np.median(irf)
+        print('IRF background = %1.2f' % bg)
+        return irf - bg
 
-# Subtract background from and normalize IRF
-def background_subtract(irf):
-    bg = np.median(irf)
-    print('IRF background = %1.2f' % bg)
-    return irf - bg
-irfs = map(background_subtract, irfs)
-irfs = Aniso(irfs[0], irfs[1])
+    irfs = irfs.map(background_subtract)
 
-# Fix normalization of IRF
-# We need to take care to preserve the relative magnitude of the
-# perpendicular/parallel IRFs
-norm = sum(irfs.par)
-irfs.perp /= norm
-irfs.par /= norm
+    # Fix normalization of IRF
+    # We need to take care to preserve the relative magnitude of the
+    # perpendicular/parallel IRFs
+    norm = sum(irfs.par)
+    return irfs.map(lambda x: x / norm)
 
-def analyze(corrs, params0=None, free_period=False):
+def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1):
+    """
+    :type irfs: list of `Aniso`s
+    :param irfs: IRF histograms
+    :type corrs: list of `Aniso`s
+    :param corrs: Fluorescence histograms
+    :type jiffy_ps: int
+    :param jiffy_ps: Bin width in picoseconds
+    :type exc_period: int
+    :param exc_period: Excitation period measured in bins
+    :type n_components: int
+    :param n_components: Number of exponential decay components to fit against
+    :type periods: int
+    :param periods: Number of periods to fit against
+    """
+    jiffy = jiffy_ps * 1e-12
+    n = periods * exc_period
+    irfs = irfs.map(lambda x: x[:n])
+
+    # Run the fit
+    res = analyze(irfs, corrs, exc_period, n_components, jiffy_ps)
+    res = analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
+                  free_period=True, params0=res.params)
+    return res
+
+def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
+            params0=None, free_period=False):
     fit = Fit()
 
     offset_par = fit.param('offset-par', 0)
     offset_perp = fit.param('offset-perp', 0)
-    period = fit.param('period', per)
+    period = fit.param('period', exc_period)
 
     # Build decay model
     rates = []
-    for i in range(args.components):
+    for i in range(n_components):
         tau = 1000 + 1000*i
         rate = fit.param('lambda%d' % i, initial=1/tau)
         rates.append(rate)
@@ -165,6 +154,7 @@ def analyze(corrs, params0=None, free_period=False):
         def read_histogram(path):
             # read histogram
             corr = np.genfromtxt(path)[:,1]
+            n = len(irfs.par) # FIXME?
             assert len(corr) >= n
             corr = corr[:n] # FIXME?
             return corr
@@ -188,7 +178,7 @@ def analyze(corrs, params0=None, free_period=False):
 
             # generate model
             convolved = ConvolvedModel(irf,
-                                       period if free_period else per,
+                                       period if free_period else exc_period,
                                        decay_model * rot_model(times),
                                        offset=offset)
             model = norm * np.sum(corr) * convolved
@@ -208,10 +198,6 @@ def analyze(corrs, params0=None, free_period=False):
                   irf = irfs.perp)
 
     return fit.fit(params0)
-
-# Run the fit
-res = analyze(corrs)
-res = analyze(corrs, free_period=True, params0=res.params)
 
 def print_params(p):
     print '  irf period', p['period']
@@ -233,75 +219,126 @@ def print_params(p):
             amp = p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
             print '    amplitude%d' % comp_idx, amp
 
-print
-print 'Initial parameters'
-print_params(res.initial.params)
+def main():
+    from argparse import ArgumentParser
 
-print
-print 'Fitted parameters'
-print_params(res.params)
+    parser = ArgumentParser()
+    parser.add_argument('corr', metavar='FILE', nargs='+',
+                        help="correlation function")
+    parser.add_argument('--irf', '-i', metavar='FILE', action='append',
+                        help='instrument response function')
+    parser.add_argument('--components', '-c', type=int, default=1,
+                        help='number of fit components')
+    parser.add_argument('--rep-rate', '-r', type=float,
+                        help='pulse repetition rate (Hertz)')
+    parser.add_argument('--periods', '-p', type=int, default=1,
+                        help='how many pulse periods we should fit to')
+    parser.add_argument('--output', '-o', type=str,
+                        help='where to send output')
+    parser.add_argument('--no-offset', action='store_true',
+                        help='do not fit temporal offset between data and IRF')
+    parser.add_argument('-j', '--jiffy', type=float,
+                        help='Bin width')
+    args = parser.parse_args()
 
+    corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
 
-# Fix covariance
-for comp_idx1 in range(args.components):
-    for pair_idx1,_ in enumerate(args.corr):
-        for comp_idx2 in range(args.components):
-            for pair_idx2,_ in enumerate(args.corr):
-                p1 = 'c%d_amplitude%d' % (pair_idx1, comp_idx1)
-                p2 = 'c%d_amplitude%d' % (pair_idx2, comp_idx2)
-                rate1 = res.params['lambda%d' % comp_idx1]
-                rate2 = res.params['lambda%d' % comp_idx2]
-                #res.covar[p1][p2] *= rate1 * rate2
+    irfs = [np.genfromtxt(irf, dtype=None, names='time,counts') for irf in args.irf]
+    if len(irfs) != 2:
+        raise RuntimeError('Expected two IRFs')
+    times = irfs[0]['time']
+    irfs = [irf['counts'] for irf in irfs]
+    irfs = normalize_irfs(Aniso(irfs[0], irfs[1]))
 
-print
-print 'Reduced chi-squared'
-for name, curve in res.curves.items():
-    print '  %-15s     %1.3g' % (name, curve.reduced_chi_sqr)
+    # Determine the channel width (jiffy)
+    if args.jiffy is not None:
+        jiffy_ps = args.jiffy / 1e-12
+    else:
+        jiffy_ps = (times[1] - times[0]) # in picoseconds
 
-print
-print 'Standard error'
-if res.stderr is not None:
-    for param, err in res.stderr.items():
-        print '  %-15s     %1.2g' % (param, err)
-else:
-    print "  Failed to compute due to flat axis"
+    # Determine the pulse repetition rate
+    if args.rep_rate is None:
+        period = estimate_rep_rate(irfs.par)
+    else:
+        period = int(1 / args.rep_rate / jiffy) # period in ticks
 
-print
-print 'Correlations (coefficients less than 0.2 omitted)'
-if res.correl is not None:
-    correls = {(param1,param2): res.correl[param1][param2]
-               for param1 in res.params.keys()
-               for param2 in res.params.keys()
-               if param1 < param2}
-    for (p1,p2), c in sorted(correls.items(), key=lambda ((a,b),c): c, reverse=True):
-        if abs(c) > 0.2:
-            print '  %-15s / %-15s       %1.2f' % (p1, p2, c)
-else:
-    print "  Failed to compute due to flat axis"
+    print 'Period', period, 'bins'
+    print 'Channel width', jiffy_ps, 'ps'
 
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-plots = pl.subplot()
-divider = make_axes_locatable(plots)
-residuals = divider.append_axes('bottom', size='10%', pad=0.05)
-color_cycle = pl.rcParams['axes.color_cycle']
-for pair_idx, aniso in enumerate(corrs):
-    for name, ch in [(aniso.par, 'par'), (aniso.perp, 'perp')]:
-        cres = res.curves['%s_%s' % (name, ch)]
-        sym = '+' if ch == 'par' else 'x'
-        color = color_cycle[pair_idx % len(color_cycle)]
-        times = jiffy * np.arange(cres.fit.shape[0])
-        #plots.plot(times, res.initial.curves[name].fit, '+', label='Initial')
-        plots.plot(times, cres.curve.data, sym, label='Observed', color=color)
-        plots.plot(times, cres.fit, label='Fit', color=color)
-        residuals.plot(times, cres.residuals, sym, color=color)
+    res = fit(irfs, corrs, jiffy_ps, period, args.components)
 
-plots.set_ylabel('number of occurences')
-residuals.set_ylabel('residual')
-residuals.set_xlabel('time (ps)')
-residuals.axhline(0, color='k')
-plots.set_yscale('log')
-plots.legend()
-if args.output is not None:
-    pl.savefig(args.output, figsize=(5,5))
-else:
-    pl.show()
+    # Present results
+    print
+    print 'Initial parameters'
+    print_params(res.initial.params)
+
+    print
+    print 'Fitted parameters'
+    print_params(res.params)
+
+    # Fix covariance
+    for comp_idx1 in range(args.components):
+        for pair_idx1,_ in enumerate(args.corr):
+            for comp_idx2 in range(args.components):
+                for pair_idx2,_ in enumerate(args.corr):
+                    p1 = 'c%d_amplitude%d' % (pair_idx1, comp_idx1)
+                    p2 = 'c%d_amplitude%d' % (pair_idx2, comp_idx2)
+                    rate1 = res.params['lambda%d' % comp_idx1]
+                    rate2 = res.params['lambda%d' % comp_idx2]
+                    #res.covar[p1][p2] *= rate1 * rate2
+
+    print
+    print 'Reduced chi-squared'
+    for name, curve in res.curves.items():
+        print '  %-15s     %1.3g' % (name, curve.reduced_chi_sqr)
+
+    print
+    print 'Standard error'
+    if res.stderr is not None:
+        for param, err in res.stderr.items():
+            print '  %-15s     %1.2g' % (param, err)
+    else:
+        print "  Failed to compute due to flat axis"
+
+    print
+    print 'Correlations (coefficients less than 0.2 omitted)'
+    if res.correl is not None:
+        correls = {(param1,param2): res.correl[param1][param2]
+                   for param1 in res.params.keys()
+                   for param2 in res.params.keys()
+                   if param1 < param2}
+        for (p1,p2), c in sorted(correls.items(), key=lambda ((a,b),c): c, reverse=True):
+            if abs(c) > 0.2:
+                print '  %-15s / %-15s       %1.2f' % (p1, p2, c)
+    else:
+        print "  Failed to compute due to flat axis"
+
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    plots = pl.subplot()
+    divider = make_axes_locatable(plots)
+    residuals = divider.append_axes('bottom', size='10%', pad=0.05)
+    color_cycle = pl.rcParams['axes.color_cycle']
+    for pair_idx, aniso in enumerate(corrs):
+        for name, ch in [(aniso.par, 'par'), (aniso.perp, 'perp')]:
+            cres = res.curves['%s_%s' % (name, ch)]
+            sym = '+' if ch == 'par' else 'x'
+            color = color_cycle[pair_idx % len(color_cycle)]
+            times = jiffy * np.arange(cres.fit.shape[0])
+            #plots.plot(times, res.initial.curves[name].fit, '+', label='Initial')
+            plots.plot(times, cres.curve.data, sym, label='Observed', color=color)
+            plots.plot(times, cres.fit, label='Fit', color=color)
+            residuals.plot(times, cres.residuals, sym, color=color)
+
+    plots.set_ylabel('number of occurences')
+    residuals.set_ylabel('residual')
+    residuals.set_xlabel('time (ps)')
+    residuals.axhline(0, color='k')
+    plots.set_yscale('log')
+    plots.legend()
+    if args.output is not None:
+        pl.savefig(args.output, figsize=(5,5))
+    else:
+        pl.show()
+
+if __name__ == '__main__':
+    main()
