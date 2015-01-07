@@ -143,7 +143,26 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1):
     return res1, res2
 
 def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
-            params0=None, free_period=False):
+            params0=None, free_period=False, trim_end=0):
+    """
+    Fit a set of anisotropy data with the given IRF and model
+
+    :type irfs: `Aniso` of filenames
+    :type corrs: `Aniso` of filenames
+    :type exc_period: `float`
+    :param exc_period: the approximate excitation period in bins
+    :type n_components: `int`
+    :param n_components: the number of exponential components to fit against
+    :type jiffy_ps: `int`
+    :param jiffy_ps: the channel width in picoseconds
+    :param params0: The initial parameters to fit with
+    :type free_period: `bool`
+    :param free_period: Whether to fit the excitation period
+    :type trim_end: `int`
+    :param trim_end: Number of bins to drop off of the end of the correlations.
+       This is to work around the spurious bins with low counts near the end of
+       histograms produced by the Picoharp 300.
+    """
     fit = Fit()
 
     offset_par = fit.param('offset-par', 0)
@@ -168,7 +187,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             corr = np.genfromtxt(path)[:,1]
             n = len(irfs.par) # FIXME?
             assert len(corr) >= n
-            corr = corr[:n] # FIXME?
+            corr = corr[:n - trim_end] # FIXME?
             return corr
 
         # generate fluorescence decay model
