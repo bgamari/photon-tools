@@ -211,7 +211,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
 
     return fit.fit(params0)
 
-def print_params(p):
+def print_params(p, corrs, ncomponents):
     print '  irf period', p['period']
     print '  irf offset (parallel)', p['offset-par']
     print '  irf offset (perpendicular)', p['offset-perp']
@@ -219,14 +219,14 @@ def print_params(p):
     print '  r0', p['r0']
     print '  tau_rot', 1/p['lambda_rot']
 
-    for comp_idx in range(args.components):
+    for comp_idx in range(ncomponents):
         rate = p['lambda%d' % comp_idx]
         print '  Component %d' % comp_idx
         print '    tau', 1/rate
 
     for pair_idx,pair in enumerate(corrs):
         print '  Curve %d' % pair_idx
-        for comp_idx in range(args.components):
+        for comp_idx in range(ncomponents):
             rate = p['lambda%d' % comp_idx]
             amp = p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
             print '    amplitude%d' % comp_idx, amp
@@ -282,11 +282,11 @@ def main():
     # Present results
     print
     print 'Initial parameters'
-    print_params(res.initial.params)
+    print_params(res.initial.params, corrs, args.components)
 
     print
     print 'Fitted parameters'
-    print_params(res.params)
+    print_params(res.params, corrs, args.components)
 
     # Fix covariance
     for comp_idx1 in range(args.components):
