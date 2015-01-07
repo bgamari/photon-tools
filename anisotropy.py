@@ -74,9 +74,7 @@ class ConvolvedModel(squmfit.Expr):
 
         #model = pad(model, n)
         a = fftconvolve(interpolated_irf, model, 'same')
-        n_periods = 10
-        n = round(n_periods * period)
-        return a[n:n + len(model)]
+        return a[0:len(model)]
 
     def parameters(self):
         return self.model.parameters()
