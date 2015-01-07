@@ -278,7 +278,7 @@ def main():
     print 'Period', period, 'bins'
     print 'Channel width', jiffy_ps, 'ps'
 
-    res = fit(irfs, corrs, jiffy_ps, period, args.components)
+    res = fit(irfs, corrs, jiffy_ps, period, args.components, periods=args.periods)
 
     # Present results
     print
