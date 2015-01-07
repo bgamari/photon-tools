@@ -26,6 +26,15 @@ ExponentialModel = Model(exponential)
 class ConvolvedModel(squmfit.Expr):
     """ A model convolved with a response function """
     def __init__(self, response, period, model, offset=0):
+        """
+        Create a convolved model
+
+        :param response: The instrument response
+        :param period: The period of the instrument response
+        :param model: The model we are trying to evaluate
+        :param offset: The temporal offset between the response and
+        the measured curve (in bins)
+        """
         assert isinstance(model, squmfit.Expr)
         self.response = response
         self.period = period
