@@ -115,7 +115,7 @@ def normalize_irfs(irfs):
     norm = sum(irfs.par)
     return irfs.map(lambda x: x / norm)
 
-def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1):
+def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     """
     :type irfs: list of :class:`Aniso`s
     :param irfs: IRF histograms
@@ -129,6 +129,7 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1):
     :param n_components: Number of exponential decay components to fit against
     :type periods: int
     :param periods: Number of periods to fit against
+    :param kwargs: Other keyword arguments passed to `analyze`
     :rtype: tuple of two :class:`FitResults`
     """
     jiffy = jiffy_ps * 1e-12
@@ -137,9 +138,9 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1):
 
     # Run the fit first to get the parameters roughly correct, then
     # then infer the period
-    res1 = analyze(irfs, corrs, exc_period, n_components, jiffy_ps)
+    res1 = analyze(irfs, corrs, exc_period, n_components, jiffy_ps, **kwargs)
     res2 = analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
-                   free_period=True, params0=res1.params)
+                   free_period=True, params0=res1.params, **kwargs)
     return res1, res2
 
 def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
@@ -297,7 +298,8 @@ def main():
     print 'Period', period, 'bins'
     print 'Channel width', jiffy_ps, 'ps'
 
-    res0, res = fit(irfs, corrs, jiffy_ps, period, args.components, periods=args.periods)
+    res0, res = fit(irfs, corrs, jiffy_ps, period, args.components,
+                    periods=args.periods, trim_end=5)
 
     # Present results
     print
