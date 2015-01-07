@@ -60,6 +60,9 @@ class ConvolvedModel(squmfit.Expr):
                                   assume_sorted=True)
         ts = np.arange(10 * len(self.response)) + shift + offset
         ts %= period
+        # sometimes numerical error gives us values slightly outside
+        # the interpolation range, be sure to clamp these
+        ts = np.clip(ts, a_min=0, a_max = len(self.response)-1)
         interpolated_irf = periodic_irf_f(ts)
 
         def pad(arr, n):
