@@ -267,6 +267,7 @@ def main():
         jiffy_ps = args.jiffy / 1e-12
     else:
         jiffy_ps = (times[1] - times[0]) # in picoseconds
+    jiffy = jiffy_ps / 1000
 
     # Determine the pulse repetition rate
     if args.rep_rate is None:
