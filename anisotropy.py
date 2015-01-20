@@ -323,7 +323,7 @@ def main():
 
     print
     print 'Reduced chi-squared'
-    for name, curve in res.curves.items():
+    for name, curve in sorted(res.curves.items()):
         print '  %-15s     %1.3g' % (name, curve.reduced_chi_sqr)
 
     print
