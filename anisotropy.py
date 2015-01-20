@@ -246,10 +246,12 @@ def print_params(p, corrs, ncomponents):
 
     for pair_idx,pair in enumerate(corrs):
         print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par, pair.perp)
+        ampls = [ p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
+                  for comp_idx in range(ncomponents) ]
         for comp_idx in range(ncomponents):
             rate = p['lambda%d' % comp_idx]
-            amp = p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
-            print '    amplitude%d' % comp_idx, amp
+            frac = ampls[comp_idx] / sum(ampls)
+            print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (ampls[comp_idx], frac * 100)
 
 def main():
     from argparse import ArgumentParser
