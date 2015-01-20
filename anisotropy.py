@@ -245,7 +245,7 @@ def print_params(p, corrs, ncomponents):
         print '    tau', 1/rate
 
     for pair_idx,pair in enumerate(corrs):
-        print '  Curve %d' % pair_idx
+        print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par, pair.perp)
         for comp_idx in range(ncomponents):
             rate = p['lambda%d' % comp_idx]
             amp = p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
