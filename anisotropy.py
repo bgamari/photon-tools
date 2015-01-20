@@ -365,7 +365,7 @@ def main():
 
     plots.set_ylabel('number of occurences')
     residuals.set_ylabel('residual')
-    residuals.set_xlabel('time (ps)')
+    residuals.set_xlabel('time (ns)')
     residuals.axhline(0, color='k')
     plots.set_yscale('log')
     plots.legend()
