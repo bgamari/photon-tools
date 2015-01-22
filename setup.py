@@ -3,11 +3,12 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
+import numpy as np
 
 ext_modules = [
-        Extension('photon_tools.bin_photons', ['photon_tools/bin_photons.pyx'], include_dirs=['.']),
-        Extension('photon_tools.timetag_parse', ['photon_tools/timetag_parse.pyx'], include_dirs=['.']),
-        Extension('photon_tools.filter_photons', ['photon_tools/filter_photons.pyx'], include_dirs=['.']),
+        Extension('photon_tools.bin_photons', ['photon_tools/bin_photons.pyx'], include_dirs=['.',np.get_include()]),
+        Extension('photon_tools.timetag_parse', ['photon_tools/timetag_parse.pyx'], include_dirs=['.',np.get_include()]),
+        Extension('photon_tools.filter_photons', ['photon_tools/filter_photons.pyx'], include_dirs=['.',np.get_include()]),
 ]
 
 setup(name = 'photon-tools',
