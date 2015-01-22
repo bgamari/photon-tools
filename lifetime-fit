@@ -12,7 +12,7 @@ from matplotlib import pyplot as pl
 import lmfit
 from lmfit.models import ExponentialModel, ExponentialGaussianModel, ConstantModel
 from lmfit import Parameters
-from convolve_model import ConvolveModel
+from photon_tools.convolve_model import ConvolveModel
 
 parser = ArgumentParser()
 parser.add_argument('corr', metavar='FILE',
