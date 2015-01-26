@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 			else
 				printf("marker %d\n", rec.markers);
 		} else
-			printf("%7lu\t%d\n", rec.time, rec.channel);
+			printf("%7llu\t%d\n", rec.time, rec.channel);
 	}
 	return 0;
 }
