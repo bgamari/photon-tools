@@ -17,7 +17,7 @@ from photon_tools.convolve_model import ConvolveModel
 parser = ArgumentParser()
 parser.add_argument('corr', metavar='FILE',
                     help="correlation function")
-parser.add_argument('--irf', '-i', metavar='FILE',
+parser.add_argument('--irf', '-i', metavar='FILE', required=True
                     help='instrument response function')
 parser.add_argument('--components', '-c', type=int, default=1,
                     help='number of fit components')
