@@ -364,8 +364,8 @@ def main():
             sym = '+' if ch == 'par' else 'x'
             label = name if ch == 'par' else None
             plots.plot(times, cres.curve.data, sym, color=color)
-            plots.plot(times, cres.fit, color=color)
-            residuals.plot(times, cres.residuals, sym, label=label, color=color)
+            plots.plot(times, cres.fit, color=color, label=label)
+            residuals.plot(times, cres.residuals, sym, color=color)
 
     plots.set_ylabel('number of occurences')
     residuals.set_ylabel('residual')
@@ -379,6 +379,7 @@ def main():
         mlines.Line2D([], [], color='k', label='fit'),
         mlines.Line2D([], [], color='k', marker='+', label='parallel'),
         mlines.Line2D([], [], color='k', marker='x', label='perpendicular'),
+        mlines.Line2D([], [], alpha=0, label=''),  # Spacer
     ] + handles
     bbox = legend.get_position(pl.gcf())
     print bbox
