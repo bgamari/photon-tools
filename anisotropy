@@ -379,7 +379,6 @@ def main():
         mlines.Line2D([], [], color='k', label='fit'),
         mlines.Line2D([], [], color='k', marker='+', label='parallel'),
         mlines.Line2D([], [], color='k', marker='x', label='perpendicular'),
-        mlines.Line2D([], [], alpha=0, label=''),  # Spacer
     ] + handles
     bbox = legend.get_position(pl.gcf())
     print bbox
