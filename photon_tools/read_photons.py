@@ -38,9 +38,9 @@ class TimestampReader(object):
     def __init__(self):
         self.jiffy = None
 
-class Pt2File(TimestampReader):
-    """ Read Picoquant PT2 timestamp files """
-    extensions = ['pt2']
+class PicoquantFile(TimestampReader):
+    """ Read Picoquant PT2 and PT3 timestamp files """
+    extensions = ['pt2', 'pt3']
     def __init__(self, fname, channel):
         TimestampReader.__init__(self)
         self.jiffy = 4e-12 # FIXME
@@ -81,7 +81,7 @@ class RawChFile(TimestampReader):
         self.data = d[d['chan'] == channel]['time']
 
 readers = [
-    Pt2File,
+    PicoquantFile,
     TimetagFile,
     RawFile,
     RawChFile,
