@@ -382,11 +382,11 @@ def main():
         mlines.Line2D([], [], alpha=0, label=''),  # Spacer
     ] + handles
     bbox = legend.get_position(pl.gcf())
-    print bbox
     plots.legend(handles=handles, loc='upper left',
                  bbox_to_anchor=bbox,
                  bbox_transform=pl.gcf().transFigure,
                  mode='expand', fontsize='small', ncol=1, frameon=False)
+
     if args.output is not None:
         pl.savefig(args.output, figsize=(5,5))
     else:
