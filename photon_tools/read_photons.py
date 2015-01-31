@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 from photon_tools import timetag_parse, pt2_parse, metadata
 
@@ -8,8 +9,8 @@ def verify_monotonic(times):
     negatives = times[1:] <= times[:-1]
     if np.count_nonzero(negatives) > 0:
         indices = np.nonzero(negatives)
-        raise RuntimeError('Found %d non-monotonic timestamps: photon indices %s' %
-                           (np.count_nonzero(negatives), indices))
+        warnings.warn('Found %d non-monotonic timestamps: photon indices %s' %
+                      (np.count_nonzero(negatives), indices))
 
 def verify_continuity(times, gap_factor=1000):
     """ Search for improbably long gaps in the photon stream """
@@ -17,11 +18,12 @@ def verify_continuity(times, gap_factor=1000):
     tau = (times[-1] - times[0]) / len(times)
     gaps = (times[1:] - times[:-1]) > gap_factor*tau
     if np.count_nonzero(gaps) > 0:
-        print('Found %d large gaps:' % np.count_nonzero(gaps))
+        msgs = 'Found %d large gaps:\n' % np.count_nonzero(gaps)
         gap_starts, = np.nonzero(gaps)
         for s in gap_starts:
-            print('    starting at %10d, ending at %10d, lasting %10d' %
-                  (times[s], times[s+1], times[s+1] - times[s]))
+            msg += '    starting at %10d, ending at %10d, lasting %10d' % \
+                   (times[s], times[s+1], times[s+1] - times[s])
+        warnings.warn(msg)
 
 class InvalidChannel(RuntimeError):
     def __init__(self, requested_channel, valid_channels=[]):
