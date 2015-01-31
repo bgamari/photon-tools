@@ -18,7 +18,7 @@ def verify_continuity(times, gap_factor=1000):
     tau = (times[-1] - times[0]) / len(times)
     gaps = (times[1:] - times[:-1]) > gap_factor*tau
     if np.count_nonzero(gaps) > 0:
-        msgs = 'Found %d large gaps:\n' % np.count_nonzero(gaps)
+        msg = 'Found %d large gaps:\n' % np.count_nonzero(gaps)
         gap_starts, = np.nonzero(gaps)
         for s in gap_starts:
             msg += '    starting at %10d, ending at %10d, lasting %10d' % \
