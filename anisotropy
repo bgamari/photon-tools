@@ -23,49 +23,34 @@ def exponential(t, rate, amplitude):
 
 ExponentialModel = Model(exponential)
 
-class InterpolatedIrf(squmfit.Expr):
+def interpolate_irf(response, period, offset):
     """
     An instrument response function which is interpolated and
     (possibly) shifted in time.
 
-    Evaluates to an array of shape.
+    Evaluates to an array of the same shape as `response`.
+
+    :type response: array of shape (N,)
+    :param response: Instrument response
+    :param period: The period of the instrument response
+    :param offset: The temporal offset between the response and
+        the measured curve (in bins)
     """
-    def __init__(self, response, period, offset=0):
-        """
-        :type response: array of shape (N,)
-        :param response: Instrument response
-        :param period: The period of the instrument response
-        :param offset: The temporal offset between the response and
-            the measured curve (in bins)
-        """
-        self.response = response
-        self.period = period
-        self.offset = offset
 
-    def evaluate(self, params, **user_args):
-        from scipy.interpolate import interp1d
+    from scipy.interpolate import interp1d
 
-        offset = self.offset
-        if isinstance(self.offset, squmfit.Expr):
-            offset = offset.evaluate(params, **user_args)
+    shift = len(response) % period
+    periodic_irf_f = interp1d(np.arange(len(response)), response,
+                              assume_sorted=True)
+    ts = np.arange(10 * len(response)) + shift + offset
+    ts %= period
+    # sometimes numerical error gives us values slightly outside
+    # the interpolation range, be sure to clamp these
+    ts = np.clip(ts, a_min=0, a_max = len(response) - 1)
+    interpolated_irf = periodic_irf_f(ts)
+    return interpolated_irf
 
-        period = self.period
-        if isinstance(self.period, squmfit.Expr):
-            period = period.evaluate(params, **user_args)
-
-        shift = len(self.response) % period
-        periodic_irf_f = interp1d(np.arange(len(self.response)), self.response,
-                                  assume_sorted=True)
-        ts = np.arange(10 * len(self.response)) + shift + offset
-        ts %= period
-        # sometimes numerical error gives us values slightly outside
-        # the interpolation range, be sure to clamp these
-        ts = np.clip(ts, a_min=0, a_max = len(self.response)-1)
-        interpolated_irf = periodic_irf_f(ts)
-        return interpolated_irf
-        
-    def parameters(self):
-        return set()
+InterpolatedIrf = Model(interpolate_irf)
 
 class ConvolvedModel(squmfit.Expr):
     """ A model convolved with a response function """
@@ -245,8 +230,8 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
 
             # generate model
-            iirf = InterpolatedIrf(irf,
-                                   period if free_period else exc_period,
+            iirf = InterpolatedIrf(response=irf,
+                                   period=period if free_period else exc_period,
                                    offset=offset)
             convolved = ConvolvedModel(iirf, decay_model * rot_model(times))
             model = norm * np.sum(corr) * convolved + leakage * iirf.map(lambda a: a[:len(corr)])
