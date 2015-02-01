@@ -167,7 +167,8 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     return res1, res2
 
 def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
-            params0=None, free_period=False, trim_end=0):
+            params0=None, free_period=False, trim_end=0,
+            exc_leakage=False):
     """
     Fit a set of anisotropy data with the given IRF and model
 
@@ -186,6 +187,9 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
     :param trim_end: Number of bins to drop off of the end of the correlations.
        This is to work around the spurious bins with low counts near the end of
        histograms produced by the Picoharp 300.
+    :type exc_leakage: `bool`
+    :param exc_leakage: Whether to include leakage of the excitation (modelled by
+       the IRF) in the detection model.
     """
     fit = Fit()
     lag = Argument('t')
@@ -228,6 +232,11 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             decay_models.append(ExponentialModel(t=lag, rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
+        # IRF leakage
+        leakage = 0
+        if exc_leakage:
+            leakage = fit.param('c%d_leakage' % pair_idx, initial=0)
+
         def add_curve(corr, name, rot_model, offset, norm, irf):
             times = jiffy_ps * np.arange(corr.shape[0])
 
@@ -240,7 +249,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
                                    period if free_period else exc_period,
                                    offset=offset)
             convolved = ConvolvedModel(iirf, decay_model * rot_model(times))
-            model = norm * np.sum(corr) * convolved
+            model = norm * np.sum(corr) * convolved + leakage * iirf.map(lambda a: a[:len(corr)])
             fit.add_curve(name, model, corr, weights=weights, t=times)
 
         add_curve(corr = par,
@@ -300,6 +309,8 @@ def main():
                         help='do not fit temporal offset between data and IRF')
     parser.add_argument('-j', '--jiffy', type=float,
                         help='Bin width')
+    parser.add_argument('-e', '--exc-leakage', action='store_true',
+                        help='Whether to model leakage of excitation into detection channels')
     args = parser.parse_args()
 
     corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
@@ -328,7 +339,8 @@ def main():
     print 'Channel width', jiffy_ps, 'ps'
 
     res0, res = fit(irfs, corrs, jiffy_ps, period, args.components,
-                    periods=args.periods, trim_end=5)
+                    periods=args.periods, trim_end=5,
+                    exc_leakage=args.exc_leakage)
 
     # Present results
     print
