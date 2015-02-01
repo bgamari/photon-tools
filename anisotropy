@@ -267,6 +267,9 @@ def print_params(p, corrs, ncomponents):
 
     for pair_idx,pair in enumerate(corrs):
         print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par, pair.perp)
+        leakage = 'c%d_leakage' % pair_idx
+        if leakage in p:
+            print '    leakage', '%1.2f' % p[leakage]
         ampls = [ p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
                   for comp_idx in range(ncomponents) ]
         for comp_idx in range(ncomponents):
