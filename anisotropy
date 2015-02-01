@@ -234,8 +234,10 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
                                    period=period if free_period else exc_period,
                                    offset=offset)
             convolved = ConvolvedModel(iirf, decay_model * rot_model(times))
-            model = np.sum(corr) * (norm * convolved + leakage * iirf.map(lambda a: a[:len(corr)]))
-            fit.add_curve(name, model, corr, weights=weights, t=times)
+            model = norm * convolved
+            if leakage != 0:
+                model = model + leakage * iirf.map(lambda a: a[:len(corr)])
+            fit.add_curve(name, np.sum(corr) * model, corr, weights=weights, t=times)
 
         add_curve(corr = par,
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
