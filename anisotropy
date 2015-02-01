@@ -234,7 +234,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
                                    period=period if free_period else exc_period,
                                    offset=offset)
             convolved = ConvolvedModel(iirf, decay_model * rot_model(times))
-            model = norm * np.sum(corr) * convolved + leakage * iirf.map(lambda a: a[:len(corr)])
+            model = np.sum(corr) * (norm * convolved + leakage * iirf.map(lambda a: a[:len(corr)]))
             fit.add_curve(name, model, corr, weights=weights, t=times)
 
         add_curve(corr = par,
@@ -269,7 +269,7 @@ def print_params(p, corrs, ncomponents):
         print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par, pair.perp)
         leakage = 'c%d_leakage' % pair_idx
         if leakage in p:
-            print '    leakage', '%1.2f' % p[leakage]
+            print '    leakage', '%1.2g' % p[leakage]
         ampls = [ p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
                   for comp_idx in range(ncomponents) ]
         for comp_idx in range(ncomponents):
