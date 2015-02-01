@@ -419,7 +419,7 @@ def main():
                  mode='expand', fontsize='small', ncol=1, frameon=False)
 
     if args.output is not None:
-        pl.savefig(args.output, figsize=(5,5))
+        pl.savefig(args.output, figsize=(5,5), dpi=600)
     else:
         pl.show()
 
