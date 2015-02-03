@@ -52,40 +52,20 @@ def interpolate_irf(response, period, offset):
 
 InterpolatedIrf = Model(interpolate_irf)
 
-class ConvolvedModel(squmfit.Expr):
-    """ A model convolved with a response function """
-    def __init__(self, response, model):
-        """
-        Create a convolved model
+def convolved(response, model):
+    """
+    Convolve a model with a response.
 
-        :type response: :class:`InterpolatedIrf`
-        :param response: The instrument response
-        :type model: :class:`squmfit.Expr`
-        :param model: The model we are trying to evaluate
-        """
-        assert isinstance(model, squmfit.Expr)
-        self.response = response
-        self.model = model
+    :type response: :class:`InterpolatedIrf`
+    :param response: The instrument response
+    :type model: :class:`squmfit.Expr`
+    :param model: The model we are trying to evaluate
+    """
+    from scipy.signal import fftconvolve
+    a = fftconvolve(response, model, 'same')
+    return a[0:len(model)]
 
-    def evaluate(self, params, **user_args):
-        from scipy.signal import fftconvolve
-
-        model = self.model.evaluate(params, **user_args)
-        interpolated_irf = self.response.evaluate(params, **user_args)
-
-        def pad(arr, n):
-            m = arr.shape[0]
-            if m < n:
-                return np.hstack([arr, np.zeros(n-m)])
-            else:
-                return arr
-
-        #model = pad(model, n)
-        a = fftconvolve(interpolated_irf, model, 'same')
-        return a[0:len(model)]
-
-    def parameters(self):
-        return self.model.parameters()
+ConvolvedModel = Model(convolved)
 
 def estimate_rep_rate(irf):
     """ Estimate excitation repetition rate (measured in bins) from IRF """
@@ -233,7 +213,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             iirf = InterpolatedIrf(response=irf,
                                    period=period if free_period else exc_period,
                                    offset=offset)
-            convolved = ConvolvedModel(iirf, decay_model * rot_model(times))
+            convolved = ConvolvedModel(response=iirf, model=decay_model * rot_model(times))
             model = norm * convolved
             if leakage != 0:
                 model = model + leakage * iirf.map(lambda a: a[:len(corr)])
