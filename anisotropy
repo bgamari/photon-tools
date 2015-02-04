@@ -3,7 +3,7 @@
 from __future__ import division
 import numpy as np
 import squmfit
-from squmfit import Fit, Model, Argument
+from squmfit import Fit, model, Argument
 from matplotlib import pyplot as pl
 from collections import namedtuple
 
@@ -16,13 +16,13 @@ class Aniso(object):
     def map(self, f):
         return Aniso(f(self.par), f(self.perp))
 
+@model
 def exponential(t, rate, amplitude):
     """ Note that this should contain a prefactor of `rate` that has
     been omitted to minimize parameter covariance """
     return amplitude * np.exp(-t * rate)
 
-ExponentialModel = Model(exponential)
-
+@model
 def interpolate_irf(response, period, offset):
     """
     An instrument response function which is interpolated and
@@ -50,9 +50,8 @@ def interpolate_irf(response, period, offset):
     interpolated_irf = periodic_irf_f(ts)
     return interpolated_irf
 
-InterpolatedIrf = Model(interpolate_irf)
-
-def convolved(response, model):
+@model
+def convolved_model(response, model):
     """
     Convolve a model with a response.
 
@@ -64,8 +63,6 @@ def convolved(response, model):
     from scipy.signal import fftconvolve
     a = fftconvolve(response, model, 'same')
     return a[0:len(model)]
-
-ConvolvedModel = Model(convolved)
 
 def estimate_rep_rate(irf):
     """ Estimate excitation repetition rate (measured in bins) from IRF """
@@ -194,7 +191,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
         for comp_idx, rate in enumerate(rates):
             times = jiffy_ps * np.arange(par.shape[0])
             amp = fit.param('c%d_amplitude%d' % (pair_idx, comp_idx), initial=initial_amp)
-            decay_models.append(ExponentialModel(t=lag, rate=rate, amplitude=amp))
+            decay_models.append(exponential(t=lag, rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
         # IRF leakage
@@ -210,10 +207,10 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
 
             # generate model
-            iirf = InterpolatedIrf(response=irf,
+            iirf = interpolate_irf(response=irf,
                                    period=period if free_period else exc_period,
                                    offset=offset)
-            convolved = ConvolvedModel(response=iirf, model=decay_model * rot_model(times))
+            convolved = convolved_model(response=iirf, model=decay_model * rot_model(times))
             model = norm * convolved
             if leakage != 0:
                 model = model + leakage * iirf.map(lambda a: a[:len(corr)])
