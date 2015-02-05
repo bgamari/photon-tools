@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from photon_tools import read_photons
+from photon_tools.io import read_photons
 import argparse
 import numpy as np
 

@@ -1,8 +1,8 @@
 from libc.stdlib cimport *
 from libc.stdio cimport *
 from cpython cimport bool
-from timetag_types cimport *
-from timetag_types import *
+from types cimport *
+from types import *
 
 def filter_by_spans(np.ndarray[StrobeEvent] strobes, np.ndarray[DeltaEvent] deltas, bool offsetTimes=True):
         cdef size_t chunk_sz = 1024

@@ -1,6 +1,6 @@
 from cpython cimport bool
-from timetag_types cimport *
-from timetag_types import *
+from types cimport *
+from types import *
 
 def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t start_t=-1, uint64_t end_t=-1, bool include_zeros=True):
         """

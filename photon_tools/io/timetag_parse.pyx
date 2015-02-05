@@ -1,8 +1,8 @@
 from libc.stdlib cimport *
 from libc.stdio cimport *
 from cpython cimport bool
-from timetag_types cimport *
-from timetag_types import *
+from types cimport *
+from ..types import *
 
 DEF ENDIANESS="little"
 
