@@ -4,13 +4,13 @@ from photon_tools import read_photons
 import argparse
 import numpy as np
 
-parser = argparse.ArgumentParser()
-parser.add_argument('file', type=str, help='Input file')
-parser.add_argument('-o', '--output', help='Output file')
+parser = argparse.ArgumentParser(description="Trim regions out of timestamp files")
+parser.add_argument('file', metavar='FILE', help='Input timestamps')
+parser.add_argument('-o', '--output', metavar='FILE', help='Output timestamps')
 parser.add_argument('-c', '--channel', type=int,
                     help='Export only timestamps from given channel')
 parser.add_argument('-d', '--drop', metavar='START-END,...', type=str,
-                    help='Drop timestamps in range')
+                    help='Drop timestamps in range (given in seconds, various unit suffixes accepted (us for microseconds, ms for milliseconds, s for seconds, m for minutes, h for hours)')
 parser.add_argument('-j', '--jiffy', metavar='TIME', type=float,
                     help='Acquisition clockrate')
 args = parser.parse_args()
