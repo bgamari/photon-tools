@@ -95,7 +95,7 @@ def plot_bins(bins, jiffy, rows=10, row_width=30, ymax=None):
                     '-', c=color, label=chan_bins.label, alpha=0.7)
 
         ax = pl.gca()
-        ax.xaxis.set_visible(False)
+        ax.xaxis.set_ticklabels([])
         ax.yaxis.set_major_locator(MaxNLocator(2))
         ax.yaxis.set_minor_locator(MaxNLocator(4))
         ax.yaxis.grid(which='minor', alpha=0.2, color='black', linestyle='-')
