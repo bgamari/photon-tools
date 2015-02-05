@@ -5,23 +5,20 @@ import argparse
 import json
 import numpy as np
 from photon_tools.bin_photons import bin_photons
-from photon_tools import suffix_parse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--no-meta', action='store_true',
                     help='disable generation of metadata file')
-parser.add_argument('-w', '--bin-width', metavar='TIME', type=str, required=True,
-                    help='Width of bins')
+parser.add_argument('-w', '--bin-width', metavar='TIME', type=float, required=True,
+                    help='Width of bins in seconds')
 parser.add_argument('input', metavar='INPUT', nargs='?', type=argparse.FileType('r'),
                     help='Input timetag file', default=sys.stdin)
 parser.add_argument('output', metavar='OUTPUT', nargs='?', type=argparse.FileType('w'),
                     help='Binned data output', default=sys.stdout)
 parser.add_argument('-c', '--clockrate', metavar='RATE',
-                    help='Override clockrate (usually specified in parameters file)', default=1)
+                    help='Acquisition clockrate (can usually be inferred from metadata)')
 args = parser.parse_args()
-bin_time = suffix_parse.parse(args.bin_width)       # bin width in real time
 
-clockrate = suffix_parse.parse(args.clockrate)
 meta = {}
 infile = args.input
 outfile = args.output
