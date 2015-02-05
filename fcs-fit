@@ -1,0 +1,96 @@
+#!/usr/bin/python
+
+from __future__ import division
+import numpy as np
+from numpy import sqrt, exp
+from matplotlib import pyplot as pl
+
+import squmfit
+import squmfit.plot
+import squmfit.pretty
+
+def load_corr(file):
+    dt = [('lag','f'), ('G','f'), ('var','f')]
+    usecols = None
+    lines = [l for l in open(file.name).readlines() if not l.startswith('#')]
+    ncols = len(lines[0].split())
+    if ncols == 5:
+        # favia format
+        usecols = (0,3,4)
+    elif ncols == 3:
+        usecols = None
+    else:
+        raise RuntimeError('Unrecognized file format')
+
+    d = np.genfromtxt(file, dtype=dt, usecols=usecols)
+    d['G'] -= 1.0   # Subtract out offset
+    d['lag'] /= 1e-6 # Express times in microseconds
+    return d
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Fit FCS correlation functions',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-e', '--early-cutoff', metavar='LAG', type=float, default=0,
+                        help='Early lag cutoff time')
+    parser.add_argument('-p', '--plot', action='store_true',
+                        help='Produce plot of data and fits')
+    parser.add_argument('-o', '--output', metavar='[FILE]', nargs='?', const='AUTO',
+                        help='Save plot to FILE (defaulting to input filename+.png')
+    parser.add_argument('-c', '--components', metavar='N', type=int, default=1,
+                        help='Number of diffusive components to fit to')
+    parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
+                        help='Correlation functions to plot')
+    args = parser.parse_args()
+
+    fit = squmfit.Fit()
+    lifetimes = [fit.param('tauD-%d' % i, initial=100*(i+1)) for i in range(args.components)]
+    aspect = fit.param('aspect-ratio', initial=10)
+    for curve_idx, f in enumerate(args.curves):
+        datum = load_corr(f)
+        taken = datum[datum['lag'] > args.early_cutoff]
+
+        model = 0
+        for comp_idx, tauD in enumerate(lifetimes):
+            n = fit.param('N-%d-%d' % (curve_idx, comp_idx), initial=1)
+            model += three_dim_diffusion(lag=squmfit.Argument('lag'), tauD=tauD, aspect=aspect, n=n)
+        fit.add_curve(f.name, model, taken['G'], weights=1/sqrt(taken['var']), lag=taken['lag'])
+        
+    res = fit.fit()
+    print squmfit.pretty.show_fit_result(res)
+    squmfit.plot.plot_fit('lag', res, log_x=True)
+    pl.axhline(0, c='k')
+    pl.xlabel(r'$\tau$ (microseconds)')
+    pl.ylabel(r'$G(\tau)$')
+    pl.show()
+
+@squmfit.model 
+def three_dim_diffusion(lag, tauD, aspect, n, alpha=1):
+    """
+    Model of correlation function for a three dimensional diffuser
+    
+    :param lag: Lag time
+    :param tauD: Diffusion time
+    :param aspect: Aspect ratio
+    :param n: Concentration
+    :param alpha: Anomalous diffusion exponent
+    """
+    tau_taud = (lag / tauD)**alpha
+    return 1. / sqrt(1 + tau_taud * aspect**-2) / (1 + tau_taud) / n
+
+@squmfit.model
+def triplet_correction(lag, tripletFrac, tauF):
+    """
+    Multiplicative correction to diffusion model accounting for
+    triplet transitions of fluorophore.
+
+    :param lag: Lag time
+    :param tripletFrac: Fraction of species inhabiting triplet state
+    :param tauF: Triplet lifetime (typically on the order of microseconds).
+    """
+    tau_tauf = lag / tauF
+    return (1 - tripletFrac + tripletFrac * exp(-tau_tauf)) / (1 - tripletFrac)
+
+if __name__ == '__main__':
+    main()
