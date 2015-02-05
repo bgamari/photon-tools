@@ -3,19 +3,29 @@ from timetag_types cimport *
 from timetag_types import *
 
 def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t start_t=-1, uint64_t end_t=-1, bool include_zeros=True):
-        """ bin_photons(times, bin_width, start_t=-1, end_t=-1, include_zeros=True)
+        """
+        bin_photons(times, bin_width, start_t=-1, end_t=-1, include_zeros=True)
 
-        Bin the given array of photon times in bins of bin_width. The resulting
-        bins are returned in a record array containing the fields,
-          - start_t (u8)
-          - count (u2)
-        
+        Bin the given array of photon times in bins of length ``bin_width``.
+
         By default, the resulting array includes all bins, even those
         containing no photons. Setting include_zeros to False will result in
         only bins which contain at least one photon.
 
-        The start and end times of the returned bins can be set with the 
+        The start and end times of the returned bins can be set with the
         start_t and end_t parameters.
+
+        :type times: u8 array of shape ``(N,)``
+        :param times: Timestamps
+        :type bin_width: int
+        :param bin_width: The desired bin width.
+        :type start_t: int
+        :param start_t: Ignore timestamps before this time.
+        :type end_t: int
+        :param end_t: Ignore timestamps after this time.
+        :type include_zeros: bool
+        :param include_zeros: Include bins containing zero counts in the resulting array.
+        :rtype: A one-dimensional record array with fields ``start_t`` (u8) and ``count`` (u2).
         """
         cdef unsigned int chunk_sz = 10000
         cdef np.ndarray[Bin] chunk = np.empty(chunk_sz, dtype=bin_dtype)
@@ -80,4 +90,3 @@ def bin_all(times, bin_width):
         end_t = min(map(np.amax, times))
         print start_t, end_t
         return map(lambda ts: bin_photons(ts, bin_width, start_t, end_t), times)
-
