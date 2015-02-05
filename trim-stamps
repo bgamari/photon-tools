@@ -48,5 +48,6 @@ for (start,end) in ranges:
     mask = np.logical_or(ts < start, ts >= end)
     ts = ts[mask]
 
+if args.output is None:
+    args.output = os.path.splitext(args.file)[0] + '.ch%d.times' % (args.channel)
 ts.astype('u8').tofile(args.output)
-
