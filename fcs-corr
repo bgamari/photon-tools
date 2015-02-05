@@ -81,6 +81,8 @@ parser.add_argument('-t', '--start-time', default=None, type=float,
                     help='Start time of usable data (seconds)')
 parser.add_argument('-T', '--stop-time', default=None, type=float,
                     help='Stop time of usable data (seconds)')
+parser.add_argument('-e', '--exclude', action='append', metavar='T-T',
+                    help='Exclude a range of times (given in seconds)')
 parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
                     metavar='FILE',
                     help='Uncorrelated timestamps for afterpulsing correction')
@@ -88,6 +90,11 @@ parser.add_argument('--afterpulse-cutoff', default=None,
                     help="Don't apply afterpulsing correction beyond given lag")
 args = parser.parse_args()
 verbose = args.verbose
+
+def parse_exclude(s):
+    start, end = s.split('-')
+    return (float(start), float(end))
+exclude = [parse_exclude(e) for e in args.exclude] if args.exclude is not None else []
 
 correlations = [(args.a_channel, args.a_channel, 'acorr-%d' % args.a_channel),
                 (args.b_channel, args.b_channel, 'acorr-%d' % args.b_channel),
@@ -151,6 +158,10 @@ for file in args.files:
             b.jiffy = args.jiffy
 
         ad,bd = a.data, b.data
+        for (start,end) in exclude:
+            ad = ad[np.logical_or(ad < start / jiffy, ad > end / jiffy)]
+            bd = bd[np.logical_or(bd < start / jiffy, bd > end / jiffy)]
+
         t0 = min(ad[0], bd[0])
         if args.start_time is not None:
             ad = ad[ad - t0 >= args.start_time / jiffy]
