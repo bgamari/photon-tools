@@ -4,3 +4,4 @@
 .deps
 build
 *~
+photon_tools/*.c
