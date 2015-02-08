@@ -60,7 +60,7 @@ def main():
         
     res = fit.fit()
     print squmfit.pretty.markdown_fit_result(res)
-    squmfit.plot.plot_fit('lag', res, log_x=True)
+    squmfit.plot.plot_fit('lag', res, xscale='log')
     pl.axhline(0, c='k')
     pl.xlabel(r'$\tau$ (microseconds)')
     pl.ylabel(r'$G(\tau)$')
