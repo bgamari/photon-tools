@@ -59,7 +59,7 @@ def main():
         fit.add_curve(f.name, model, taken['G'], weights=1/sqrt(taken['var']), lag=taken['lag'])
         
     res = fit.fit()
-    print squmfit.pretty.show_fit_result(res)
+    print squmfit.pretty.markdown_fit_result(res)
     squmfit.plot.plot_fit('lag', res, log_x=True)
     pl.axhline(0, c='k')
     pl.xlabel(r'$\tau$ (microseconds)')
