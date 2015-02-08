@@ -41,6 +41,8 @@ def main():
                         help='Save plot to FILE (defaulting to input filename+.png')
     parser.add_argument('-c', '--components', metavar='N', type=int, default=1,
                         help='Number of diffusive components to fit to')
+    parser.add_argument('-O', '--offset', action='store_true',
+                        help='Fit an offset')
     parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                         help='Correlation functions to plot')
     args = parser.parse_args()
@@ -52,7 +54,7 @@ def main():
         datum = load_corr(f)
         taken = datum[datum['lag'] > args.early_cutoff]
 
-        model = 0
+        model = 0 if not args.offset else fit.param('offset-%d' % curve_idx, 0)
         for comp_idx, tauD in enumerate(lifetimes):
             n = fit.param('N-%d-%d' % (curve_idx, comp_idx), initial=1)
             model += three_dim_diffusion(lag=squmfit.Argument('lag'), tauD=tauD, aspect=aspect, n=n)
