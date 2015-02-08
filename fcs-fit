@@ -43,13 +43,15 @@ def main():
                         help='Number of diffusive components to fit to')
     parser.add_argument('-O', '--offset', action='store_true',
                         help='Fit an offset')
+    parser.add_argument('--fix-aspect', type=float,
+                        help='Fix aspect ratio')
     parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                         help='Correlation functions to plot')
     args = parser.parse_args()
 
     fit = squmfit.Fit()
     lifetimes = [fit.param('tauD-%d' % i, initial=100*(i+1)) for i in range(args.components)]
-    aspect = fit.param('aspect-ratio', initial=10)
+    aspect = args.fix_aspect if args.fix_aspect is not None else fit.param('aspect-ratio', initial=10)
     for curve_idx, f in enumerate(args.curves):
         datum = load_corr(f)
         taken = datum[datum['lag'] > args.early_cutoff]
