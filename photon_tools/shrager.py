@@ -79,10 +79,11 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
                 # Step 4
                 candidates = lambd < 0
                 if np.any(candidates):
-                    rho = h / (h - lambd)
-                    j = argmin_of(rho, candidates)
+                    rho = h[candidates] / (h[candidates] - lambd[candidates])
+                    jj = np.argmin(rho)
+                    j = np.argwhere(candidates)[jj]
                     b[j] = False
-                    h[:] = (1 - rho[j]) * h + rho[j] * lambd
+                    h[:] = (1 - rho[jj]) * h + rho[jj] * lambd
                 else:
                     break
             
@@ -94,23 +95,16 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     x = x0 + np.dot(Qinv, g - np.dot(C[b,:].T, lambd[b]))
     return (x, info)
 
-def argmin_of(arr, pred):
+def argmax_of(arr, pred):
     """
-    Return the index of the minimum element of ``arr`` limited to those elements where
+    Return the index of the maximum element of ``arr`` limited to those elements where
     the corresponding element of ``pred`` is ``True``.
 
     :type arr: array of shape ``(n,)``
     :type pred: boolean array of shape ``(n,)``
     """
-    sel = np.argwhere(pred)
-    idx = np.argmin(arr[pred])
-    return sel[idx]
-
-def argmax_of(arr, pred):
-    """ See :function:`argmin_of` """
-    sel = np.argwhere(pred)
     idx = np.argmax(arr[pred])
-    return sel[idx]
+    return np.argwhere(pred)[idx]
 
 def test():
     x = shrager(Q = np.array([[1,0], [0,1]]),
