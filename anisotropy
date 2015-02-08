@@ -102,8 +102,8 @@ def normalize_irfs(irfs):
 
 def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     """
-    :type irfs: list of :class:`Aniso`s
-    :param irfs: IRF histograms
+    :type irfs: :class:`Aniso` of arrays
+    :param irfs: Normalized IRF histograms
     :type corrs: list of :class:`Aniso`s
     :param corrs: Fluorescence histograms
     :type jiffy_ps: int
@@ -134,8 +134,9 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
     """
     Fit a set of anisotropy data with the given IRF and model
 
-    :type irfs: `Aniso` of filenames
-    :type corrs: `Aniso` of filenames
+    :type irfs: :class:`Aniso` of arrays
+    :param irfs: Normalized IRF histograms
+    :type corrs: :class:`Aniso` of filenames
     :type exc_period: `float`
     :param exc_period: the approximate excitation period in bins
     :type n_components: `int`
