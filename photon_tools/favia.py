@@ -28,7 +28,7 @@ def read_favia(fname):
 def acorr(x, **kwargs):
         """
         Compute an auto-correlation function of the datasets x. See
-        corr for a complete description of available options.
+        :function:`corr` for a complete description of available options.
         """
         return corr(x, x, **kwargs)
 
@@ -41,6 +41,21 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
         `short_grain` up to `long_lag` (given in seconds). The
         `fineness` parameter gives the number of lags computed per
         octave.
+
+        :type x: array of integer timestamps
+        :param x: Timeseries to convolve
+        :type y: array of integer timestamps
+        :param x: Timeseries to convolve
+        :type jiffy: ``float``, optional
+        :param jiffy: The timestamp resolution
+        :type short_grain: ``float``, optional
+        :param short_grain: The shortest lag to compute
+        :type long_lag: ``float``
+        :param long_lag: The longest lag to compute
+        :type fineness: ``int``, optional
+        :param fineness: The number of lags to compute per octave
+        :type verbose: ``bool``, optional
+        :param verbose: Enable verbose output from ``favia`` correlator
         """
         fo = NamedTemporaryFile(delete=not keep)
         fx = NamedTemporaryFile(delete=not keep)
