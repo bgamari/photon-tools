@@ -2,6 +2,7 @@
 
 from __future__ import division
 import numpy as np
+from numpy import sqrt, min, max, sum
 from numpy.linalg import inv
 
 def shrager(Q, g, C, x0, d, mu=1e-4):
@@ -51,7 +52,7 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     # Do we already have a solution?
     p = np.dot(C, x) - d
     if np.all(p <= 0):
-        return x
+        return (x, {})
     
     # Step 2
     R = np.dot(C, np.dot(Qinv, C.T))
@@ -62,14 +63,20 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     h = np.empty(l)
 
     while True:
+        p = np.dot(C, np.dot(Qinv, g)) - d
+        print 'z', np.dot(p, lambd) - np.dot(lambd.T, np.dot(R, lambd))
+
         # Step 5
         dz_dlambd = p - np.dot(R, lambd)
         candidates = np.logical_and(b == False, dz_dlambd > 0)
         if not np.any(candidates):
             break
         else:
+            print 'dz_dlambda', dz_dlambd
             j = argmax_of(dz_dlambd, candidates)
             b[j] = True
+            print np.abs(h-lambd).max()
+            print 'set', j,b
             h[:] = lambd
 
             while True:
@@ -80,12 +87,16 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
 
                 # Step 4
                 candidates = lambd < 0
+                print 'lambda', lambd
                 if np.any(candidates):
                     rho = h[candidates] / (h[candidates] - lambd[candidates])
+                    print 'rho', rho
                     jj = np.argmin(rho)
                     j = np.argwhere(candidates)[jj]
                     b[j] = False
+                    print 'clear', j, b
                     h[:] = (1 - rho[jj]) * h + rho[jj] * lambd
+                    assert np.all(h >= 0)
                 else:
                     break
             
@@ -108,7 +119,7 @@ def argmax_of(arr, pred):
     idx = np.argmax(arr[pred])
     return np.argwhere(pred)[idx]
 
-def test():
+def test_case():
     x = shrager(Q = np.array([[1,0], [0,1]]),
                 g = np.array([0,0]),
                 C = np.array([[2.52, 1.57], [1.98,0]]),
@@ -120,4 +131,4 @@ def test():
     print('computed', x)
 
 if __name__ == '__main__':
-    test()
+    test_case()
