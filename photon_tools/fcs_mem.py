@@ -51,7 +51,7 @@ def mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1e-4):
     while True:
         delta = np.diag(np.log(p / expected) / p)
         #q = np.dot(g0, p) - np.dot(p, np.dot(H + v * delta))
-        p,_ = shrager(Q=H + nu * delta, g=-g0, C=-np.eye(Nmodels), d=np.zeros(Nmodels), x0=p)
+        p,_ = shrager(Q=(H + nu * delta), g=g0, C=-np.eye(Nmodels), d=np.zeros(Nmodels), x0=p)
 
         converged= False
         if converged:
