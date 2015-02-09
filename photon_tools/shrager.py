@@ -96,7 +96,6 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
                     b[j] = False
                     print 'clear', j, b
                     h[:] = (1 - rho[jj]) * h + rho[jj] * lambd
-                    assert np.all(h >= 0)
                 else:
                     break
             
@@ -104,7 +103,7 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     Rs = R[b,:][:,b]
     lambd[b] = np.dot(inv(Rs), p[b] + mu * np.diag(Rs * lambd[b]))
     lambd[np.logical_not(b)] = 0
-    info = {'on_constraints': b}
+    info = {'on_constraints': b, 'lambda': lambd}
     x = x0 + np.dot(Qinv, g - np.dot(C[b,:].T, lambd[b]))
     return (x, info)
 
