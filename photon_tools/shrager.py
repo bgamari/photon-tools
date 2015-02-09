@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 import numpy as np
 from numpy.linalg import inv
@@ -44,7 +46,7 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
 
     # Step 1
     Qinv = inv(Q)
-    x = x0  + np.dot(Qinv, g)
+    x = x0 + np.dot(Qinv, g)
     
     # Do we already have a solution?
     p = np.dot(C, x) - d
@@ -62,7 +64,7 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     while True:
         # Step 5
         dz_dlambd = p - np.dot(R, lambd)
-        candidates = np.logical_and(b == 0, dz_dlambd > 0)
+        candidates = np.logical_and(b == False, dz_dlambd > 0)
         if not np.any(candidates):
             break
         else:
