@@ -45,6 +45,8 @@ def main():
                         help='Fit an offset')
     parser.add_argument('--fix-aspect', type=float,
                         help='Fix aspect ratio')
+    parser.add_argument('-T', '--triplet', action='store_true',
+                        help='Fit a triplet process')
     parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                         help='Correlation functions to plot')
     args = parser.parse_args()
@@ -52,6 +54,9 @@ def main():
     fit = squmfit.Fit()
     lifetimes = [fit.param('tauD-%d' % i, initial=100*(i+1)) for i in range(args.components)]
     aspect = args.fix_aspect if args.fix_aspect is not None else fit.param('aspect-ratio', initial=10)
+    lag = squmfit.Argument('lag')
+    if args.triplet:
+        tauF = fit.param('tauF', initial=0.5)
     for curve_idx, f in enumerate(args.curves):
         datum = load_corr(f)
         taken = datum[datum['lag'] > args.early_cutoff]
@@ -59,7 +64,10 @@ def main():
         model = 0 if not args.offset else fit.param('offset-%d' % curve_idx, 0)
         for comp_idx, tauD in enumerate(lifetimes):
             n = fit.param('N-%d-%d' % (curve_idx, comp_idx), initial=1)
-            model += three_dim_diffusion(lag=squmfit.Argument('lag'), tauD=tauD, aspect=aspect, n=n)
+            model += three_dim_diffusion(lag=lag, tauD=tauD, aspect=aspect, n=n)
+        if args.triplet:
+            model *= triplet_correction(lag=lag, tauF=tauF,
+                                        tripletFrac=fit.param('F-%d' % curve_idx, initial=0))
         fit.add_curve(f.name, model, taken['G'], weights=1/sqrt(taken['var']), lag=taken['lag'])
         
     res = fit.fit()
