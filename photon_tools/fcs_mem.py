@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 from .shrager import shrager
 
-def mem(y, models, sigma, p0=None, expected=None, delta_thresh=1e-4):
+def mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1e-4):
     """
     Compute the maximum entropy mixture of models fitting observations.
 
@@ -18,6 +18,8 @@ def mem(y, models, sigma, p0=None, expected=None, delta_thresh=1e-4):
     :param p0: Initial guess at mixture weights
     :type expected: array of shape ``(Nmodels,)``, optional
     :param expected: Expected weights :math:`M`
+    :type nu: ``float``
+    :param nu: Regularization parameter
     :type delta_thresh: ``float``, optional
     :param delta_thresh: Maximum allowable anti-parallelism between
         gradients of :math:`\chi^2` and :math:`S` for convergence.
@@ -47,11 +49,9 @@ def mem(y, models, sigma, p0=None, expected=None, delta_thresh=1e-4):
             H[m,n] = 2 / Npts * np.sum(models[m,:] * models[n,:] / sigma**2)
             
     while True:
-        gamma = 1e-4
-        v = gamma / 2
         delta = np.diag(np.log(p / expected) / p)
         #q = np.dot(g0, p) - np.dot(p, np.dot(H + v * delta))
-        p = shrager(Q=H + v * delta, g=g0, C=-np.eye(Nmodels), d=np.zeros(Nmodels), x0=p)
+        p,_ = shrager(Q=H + nu * delta, g=-g0, C=-np.eye(Nmodels), d=np.zeros(Nmodels), x0=p)
 
         converged= False
         if converged:
