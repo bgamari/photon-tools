@@ -20,7 +20,8 @@ def mem(y, models, sigma, p0=None, expected=None, delta_thresh=1e-4):
     :param expected: Expected weights :math:`M`
     :type delta_thresh: ``float``, optional
     :param delta_thresh: Maximum allowable anti-parallelism between
-    gradients of :math:`\chi^2` and :math:`S` for convergence.
+        gradients of :math:`\chi^2` and :math:`S` for convergence.
+
     """
     (Nmodels, Npts) = models.shape
     assert y.shape == (Npts,)

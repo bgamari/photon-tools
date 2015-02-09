@@ -27,6 +27,11 @@ Computing correlation functions
 .. automodule:: photon_tools.favia
    :members:
 
+Analysis
+--------
+
+.. autofunction:: photon_tools.fcs_mem.mem
+
 Binning photon timestamps
 -------------------------
 
