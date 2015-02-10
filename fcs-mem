@@ -2,7 +2,7 @@
 
 from __future__ import division
 import numpy as np
-from photon_tools import fcs_mem
+from photon_tools.fcs_mem import fcs_mem
 from photon_tools.fcs_models import *
 import matplotlib.pyplot as pl
 from matplotlib import gridspec
@@ -28,7 +28,7 @@ def load_corr(file):
 def random_run(args):
     (corr, models, nu) = args
     weights = np.random.uniform(0.1, 0.9, models.shape[0])
-    res = fcs_mem.simple_mem(corr['G'], models, p0=weights, sigma=np.sqrt(corr['var']), nu=nu)
+    res = fcs_mem(corr['G'], models, p0=weights, sigma=np.sqrt(corr['var']), nu=nu)
     return (nu, res)
 
 def main():
