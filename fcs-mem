@@ -61,7 +61,7 @@ def main():
 
     import multiprocessing
     pool = multiprocessing.Pool()
-    nus = [args.nu] * args.n_runs
+    nus = [args.nu] * args.runs
     runs = map(random_run, [(corr, models, nu) for nu in nus])
 
     for (nu, res) in runs:
