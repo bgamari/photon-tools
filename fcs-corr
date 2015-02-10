@@ -120,7 +120,8 @@ def afterpulsing_correction(ch):
       "Afterpulsing and its correction in fluorescence correlation spectroscopy
       experiments." _Applied Optics_ (2003)
     """
-    f = read_photons.open(args.afterpulse.name, ch)
+    f = read_photons.open(args.afterpulse.name)
+    d = f.channel(ch)
     jiffy = get_jiffy(f)
     kwargs = {
         'jiffy': jiffy,
@@ -130,8 +131,8 @@ def afterpulsing_correction(ch):
     }
 
     # TODO: Verify compatible jiffy
-    uncorr_G = acorr(f.data, **kwargs)
-    mean_I = 1. * len(f.data) / (f.data[-1] - f.data[0])
+    uncorr_G = acorr(d, **kwargs)
+    mean_I = 1. * len(d) / (d[-1] - d[0])
     afterpulse_corr = (uncorr_G['G'] - 1) * mean_I / jiffy
     afterpulse_var = uncorr_G['var'] * (mean_I / jiffy)**2
     cutoff = args.afterpulse_cutoff
@@ -147,20 +148,23 @@ for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
         output_base = os.path.join(args.output, fname+'.'+label)
-        a = read_photons.open(file.name, ac)
-        b = read_photons.open(file.name, bc)
-        if len(a.data) == 0 or len(b.data) == 0:
-            print "No data in one channel, skipping"
-            continue
+        a = read_photons.open(file.name)
+        b = read_photons.open(file.name)
+
         jiffy = get_jiffy(a)
         if args.jiffy is not None:
             a.jiffy = args.jiffy
             b.jiffy = args.jiffy
 
-        ad,bd = a.data, b.data
+        ad,bd = a.channel(ac), b.channel(bc)
+        na, nb = len(ad), len(bd)
         for (start,end) in exclude:
             ad = ad[np.logical_or(ad < start / jiffy, ad > end / jiffy)]
             bd = bd[np.logical_or(bd < start / jiffy, bd > end / jiffy)]
+
+        if len(ad) == 0 or len(bd) == 0:
+            print "No data in one channel, skipping"
+            continue
 
         t0 = min(ad[0], bd[0])
         if args.start_time is not None:
@@ -173,14 +177,14 @@ for file in args.files:
         print label
 
         print '  %20s, channel %d:' % (fname, ac)
-        print '    %d events, %d after filtering' % (len(a.data), len(ad))
-        dur = ad[-1] - ad[0]
-        print '    duration = %d = %1.2f seconds' % (dur, (dur * a.jiffy))
+        print '    %d events, %d after filtering' % (na, len(ad))
+        durA = ad[-1] - ad[0]
+        print '    duration = %d = %1.2f seconds' % (durA, (durA * a.jiffy))
 
         print '  %20s, channel %d:' % (fname, bc)
-        print '    %d events, %d after filtering' % (len(b.data), len(bd))
-        dur = bd[-1] - bd[0]
-        print '    duration = %d = %1.2f seconds' % (dur, (dur * b.jiffy))
+        print '    %d events, %d after filtering' % (nb, len(bd))
+        durB = bd[-1] - bd[0]
+        print '    duration = %d = %1.2f seconds' % (durB, (durB * b.jiffy))
 
         kwargs = {
             'jiffy': jiffy,
@@ -207,7 +211,7 @@ for file in args.files:
             if ac != bc:
                 print "Can only perform afterpulsing correction on autocorrelations"
             else:
-                mu = 1.0 * len(a.data) / (a.data[-1] - a.data[0])
+                mu = 1.0 * na / durA
                 afterpulse_corr, afterpulse_var = afterpulsing_correction(ac)
                 c['G'] -= jiffy / mu * afterpulse_corr
                 c['var'] += (jiffy / mu)**2 * afterpulse_var

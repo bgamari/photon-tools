@@ -42,7 +42,7 @@ def parse_range(s):
 
 ranges = [ parse_range(a) for a in args.drop.split(',') ]
 
-ts = read_photons.open(args.file, args.channel).data
+ts = read_photons.open(args.file).channel(args.channel)
 
 for (start,end) in ranges:
     mask = np.logical_or(ts < start, ts >= end)

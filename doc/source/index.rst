@@ -12,7 +12,7 @@ Reading photon data
 
 .. autofunction:: photon_tools.io.read_photons.open
 
-.. autoclass:: photon_tools.io.read_photons.TimestampReader
+.. autoclass:: photon_tools.io.read_photons.TimestampFile
    :members:
 
 Filtering photon data

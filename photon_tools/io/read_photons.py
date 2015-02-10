@@ -34,57 +34,123 @@ class InvalidChannel(ValueError):
         return "Channel %s was requested but this file type only supports channels %s." \
             % (self.requested_channel, self.valid_channels)
 
-class TimestampReader(object):
-    """ An abstract reader of timestamp data """
-    extensions = []
-    def __init__(self):
-        self.jiffy = None
-        self.metadata = {}
+class TimestampFile(object):
+    """
+    Represents a timestamp file.
 
-class PicoquantFile(TimestampReader):
-    """ Read Picoquant PT2 and PT3 timestamp files """
-    extensions = ['pt2', 'pt3']
+    A timestamp file is a file containing a sequential set of integer
+    photon arrival timestamps taken in one or more channels. The 
+    """
+    def __init__(self, filename, jiffy, valid_channels=None):
+        if valid_channels is None:
+            valid_channels = self.__class__.valid_channels
+        self._valid_channels = valid_channels
+        self._fname = filename
+        self._jiffy = jiffy
+
+    @classmethod
+    def extensions(self):
+        """
+        A list of supported file extensions
+        """
+        return []
+
+    @property
+    def jiffy(self):
+        """
+        The timestamp resolution in seconds or ``None`` is unknown.
+
+        :returns: float
+        """
+        return self._jiffy
+
+    @property
+    def valid_channels(self):
+        """
+        The names of the channels of the file.
+        Note that not all of these will have timestamps.
+
+        :returns: list
+        """
+        return self._valid_channels
+
+    @property
+    def metadata(self):
+        """
+        Metadata describing the data set.
+
+        :returns: dictionary mapping string metadata names to values
+        """
+        return self._metadata
+
+    @property
+    def name(self):
+        """ File name of timestamp file """
+        return self._fname
+
+    def channel(self, channel):
+        """
+        Read photon data for a channel of the file
+
+        :type channel: A valid channel name from :function:`valid_channels`.
+        """
+        return NotImplemented
+
+    def _validate_channel(self, channel):
+        """ A utility for implementations """
+        if channel not in self.valid_channels:
+            raise InvalidChannel(channel, self.valid_channels)
+
+class PicoquantFile(TimestampFile):
+    """ A Picoquant PT2 and PT3 timestamp file """
     valid_channels = [0,1,2,3]
-    def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        self.jiffy = 4e-12 # FIXME
-        self.data = pt2_parse.read_pt2(fname, channel)
+    extensions = ['pt2', 'pt3']
+    def __init__(self, fname):
+        # TODO: Read metadata
+        TimestampFile(self, fname, jiffy=4e-12)
 
-class TimetagFile(TimestampReader):
-    """ Read Goldner FPGA timetagger files """
+    def channel(self, channel):
+        self._validate_channel(channel)
+        return pt2_parse.read_pt2(self._fname)
+
+class TimetagFile(TimestampFile):
+    """ A timestamp file from the Goldner lab FPGA timetagger """
     extensions = ['timetag']
     valid_channels = [0,1,2,3]
-    def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        if channel not in TimetagFile.channels:
-            raise InvalidChannel(channel, channels)
+    def __init__(self, fname):
+        TimestampFile(self, fname, jiffy = None)
         self.metadata = metadata.get_metadata(fname)
         if self.metadata is not None:
             self.jiffy = 1. / self.metadata['clockrate']
         if not os.path.isfile(fname):
             raise IOError("File %s does not exist" % fname)
-        self.data = timetag_parse.get_strobe_events(fname, 1<<channel)['t']
 
-class RawFile(TimestampReader):
-    """ Read raw unsigned 64-bit timestamps """
+    def channel(self, channel):
+        self._validate_channel(channel)
+        return timetag_parse.get_strobe_events(self._fname, 1<<channel)['t']
+
+class RawFile(TimestampFile):
+    """ Raw unsigned 64-bit timestamps """
     extensions = ['times']
     valid_channels = [0]
-    def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        if channel != 0:
-            raise InvalidChannel(channel, [0])
-        self.data = np.fromfile(fname, dtype='u8')
+    def __init__(self, fname):
+        TimestampFile.__init__(self, fname, jiffy = None)
 
-class RawChFile(TimestampReader):
-    """ Read raw unsigned 64-bit timestamps, followed by 8-bit channel number """
+    def channel(self, channel):
+        self._validate_channel(channel)
+        return np.fromfile(fname, dtype='u8')
+
+class RawChFile(TimestampFile):
+    """ Raw unsigned 64-bit timestamps, followed by 8-bit channel number """
     extensions = 'timech'
     valid_channels = range(256)
     def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        if channel > 255:
-            raise InvalidChannel(channel, range(256))
+        TimestampFile.__init__(self, fname, jiffy = None)
+
+    def channel(self, channel):
+        self._validate_channel(channel)
         d = np.fromfile(fname, dtype='u8,u1', names='time,chan')
-        self.data = d[d['chan'] == channel]['time']
+        return d[d['chan'] == channel]['time']
 
 readers = [
     PicoquantFile,
@@ -95,8 +161,8 @@ readers = [
 
 def supported_extensions():
     """
-    Construct a map from supported file extensions to their
-    associated reader.
+    A dictionary mapping supported file extensions to their associated
+    :class:`TimestampFile` class.
     """
     extensions = {}
     for reader in readers:
