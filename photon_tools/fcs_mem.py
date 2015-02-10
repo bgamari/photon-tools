@@ -42,9 +42,10 @@ def fcs_mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1e-4
     assert p0.shape == (Nmodels,)
     p = p0.copy()
 
-    # Compute hessian and gradient at zero. Since we are working with
-    # an additive mixture of components this expansion holds for all
-    # points in the weight space.
+    # Compute hessian and gradient of \chi^2 at zero. Since we are working with
+    # an additive mixture of components \chi^2 will contain at most second-order
+    # terms in the weights. This implies that this expansion holds for
+    # all points in the weight space.
     H = np.empty((Nmodels, Nmodels), dtype='f8')
     g0 = np.empty(Nmodels, dtype='f8')
     for n in range(Nmodels):
