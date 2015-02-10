@@ -89,7 +89,7 @@ def main():
     weights.set_xscale('log')
     weights.set_ylabel('weights')
     weights.set_xlabel(r'$\tau$ (seconds)')
-    weights.xlim(args.start_time, args.end_time)
+    weights.set_xlim(args.start_time, args.end_time)
     weights.locator_params('y', nbins=3)
     plots.set_title(os.path.basename(args.file.name))
     bbox = legend.get_position(pl.gcf())
