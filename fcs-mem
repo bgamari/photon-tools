@@ -36,6 +36,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=argparse.FileType('r'), help='Correlation function')
     parser.add_argument('-a', '--aspect', type=float, default=10, help='Aspect ratio of observation volume')
+    parser.add_argument('-e', '--early-time', type=float, default=None,
+                        metavar='LAG',
+                        help='Discard correlation function below given lag')
     parser.add_argument('-t', '--start-time', type=float, default=1e-6, help='Shortest diffusion time to fit')
     parser.add_argument('-T', '--end-time', type=float, default=1, help='Longest diffusion time to fit')
     parser.add_argument('-m', '--models', type=int, default=500, help='Number of models')
@@ -45,7 +48,8 @@ def main():
     Nmodels = args.models
 
     corr = load_corr(args.file)
-    corr = corr[corr['lag'] >= 1e-6]
+    if args.early_time is not None:
+        corr = corr[corr['lag'] >= args.early_time]
 
     tauDs = np.logspace(np.log10(args.start_time), np.log10(args.end_time), Nmodels)
     models = np.vstack([three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=tauD)
