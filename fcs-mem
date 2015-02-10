@@ -69,9 +69,10 @@ def main():
         chiSqr = np.sum(resid) / (corr.shape[0] - Nmodels)
         entropy = np.sum(-res * np.log(res))
         print nu, chiSqr, entropy
-        l = plots.plot(corr['lag'], np.dot(models.T, res), label=r'$\nu=%1.2g (\chi^s=%1.4f, S=%1.2f)$' % (nu, chiSqr, entropy))
+        l = plots.plot(corr['lag'], np.dot(models.T, res),
+                       label=r'$\nu=%1.2g (\chi^s=%1.4f, S=%1.2f)$' % (nu, chiSqr, entropy))
         color = l[0].get_color()
-        residuals.plot(tauDs, resid, '+', c=color)
+        residuals.plot(corr['lag'], resid, '+', c=color)
         weights.plot(tauDs, res, '-', c=color)
 
     plots.set_xscale('log')
