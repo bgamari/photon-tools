@@ -5,6 +5,8 @@ import numpy as np
 from photon_tools import fcs_mem
 from photon_tools.fcs_models import *
 import matplotlib.pyplot as pl
+from matplotlib import gridspec
+import os.path
 
 def load_corr(file):
     dt = [('lag','f'), ('G','f'), ('var','f')]
@@ -23,6 +25,12 @@ def load_corr(file):
     d['G'] -= 1.0   # Subtract out offset
     return d
 
+def random_run(args):
+    (corr, models, nu) = args
+    weights = np.random.uniform(0.1, 0.9, models.shape[0])
+    res = fcs_mem.simple_mem(corr['G'], models, p0=weights, sigma=np.sqrt(corr['var']), nu=nu)
+    return (nu, res)
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -35,29 +43,45 @@ def main():
 
     Nmodels = 700
     tauDs = np.logspace(-6, 0, Nmodels)
-    sigma = 1e-3
-    weights = np.ones(Nmodels) # / Nmodels
     models = np.vstack([three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=tauD)
                         for tauD in tauDs])
+    sigma = 1e-3
+    weights = np.ones(Nmodels) # / Nmodels
 
-    pl.subplot(211)
-    pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), c='k', label='observed')
+    gs = gridspec.GridSpec(2,2, width_ratios=[3,1], height_ratios=[3,1])
+    plots = pl.subplot(gs[0,0])
+    residuals = pl.subplot(gs[1,0])
+    legend = gs[:,1]
 
-    for nu in [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-8, 1e-10]:
-        print nu
-        res = fcs_mem.simple_mem(corr['G'], models, p0=weights, sigma=np.sqrt(corr['var']), nu=nu)
-        pl.subplot(211)
-        l = pl.plot(corr['lag'], np.dot(models.T, res), label=r'$\nu=%1.2g$' % nu)
-        pl.subplot(212)
-        pl.plot(tauDs, res, '-', c=l[0].get_color())
+    plots.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), c='k', label='observed')
 
-    pl.subplot(212)
-    pl.xscale('log')
-    pl.subplot(211)
-    pl.legend()
-    pl.xscale('log')
-    pl.axhline(0, c='k')
-    pl.show()
-    
+    nus = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-8, 1e-10]
+    nus = [1e-4] * 10
+
+    import multiprocessing
+    pool = multiprocessing.Pool()
+    runs = map(random_run, [(corr, models, nu) for nu in nus])
+
+    for (nu, res) in runs:
+        chiSqr = np.sum((corr['G']  - np.dot(models.T, res))**2 / corr['var']) / corr.shape[0]
+        entropy = np.sum(-res * np.log(res))
+        print nu, chiSqr, entropy
+        l = plots.plot(corr['lag'], np.dot(models.T, res), label=r'$\nu=%1.2g (\chi^s=%1.4f, S=%1.2f)$' % (nu, chiSqr, entropy))
+        residuals.plot(tauDs, res, '-', c=l[0].get_color())
+
+    plots.set_xscale('log')
+    plots.set_ylabel(r'$G(\tau)$')
+    plots.axhline(0, c='k')
+    residuals.set_xscale('log')
+    residuals.set_xlabel(r'$\tau$ (seconds)')
+    plots.set_title(os.path.basename(args.file.name))
+    bbox = legend.get_position(pl.gcf())
+    plots.legend(loc='upper left',
+                 bbox_to_anchor=bbox,
+                 bbox_transform=pl.gcf().transFigure,
+                 mode='expand', fontsize='x-small', ncol=1,
+                 frameon=False)
+    pl.savefig('%s.png' % args.file.name)
+
 if __name__ == '__main__':
     main()
