@@ -65,12 +65,12 @@ def main():
     runs = map(random_run, [(corr, models, nu) for nu in nus])
 
     for (nu, res) in runs:
-        resid = corr['G']  - np.dot(models.T, res) / np.sqrt(corr['var'])
+        resid = (corr['G']  - np.dot(models.T, res)) / np.sqrt(corr['var'])
         chiSqr = np.sum(resid**2)
-        entropy = np.sum(-res * np.log(res))
-        print nu, chiSqr, entropy
+        entropy = -np.sum(res * np.log(res))
+        print os.path.basename(args.file.name), nu, chiSqr, entropy, chiSqr
         l = plots.plot(corr['lag'], np.dot(models.T, res),
-                       label=r'$\nu=%1.2g$ ($\chi^2 = %1.4g$, $S = %1.2f$)' % (nu, chiSqr, -entropy))
+                       label=r'$\nu=%1.2g$ ($\chi^2 = %1.4g$, $S = %1.2f$)' % (nu, chiSqr, entropy))
         color = l[0].get_color()
         residuals.plot(corr['lag'], resid, '+', c=color)
         weights.plot(tauDs, res, '-', c=color)
@@ -85,6 +85,7 @@ def main():
     weights.set_xscale('log')
     weights.set_ylabel('weights')
     weights.set_xlabel(r'$\tau$ (seconds)')
+    weights.xlim(args.start_time, args.end_time)
     weights.locator_params('y', nbins=3)
     plots.set_title(os.path.basename(args.file.name))
     bbox = legend.get_position(pl.gcf())
