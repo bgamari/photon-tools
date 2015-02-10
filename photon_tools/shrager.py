@@ -5,6 +5,14 @@ import numpy as np
 from numpy import sqrt, min, max, sum
 from numpy.linalg import inv
 
+"""
+Deprecated.
+
+This was originally written for the MEM FCS analysis but was found to
+be quite unstable. Now we're just using a naive truncated Newton
+method instead.
+"""
+
 def shrager(Q, g, C, x0, d, mu=1e-4):
     """
     Use Shrager's algorithm to minimize an objective of the form,
