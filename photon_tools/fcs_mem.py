@@ -184,14 +184,22 @@ def simple_mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1
         for m in range(Nmodels):
             H[m,n] = 2 / Npts * np.sum(models[m,:] * models[n,:] / sigma**2)
 
-    def objective(p):
+    def objective_entropy(p):
         delta = np.diag(nu * np.log(p / expected) / p)
         q = np.dot(g0, p) - np.dot(p, np.dot(H + delta, p)) / 2
         grad = g0 - np.dot(H + delta, p)
         return (-q, -grad)
 
-    res = scipy.optimize.minimize(objective, p,
-                                  method='TNC',
+    def objective_l2(p):
+        delta = np.diag(nu)
+        q = np.dot(g0, p) - np.dot(p, np.dot(H + delta, p)) / 2
+        grad = g0 - np.dot(H + delta, p)
+        return (-q, -grad)
+
+
+    res = scipy.optimize.minimize(objective_entropy, p,
+                                  method='L-BFGS-B',
                                   bounds=[(1e-14, None) for p in range(Nmodels)],
-                                  jac = True)
+                                  jac = True,
+                                  tol = 1e-10)
     return res.x
