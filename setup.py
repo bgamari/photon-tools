@@ -13,7 +13,7 @@ setup(name = 'photon-tools',
       version = '1.0',
       packages = ['photon_tools', 'photon_tools.io'],
       scripts = ['bin_photons', 'fcs-fit', 'fcs-corr', 'plot-fret', 'plot-bins', 'lifetime-deconvolve',
-                 'trim-stamps', 'anisotropy'],
+                 'trim-stamps', 'anisotropy', 'fcs-mem'],
       license = 'GPLv3',
       ext_modules = cythonize([
           'photon_tools/bin_photons.pyx',
