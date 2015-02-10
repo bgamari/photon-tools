@@ -70,7 +70,7 @@ def main():
         entropy = np.sum(-res * np.log(res))
         print nu, chiSqr, entropy
         l = plots.plot(corr['lag'], np.dot(models.T, res),
-                       label=r'$\nu=%1.2g (\chi^s=%1.4f, S=%1.2f)$' % (nu, chiSqr, entropy))
+                       label=r'$\nu=%1.2g$ ($\chi^s=%1.4f$, $S=%1.2f$)' % (nu, chiSqr, entropy))
         color = l[0].get_color()
         residuals.plot(corr['lag'], resid, '+', c=color)
         weights.plot(tauDs, res, '-', c=color)
@@ -79,9 +79,13 @@ def main():
     plots.set_ylabel(r'$G(\tau)$')
     plots.axhline(0, c='k')
     residuals.set_xscale('log')
+    residuals.set_ylabel('residuals')
     residuals.axhline(0, c='k')
+    residuals.locator_params('y', nbins=3)
     weights.set_xscale('log')
+    weights.set_ylabel('weights')
     weights.set_xlabel(r'$\tau$ (seconds)')
+    weights.locator_params('y', nbins=3)
     plots.set_title(os.path.basename(args.file.name))
     bbox = legend.get_position(pl.gcf())
     plots.legend(loc='upper left',
