@@ -7,7 +7,8 @@ def fcs_mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1e-4
     """
     Compute the maximum entropy mixture of models fitting observations.
 
-    Follows Vinogradov and Wilson. *Applied Spectroscopy.* Volume 54, Number 6 (2000)
+    Very roughly follows Vinogradov and Wilson. *Applied
+    Spectroscopy.* Volume 54, Number 6 (2000)
 
     :type y: array of shape ``(Npts,)``
     :param y: Observations
@@ -41,7 +42,9 @@ def fcs_mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1e-4
     assert p0.shape == (Nmodels,)
     p = p0.copy()
 
-    # Compute hessian and gradient around 0
+    # Compute hessian and gradient at zero. Since we are working with
+    # an additive mixture of components this expansion holds for all
+    # points in the weight space.
     H = np.empty((Nmodels, Nmodels), dtype='f8')
     g0 = np.empty(Nmodels, dtype='f8')
     for n in range(Nmodels):
@@ -60,7 +63,6 @@ def fcs_mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1e-4
         q = np.dot(g0, p) - np.dot(p, np.dot(H + delta, p)) / 2
         grad = g0 - np.dot(H + delta, p)
         return (-q, -grad)
-
 
     res = scipy.optimize.minimize(objective_entropy, p,
                                   method='L-BFGS-B',
