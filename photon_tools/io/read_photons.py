@@ -3,29 +3,29 @@ import warnings
 import numpy as np
 from photon_tools import timetag_parse, pt2_parse, metadata
 
-def verify_monotonic(times):
+def verify_monotonic(times, filename):
     """ Verify that timestamps are monotonically increasing """
     if len(times) == 0: return
     negatives = times[1:] <= times[:-1]
     if np.count_nonzero(negatives) > 0:
         indices = np.nonzero(negatives)
-        warnings.warn('Found %d non-monotonic timestamps: photon indices %s' %
-                      (np.count_nonzero(negatives), indices))
+        warnings.warn('%s: Found %d non-monotonic timestamps: photon indices %s' %
+                      (filename, np.count_nonzero(negatives), indices))
 
-def verify_continuity(times, gap_factor=1000):
+def verify_continuity(times, filename, gap_factor=1000):
     """ Search for improbably long gaps in the photon stream """
     if len(times) == 0: return
     tau = (times[-1] - times[0]) / len(times)
     gaps = (times[1:] - times[:-1]) > gap_factor*tau
     if np.count_nonzero(gaps) > 0:
-        msg = 'Found %d large gaps:\n' % np.count_nonzero(gaps)
+        msg = '%s: Found %d large gaps:\n' % (filename, np.count_nonzero(gaps))
         gap_starts, = np.nonzero(gaps)
         for s in gap_starts:
             msg += '    starting at %10d, ending at %10d, lasting %10d' % \
                    (times[s], times[s+1], times[s+1] - times[s])
         warnings.warn(msg)
 
-class InvalidChannel(RuntimeError):
+class InvalidChannel(ValueError):
     def __init__(self, requested_channel, valid_channels=[]):
         self.requested_channel = requested_channel
         self.valid_channels = valid_channels
@@ -121,6 +121,6 @@ def open(fname, channel, reader=None):
         raise RuntimeError("Unknown file type")
 
     f = reader(fname, channel)
-    verify_monotonic(f.data)
-    verify_continuity(f.data)
+    verify_monotonic(f.data, fname)
+    verify_continuity(f.data, fname)
     return f
