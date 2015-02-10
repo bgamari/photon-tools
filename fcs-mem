@@ -35,18 +35,21 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=argparse.FileType('r'), help='Correlation function')
-    parser.add_argument('-a', '--aspect', type=float, default=10, help='Aspect ratio')
+    parser.add_argument('-a', '--aspect', type=float, default=10, help='Aspect ratio of observation volume')
+    parser.add_argument('-t', '--start-time', type=float, default=1e-6, help='Shortest diffusion time to fit')
+    parser.add_argument('-T', '--end-time', type=float, default=1, help='Longest diffusion time to fit')
+    parser.add_argument('-m', '--models', type=int, default=500, help='Number of models')
     parser.add_argument('-N', '--nu', type=float, default=1e-3, help='Regularization parameter')
+    parser.add_argument('-n', '--runs', type=int, default=10, help='How many randomly initialized fits to run')
     args = parser.parse_args()
+    Nmodels = args.models
 
     corr = load_corr(args.file)
     corr = corr[corr['lag'] >= 1e-6]
 
-    Nmodels = 700
-    tauDs = np.logspace(-6, 0, Nmodels)
+    tauDs = np.logspace(np.log10(args.start_time), np.log10(args.end_time), Nmodels)
     models = np.vstack([three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=tauD)
                         for tauD in tauDs])
-    weights = np.ones(Nmodels) # / Nmodels
 
     gs = gridspec.GridSpec(3,2, width_ratios=[3,1], height_ratios=[3,1,1])
     plots = pl.subplot(gs[0,0])
@@ -56,20 +59,19 @@ def main():
 
     plots.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), c='k', label='observed')
 
-    nus = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-8, 1e-10]
-    nus = [args.nu] * 10
-
     import multiprocessing
     pool = multiprocessing.Pool()
+    nus = [args.nu] * args.n_runs
     runs = map(random_run, [(corr, models, nu) for nu in nus])
 
     for (nu, res) in runs:
-        chiSqr = np.sum((corr['G']  - np.dot(models.T, res))**2 / corr['var']) / corr.shape[0]
+        resid = (corr['G']  - np.dot(models.T, res))**2 / corr['var']
+        chiSqr = np.sum(resid) / (corr.shape[0] - Nmodels)
         entropy = np.sum(-res * np.log(res))
         print nu, chiSqr, entropy
         l = plots.plot(corr['lag'], np.dot(models.T, res), label=r'$\nu=%1.2g (\chi^s=%1.4f, S=%1.2f)$' % (nu, chiSqr, entropy))
         color = l[0].get_color()
-        residuals.plot(tauDs, res, '+', c=color)
+        residuals.plot(tauDs, resid, '+', c=color)
         weights.plot(tauDs, res, '-', c=color)
 
     plots.set_xscale('log')
