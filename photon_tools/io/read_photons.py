@@ -39,6 +39,7 @@ class TimestampReader(object):
     extensions = []
     def __init__(self):
         self.jiffy = None
+        self.metadata = {}
 
 class PicoquantFile(TimestampReader):
     """ Read Picoquant PT2 and PT3 timestamp files """
