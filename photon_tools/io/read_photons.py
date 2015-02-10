@@ -44,6 +44,7 @@ class TimestampReader(object):
 class PicoquantFile(TimestampReader):
     """ Read Picoquant PT2 and PT3 timestamp files """
     extensions = ['pt2', 'pt3']
+    valid_channels = [0,1,2,3]
     def __init__(self, fname, channel):
         TimestampReader.__init__(self)
         self.jiffy = 4e-12 # FIXME
@@ -52,10 +53,10 @@ class PicoquantFile(TimestampReader):
 class TimetagFile(TimestampReader):
     """ Read Goldner FPGA timetagger files """
     extensions = ['timetag']
+    valid_channels = [0,1,2,3]
     def __init__(self, fname, channel):
         TimestampReader.__init__(self)
-        channels = range(4)
-        if channel not in channels:
+        if channel not in TimetagFile.channels:
             raise InvalidChannel(channel, channels)
         self.metadata = metadata.get_metadata(fname)
         if self.metadata is not None:
@@ -67,6 +68,7 @@ class TimetagFile(TimestampReader):
 class RawFile(TimestampReader):
     """ Read raw unsigned 64-bit timestamps """
     extensions = ['times']
+    valid_channels = [0]
     def __init__(self, fname, channel):
         TimestampReader.__init__(self)
         if channel != 0:
@@ -76,6 +78,7 @@ class RawFile(TimestampReader):
 class RawChFile(TimestampReader):
     """ Read raw unsigned 64-bit timestamps, followed by 8-bit channel number """
     extensions = 'timech'
+    valid_channels = range(256)
     def __init__(self, fname, channel):
         TimestampReader.__init__(self)
         if channel > 255:
