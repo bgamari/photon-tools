@@ -58,19 +58,16 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     R = np.dot(C, np.dot(Qinv, C.T))
     R += mu * np.diag(R)
     b = np.zeros(l, dtype=bool)
-    lambd = np.zeros(l, dtype=float)
+    lambd = np.zeros(l, dtype='f8')
 
     h = np.empty(l)
 
     while True:
-        p = np.dot(C, np.dot(Qinv, g)) - d
-        print 'z', np.dot(p, lambd) - np.dot(lambd.T, np.dot(R, lambd))
-
         # Step 5
         dz_dlambd = p - np.dot(R, lambd)
         candidates = np.logical_and(b == False, dz_dlambd > 0)
         if not np.any(candidates):
-            break
+            break # on to Step 6
         else:
             print 'dz_dlambda', dz_dlambd
             j = argmax_of(dz_dlambd, candidates)
@@ -97,7 +94,7 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
                     print 'clear', j, b
                     h[:] = (1 - rho[jj]) * h + rho[jj] * lambd
                 else:
-                    break
+                    break # on to Step 5
             
     # Step 6
     Rs = R[b,:][:,b]
