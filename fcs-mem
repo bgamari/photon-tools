@@ -1,0 +1,74 @@
+#!/usr/bin/python
+
+from __future__ import division
+import numpy as np
+from photon_tools import fcs_mem
+from photon_tools.fcs_models import *
+import matplotlib.pyplot as pl
+
+def load_corr(file):
+    dt = [('lag','f'), ('G','f'), ('var','f')]
+    usecols = None
+    lines = [l for l in open(file.name).readlines() if not l.startswith('#')]
+    ncols = len(lines[0].split())
+    if ncols == 5:
+        # favia format
+        usecols = (0,3,4)
+    elif ncols == 3:
+        usecols = None
+    else:
+        raise RuntimeError('Unrecognized file format')
+
+    d = np.genfromtxt(file, dtype=dt, usecols=usecols)
+    d['G'] -= 1.0   # Subtract out offset
+    return d
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file', type=argparse.FileType('r'), help='Correlation function')
+    parser.add_argument('-a', '--aspect', type=float, default=10, help='Aspect ratio')
+    args = parser.parse_args()
+
+    corr = load_corr(args.file)
+    corr = corr[corr['lag'] >= 1e-6]
+    #corr['G'] = three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=1e-4) # TESTING
+    #corr['G'] += np.random.normal(0, np.sqrt(corr['lag']), size=corr.shape)
+
+    Nmodels = 400
+    tauDs = np.logspace(-6, 0, Nmodels)
+    sigma = 1e-3
+    #weights = np.exp(-(tauDs - 1e-4)**2 / 2 / sigma**2)
+    weights = np.ones(Nmodels) # / Nmodels
+    models = np.vstack([three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=tauD)
+                        for tauD in tauDs])
+
+    res = None
+    res = fcs_mem.simple_mem(corr['G'], models, p0=weights, sigma=np.sqrt(corr['var']), nu=1e-3)
+
+    #from sklearn import linear_model
+    #clf = linear_model.Ridge(alpha=0.5)
+    #clf.fit(models.T, corr['G'], 1/np.sqrt(corr['var']))
+    #res = clf.coef_
+    #res[res < 0] = 0
+    #print res
+
+    plot_models = False
+    if plot_models:
+        for tauD in tauDs:
+            m = three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=tauD)
+            pl.plot(corr['lag'], m)
+
+    if True:
+        pl.plot(tauDs, weights, 'ok')
+        pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), c='k')
+        xs = np.logspace(-6, 0, 1000)
+        if res is not None:
+            pl.plot(tauDs, res, 'og')
+            pl.plot(corr['lag'], np.dot(models.T, res), lw=4)
+        pl.xscale('log')
+        pl.axhline(0, c='k')
+        pl.show()
+    
+if __name__ == '__main__':
+    main()
