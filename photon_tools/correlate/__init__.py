@@ -1,5 +1,6 @@
 import favia
 import hphoton
+import numpy as np
 
 default_engine = 'favia'
 
