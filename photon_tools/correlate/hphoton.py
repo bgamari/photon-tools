@@ -60,8 +60,8 @@ def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=Fals
         'correlate',
         '-x=%s' % fx.name, '-y=%s' % fy.name,
         '--jiffy=%e' % jiffy,
-        '--max-lag=%e' % long_lag,
-        '--min-lag=%e' % short_grain,
+        '--max-lag=%e' % max_lag,
+        '--min-lag=%e' % min_lag,
         '--nbins=%d' % fineness
     ]
     logging.debug(' '.join(args))
