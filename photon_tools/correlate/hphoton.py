@@ -18,12 +18,12 @@ dtype = np.dtype([('lag', 'f8'), ('G', 'f8'), ('var', 'f8')])
 
 class CorrelateError(RuntimeError):
     def __init__(self, exit_code, error):
-        RuntimeError.__init__(self, 'Favia threw an error: exit code %d\n\n%s' % (exit_code, error))
+        RuntimeError.__init__(self, 'hphoton correlate threw an error: exit code %d\n\n%s' % (exit_code, error))
         self.exit_code = exit_code
         self.error = error
 
 def read_correlate(fname):
-    return np.loadtxt(fname, dtype=raw_dtype)
+    return np.loadtxt(fname, dtype=dtype)
 
 def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=False):
     """
@@ -51,14 +51,14 @@ def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=Fals
     :param verbose: Enable verbose output from ``favia`` correlator
     """
     fo = NamedTemporaryFile(delete=not keep)
-    fx = NamedTemporaryFile(delete=not keep)
-    fy = NamedTemporaryFile(delete=not keep)
+    fx = NamedTemporaryFile(delete=not keep, suffix='.raw')
+    fy = NamedTemporaryFile(delete=not keep, suffix='.raw')
     x.tofile(fx.name)
     y.tofile(fy.name)
 
     args = [
         'correlate',
-        '-x=%s' % fx.name, '-y=%s' % fy.name,
+        '-x'+fx.name, '-y'+fy.name,
         '--jiffy=%e' % jiffy,
         '--max-lag=%e' % max_lag,
         '--min-lag=%e' % min_lag,
