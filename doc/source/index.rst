@@ -30,7 +30,7 @@ Computing correlation functions
 Analysis
 --------
 
-.. autofunction:: photon_tools.fcs_mem.mem
+.. autofunction:: photon_tools.fcs_mem.fcs_mem
 
 Binning photon timestamps
 -------------------------

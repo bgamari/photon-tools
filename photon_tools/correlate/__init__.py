@@ -44,7 +44,7 @@ def corr(x, y, jiffy, min_lag=1e-6, max_lag=1, fineness=8,
 def autocorr(x, **kwargs):
     """
     Compute an auto-correlation function of the dataset ``x``. See
-    :function:`corr` for a complete description of available options.
+    :func:`corr` for a complete description of available options.
     """
     return corr(x, x, **kwargs)
 
