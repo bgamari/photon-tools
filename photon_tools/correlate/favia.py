@@ -4,6 +4,11 @@ from tempfile import NamedTemporaryFile
 import subprocess
 import numpy as np
 
+"""
+Python interface to favia utility for computing fluorescence
+correlation functions.
+"""
+
 #logging.basicConfig(level=logging.DEBUG)
 keep = False # For debugging
 

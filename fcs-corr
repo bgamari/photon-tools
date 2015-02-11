@@ -4,7 +4,7 @@ import argparse
 from argparse import ArgumentParser
 
 import os.path
-from photon_tools.favia import corr, acorr
+from photon_tools.correlate.favia import corr, acorr
 from photon_tools.io import read_photons
 
 import numpy as np
@@ -111,7 +111,7 @@ def get_jiffy(timestamps):
         jiffy = 1. / 128e6
         print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
     return jiffy
-    
+   
 def afterpulsing_correction(ch):
     """
     Afterpulsing correction as described by,
