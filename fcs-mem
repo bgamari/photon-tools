@@ -44,12 +44,17 @@ def main():
     parser.add_argument('-m', '--models', type=int, default=500, help='Number of models')
     parser.add_argument('-N', '--nu', type=float, default=1e-3, help='Regularization parameter')
     parser.add_argument('-n', '--runs', type=int, default=10, help='How many randomly initialized fits to run')
+    parser.add_argument('-O', '--offset', action='store_true', help='Fit an offset')
     args = parser.parse_args()
     Nmodels = args.models
 
     corr = load_corr(args.file)
     if args.early_time is not None:
         corr = corr[corr['lag'] >= args.early_time]
+
+    if args.offset:
+        # FIXME: Actually fit
+        corr['G'] -= np.mean(corr['G'][-10:])
 
     tauDs = np.logspace(np.log10(args.start_time), np.log10(args.end_time), Nmodels)
     models = np.vstack([three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=tauD)
