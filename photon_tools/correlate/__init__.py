@@ -1,5 +1,5 @@
-import .favia
-import .hphoton
+import favia
+import hphoton
 
 default_engine = 'favia'
 
