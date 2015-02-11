@@ -2,8 +2,9 @@
 
 import argparse
 from argparse import ArgumentParser
-
+import warnings
 import os.path
+
 from photon_tools.correlate import corr, autocorr, corr_chunks
 from photon_tools.io import read_photons
 
@@ -183,12 +184,18 @@ for file in args.files:
         }
 
         c = None
-        if args.nchunks > 1:
-            c,chunks = corr_chunks(ad, bd, n=args.nchunks, **kwargs)
+        nchunks = args.nchunks
+        if dur / nchunks < 10 * args.max_lag:
+            orig = nchunks
+            nchunks = dur / nchunks / args.max_lag / 10
+            warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
+
+        if nchunks > 1:
+            c,chunks = corr_chunks(ad, bd, n=nchunks, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
             if args.plot_chunks:
-                plot_corr([np.rec.fromarrays([c['lag'],chunks[i,:],np.zeros(c.shape)],
+                plot_corr([np.rec.fromarrays([c['lag'], chunks[i,:], np.zeros(c.shape)],
                                              names='lag,G,var')
                            for i in range(chunks.shape[0])],
                           output_base+'.chunks.'+args.plot_type)
@@ -197,7 +204,7 @@ for file in args.files:
 
         if args.afterpulse is not None:
             if ac != bc:
-                print "Can only perform afterpulsing correction on autocorrelations"
+                warnings.warn("Can only perform afterpulsing correction on autocorrelations, won't be performed")
             else:
                 mu = 1.0 * len(a.data) / (a.data[-1] - a.data[0])
                 afterpulse_corr, afterpulse_var = afterpulsing_correction(ac)
