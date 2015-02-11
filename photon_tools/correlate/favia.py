@@ -30,13 +30,6 @@ def read_favia(fname):
     return np.rec.fromarrays([c['lag'], c['dotnormed'], c['var']],
                              names='lag,G,var')
 
-def acorr(x, **kwargs):
-    """
-    Compute an auto-correlation function of the datasets x. See
-    :function:`corr` for a complete description of available options.
-    """
-    return corr(x, x, **kwargs)
-
 def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose=False):
     """
     Compute the correlation function of the datasets `x` and

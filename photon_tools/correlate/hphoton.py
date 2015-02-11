@@ -25,13 +25,6 @@ class CorrelateError(RuntimeError):
 def read_correlate(fname):
     return np.loadtxt(fname, dtype=raw_dtype)
 
-def acorr(x, **kwargs):
-    """
-    Compute an auto-correlation function of the datasets x. See
-    :function:`corr` for a complete description of available options.
-    """
-    return corr(x, x, **kwargs)
-
 def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=False):
     """
     Compute the correlation function of the datasets `x` and

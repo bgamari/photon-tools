@@ -4,7 +4,7 @@ import argparse
 from argparse import ArgumentParser
 
 import os.path
-from photon_tools.correlate.favia import corr, acorr
+from photon_tools.correlate import corr, autocorr, corr_chunks
 from photon_tools.io import read_photons
 
 import numpy as np
@@ -20,18 +20,6 @@ except:
 
 verbose = False
 
-def split_chunks(x, n):
-    l = len(x) / n
-    return [ x[i*l:(i+1)*l] - x[i*l] for i in range(n) ]
-
-def correlate_multi(x, y, n=10, **kwargs):
-    x_chunks = split_chunks(x, n)
-    y_chunks = split_chunks(y, n)
-    corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
-    g = corr(x, y, **kwargs)['G']
-    var = np.var(corrs['G'], axis=0) / n
-    return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
-    
 def plot_corr(corrs, output=None):
     if not mpl_available:
         raise RuntimeError('Matplotlib import failed, plotting not available')
@@ -124,13 +112,13 @@ def afterpulsing_correction(ch):
     jiffy = get_jiffy(f)
     kwargs = {
         'jiffy': jiffy,
-        'short_grain': args.min_lag,
-        'long_lag': args.max_lag,
+        'min_lag': args.min_lag,
+        'max_lag': args.max_lag,
         'fineness': args.fineness,
     }
 
     # TODO: Verify compatible jiffy
-    uncorr_G = acorr(f.data, **kwargs)
+    uncorr_G = autocorr(f.data, **kwargs)
     mean_I = 1. * len(f.data) / (f.data[-1] - f.data[0])
     afterpulse_corr = (uncorr_G['G'] - 1) * mean_I / jiffy
     afterpulse_var = uncorr_G['var'] * (mean_I / jiffy)**2
@@ -184,15 +172,15 @@ for file in args.files:
 
         kwargs = {
             'jiffy': jiffy,
-            'short_grain': args.min_lag,
-            'long_lag': args.max_lag,
+            'min_lag': args.min_lag,
+            'max_lag': args.max_lag,
             'fineness': args.fineness,
             'verbose': args.verbose
         }
 
         c = None
         if args.nchunks > 1:
-            c,chunks = correlate_multi(ad, bd, n=args.nchunks, **kwargs)
+            c,chunks = corr_chunks(ad, bd, n=args.nchunks, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
             if args.plot_chunks:
