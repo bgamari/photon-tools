@@ -24,7 +24,7 @@ Filtering photon data
 Computing correlation functions
 -------------------------------
 
-.. automodule:: photon_tools.favia
+.. automodule:: photon_tools.correlate
    :members:
 
 Analysis
