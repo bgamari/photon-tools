@@ -189,7 +189,4 @@ def open(fname, reader=None):
     if reader is None:
         raise RuntimeError("Unknown file type")
 
-    f = reader(fname)
-    verify_monotonic(f.data, fname)
-    verify_continuity(f.data, fname)
-    return f
+    return reader(fname)
