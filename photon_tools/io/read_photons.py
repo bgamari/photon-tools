@@ -107,7 +107,7 @@ class PicoquantFile(TimestampFile):
     extensions = ['pt2', 'pt3']
     def __init__(self, fname):
         # TODO: Read metadata
-        TimestampFile(self, fname, jiffy=4e-12)
+        TimestampFile.__init__(self, fname, jiffy=4e-12)
 
     def channel(self, channel):
         self._validate_channel(channel)
@@ -118,10 +118,10 @@ class TimetagFile(TimestampFile):
     extensions = ['timetag']
     valid_channels = [0,1,2,3]
     def __init__(self, fname):
-        TimestampFile(self, fname, jiffy = None)
-        self.metadata = metadata.get_metadata(fname)
+        TimestampFile.__init__(self, fname, jiffy = None)
+        self._metadata = metadata.get_metadata(fname)
         if self.metadata is not None:
-            self.jiffy = 1. / self.metadata['clockrate']
+            self._jiffy = 1. / self.metadata['clockrate']
         if not os.path.isfile(fname):
             raise IOError("File %s does not exist" % fname)
 
