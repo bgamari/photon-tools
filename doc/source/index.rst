@@ -24,13 +24,13 @@ Filtering photon data
 Computing correlation functions
 -------------------------------
 
-.. automodule:: photon_tools.favia
+.. automodule:: photon_tools.correlate
    :members:
 
 Analysis
 --------
 
-.. autofunction:: photon_tools.fcs_mem.mem
+.. autofunction:: photon_tools.fcs_mem.fcs_mem
 
 Binning photon timestamps
 -------------------------

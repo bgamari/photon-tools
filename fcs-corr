@@ -2,9 +2,10 @@
 
 import argparse
 from argparse import ArgumentParser
-
+import warnings
 import os.path
-from photon_tools.favia import corr, acorr
+
+from photon_tools.correlate import corr, autocorr, corr_chunks
 from photon_tools.io import read_photons
 
 import numpy as np
@@ -20,18 +21,6 @@ except:
 
 verbose = False
 
-def split_chunks(x, n):
-    l = len(x) / n
-    return [ x[i*l:(i+1)*l] - x[i*l] for i in range(n) ]
-
-def correlate_multi(x, y, n=10, **kwargs):
-    x_chunks = split_chunks(x, n)
-    y_chunks = split_chunks(y, n)
-    corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
-    g = corr(x, y, **kwargs)['G']
-    var = np.var(corrs['G'], axis=0) / n
-    return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
-    
 def plot_corr(corrs, output=None):
     if not mpl_available:
         raise RuntimeError('Matplotlib import failed, plotting not available')
@@ -86,6 +75,8 @@ parser.add_argument('-e', '--exclude', action='append', metavar='T-T',
 parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
                     metavar='FILE',
                     help='Uncorrelated timestamps for afterpulsing correction')
+parser.add_argument('--engine', default=None,
+                    help='Which correlator engine to use (hphoton or favia)')
 parser.add_argument('--afterpulse-cutoff', default=None,
                     help="Don't apply afterpulsing correction beyond given lag")
 args = parser.parse_args()
@@ -111,7 +102,7 @@ def get_jiffy(timestamps):
         jiffy = 1. / 128e6
         print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
     return jiffy
-    
+
 def afterpulsing_correction(ch):
     """
     Afterpulsing correction as described by,
@@ -125,13 +116,14 @@ def afterpulsing_correction(ch):
     jiffy = get_jiffy(f)
     kwargs = {
         'jiffy': jiffy,
-        'short_grain': args.min_lag,
-        'long_lag': args.max_lag,
+        'min_lag': args.min_lag,
+        'max_lag': args.max_lag,
         'fineness': args.fineness,
+        'engine': args.engine,
     }
 
     # TODO: Verify compatible jiffy
-    uncorr_G = acorr(d, **kwargs)
+    uncorr_G = autocorr(d, **kwargs)
     mean_I = 1. * len(d) / (d[-1] - d[0])
     afterpulse_corr = (uncorr_G['G'] - 1) * mean_I / jiffy
     afterpulse_var = uncorr_G['var'] * (mean_I / jiffy)**2
@@ -188,19 +180,26 @@ for file in args.files:
 
         kwargs = {
             'jiffy': jiffy,
-            'short_grain': args.min_lag,
-            'long_lag': args.max_lag,
+            'min_lag': args.min_lag,
+            'max_lag': args.max_lag,
             'fineness': args.fineness,
-            'verbose': args.verbose
+            'verbose': args.verbose,
+            'engine': args.engine,
         }
 
         c = None
-        if args.nchunks > 1:
-            c,chunks = correlate_multi(ad, bd, n=args.nchunks, **kwargs)
+        nchunks = args.nchunks
+        if dur / nchunks < 10 * args.max_lag:
+            orig = nchunks
+            nchunks = dur / nchunks / args.max_lag / 10
+            warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
+
+        if nchunks > 1:
+            c,chunks = corr_chunks(ad, bd, n=nchunks, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
             if args.plot_chunks:
-                plot_corr([np.rec.fromarrays([c['lag'],chunks[i,:],np.zeros(c.shape)],
+                plot_corr([np.rec.fromarrays([c['lag'], chunks[i,:], np.zeros(c.shape)],
                                              names='lag,G,var')
                            for i in range(chunks.shape[0])],
                           output_base+'.chunks.'+args.plot_type)
@@ -209,7 +208,7 @@ for file in args.files:
 
         if args.afterpulse is not None:
             if ac != bc:
-                print "Can only perform afterpulsing correction on autocorrelations"
+                warnings.warn("Can only perform afterpulsing correction on autocorrelations, won't be performed")
             else:
                 mu = 1.0 * na / durA
                 afterpulse_corr, afterpulse_var = afterpulsing_correction(ac)
