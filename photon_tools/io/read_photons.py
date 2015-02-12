@@ -175,18 +175,21 @@ def find_reader(fname):
     root,ext = os.path.splitext(fname)
     return exts.get(ext[1:])
 
-def open(fname, channel, reader=None):
+def open(fname, reader=None):
     """
-    open(filename, channel)
+    Read a timestamp file.
 
-    Read a timestamp file. Channel number is zero-based.
+    :type fname: ``str``
+    :param fname: Path of timestamp file
+    :type reader: class inheriting ``TimestampFile``, optional
+    :param reader: Specify the file format explicitly
     """
     if reader is None:
         reader = find_reader(fname)
     if reader is None:
         raise RuntimeError("Unknown file type")
 
-    f = reader(fname, channel)
+    f = reader(fname)
     verify_monotonic(f.data, fname)
     verify_continuity(f.data, fname)
     return f
