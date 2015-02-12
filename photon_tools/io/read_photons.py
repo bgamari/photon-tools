@@ -94,7 +94,15 @@ class TimestampFile(object):
 
         :type channel: A valid channel name from :function:`valid_channels`.
         """
-        return NotImplemented
+        self._validate_channel(channel)
+        data = self._read_channel(channel)
+        verify_monotonic(data, self._fname)
+        verify_continuity(data, self._fname)
+        return data
+
+    def _read_channel(self, channel):
+        """ Actually read the data of a channel """
+        raise NotImplementedError()
 
     def _validate_channel(self, channel):
         """ A utility for implementations """
@@ -109,8 +117,7 @@ class PicoquantFile(TimestampFile):
         # TODO: Read metadata
         TimestampFile.__init__(self, fname, jiffy=4e-12)
 
-    def channel(self, channel):
-        self._validate_channel(channel)
+    def _read_channel(self, channel):
         return pt2_parse.read_pt2(self._fname)
 
 class TimetagFile(TimestampFile):
@@ -125,8 +132,7 @@ class TimetagFile(TimestampFile):
         if not os.path.isfile(fname):
             raise IOError("File %s does not exist" % fname)
 
-    def channel(self, channel):
-        self._validate_channel(channel)
+    def _read_channel(self, channel):
         return timetag_parse.get_strobe_events(self._fname, 1<<channel)['t']
 
 class RawFile(TimestampFile):
@@ -136,8 +142,7 @@ class RawFile(TimestampFile):
     def __init__(self, fname):
         TimestampFile.__init__(self, fname, jiffy = None)
 
-    def channel(self, channel):
-        self._validate_channel(channel)
+    def _read_channel(self, channel):
         return np.fromfile(fname, dtype='u8')
 
 class RawChFile(TimestampFile):
@@ -147,8 +152,7 @@ class RawChFile(TimestampFile):
     def __init__(self, fname, channel):
         TimestampFile.__init__(self, fname, jiffy = None)
 
-    def channel(self, channel):
-        self._validate_channel(channel)
+    def _read_channel(self, channel):
         d = np.fromfile(fname, dtype='u8,u1', names='time,chan')
         return d[d['chan'] == channel]['time']
 
