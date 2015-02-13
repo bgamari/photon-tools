@@ -15,6 +15,11 @@ setup(name = 'photon-tools',
       scripts = ['bin_photons', 'fcs-fit', 'fcs-corr', 'plot-fret', 'plot-bins', 'lifetime-deconvolve',
                  'trim-stamps', 'anisotropy', 'fcs-mem'],
       license = 'GPLv3',
+      install_requires=[
+          'numpy',
+          'scipy',
+          'squmfit',
+      ],
       ext_modules = cythonize([
           'photon_tools/bin_photons.pyx',
           'photon_tools/filter_photons.pyx',
