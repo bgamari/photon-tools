@@ -3,29 +3,29 @@ import warnings
 import numpy as np
 from photon_tools import timetag_parse, pt2_parse, metadata
 
-def verify_monotonic(times):
+def verify_monotonic(times, filename):
     """ Verify that timestamps are monotonically increasing """
     if len(times) == 0: return
     negatives = times[1:] <= times[:-1]
     if np.count_nonzero(negatives) > 0:
         indices = np.nonzero(negatives)
-        warnings.warn('Found %d non-monotonic timestamps: photon indices %s' %
-                      (np.count_nonzero(negatives), indices))
+        warnings.warn('%s: Found %d non-monotonic timestamps: photon indices %s' %
+                      (filename, np.count_nonzero(negatives), indices))
 
-def verify_continuity(times, gap_factor=1000):
+def verify_continuity(times, filename, gap_factor=1000):
     """ Search for improbably long gaps in the photon stream """
     if len(times) == 0: return
     tau = (times[-1] - times[0]) / len(times)
     gaps = (times[1:] - times[:-1]) > gap_factor*tau
     if np.count_nonzero(gaps) > 0:
-        msg = 'Found %d large gaps:\n' % np.count_nonzero(gaps)
+        msg = '%s: Found %d large gaps:\n' % (filename, np.count_nonzero(gaps))
         gap_starts, = np.nonzero(gaps)
         for s in gap_starts:
             msg += '    starting at %10d, ending at %10d, lasting %10d' % \
                    (times[s], times[s+1], times[s+1] - times[s])
         warnings.warn(msg)
 
-class InvalidChannel(RuntimeError):
+class InvalidChannel(ValueError):
     def __init__(self, requested_channel, valid_channels=[]):
         self.requested_channel = requested_channel
         self.valid_channels = valid_channels
@@ -34,53 +34,127 @@ class InvalidChannel(RuntimeError):
         return "Channel %s was requested but this file type only supports channels %s." \
             % (self.requested_channel, self.valid_channels)
 
-class TimestampReader(object):
-    """ An abstract reader of timestamp data """
-    extensions = []
-    def __init__(self):
-        self.jiffy = None
+class TimestampFile(object):
+    """
+    Represents a timestamp file.
 
-class PicoquantFile(TimestampReader):
-    """ Read Picoquant PT2 and PT3 timestamp files """
+    A timestamp file is a file containing a sequential set of integer
+    photon arrival timestamps taken in one or more channels. The 
+    """
+    def __init__(self, filename, jiffy, valid_channels=None):
+        if valid_channels is None:
+            valid_channels = self.__class__.valid_channels
+        self._valid_channels = valid_channels
+        self._fname = filename
+        self._jiffy = jiffy
+
+    @classmethod
+    def extensions(self):
+        """
+        A list of supported file extensions
+        """
+        return []
+
+    @property
+    def jiffy(self):
+        """
+        The timestamp resolution in seconds or ``None`` is unknown.
+
+        :returns: float
+        """
+        return self._jiffy
+
+    @property
+    def valid_channels(self):
+        """
+        The names of the channels of the file.
+        Note that not all of these will have timestamps.
+
+        :returns: list
+        """
+        return self._valid_channels
+
+    @property
+    def metadata(self):
+        """
+        Metadata describing the data set.
+
+        :returns: dictionary mapping string metadata names to values
+        """
+        return self._metadata
+
+    @property
+    def name(self):
+        """ File name of timestamp file """
+        return self._fname
+
+    def channel(self, channel):
+        """
+        Read photon data for a channel of the file
+
+        :type channel: A valid channel name from :function:`valid_channels`.
+        """
+        self._validate_channel(channel)
+        data = self._read_channel(channel)
+        verify_monotonic(data, self._fname)
+        verify_continuity(data, self._fname)
+        return data
+
+    def _read_channel(self, channel):
+        """ Actually read the data of a channel """
+        raise NotImplementedError()
+
+    def _validate_channel(self, channel):
+        """ A utility for implementations """
+        if channel not in self.valid_channels:
+            raise InvalidChannel(channel, self.valid_channels)
+
+class PicoquantFile(TimestampFile):
+    """ A Picoquant PT2 and PT3 timestamp file """
+    valid_channels = [0,1,2,3]
     extensions = ['pt2', 'pt3']
-    def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        self.jiffy = 4e-12 # FIXME
-        self.data = pt2_parse.read_pt2(fname, channel)
+    def __init__(self, fname):
+        # TODO: Read metadata
+        TimestampFile.__init__(self, fname, jiffy=4e-12)
 
-class TimetagFile(TimestampReader):
-    """ Read Goldner FPGA timetagger files """
+    def _read_channel(self, channel):
+        return pt2_parse.read_pt2(self._fname)
+
+class TimetagFile(TimestampFile):
+    """ A timestamp file from the Goldner lab FPGA timetagger """
     extensions = ['timetag']
-    def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        channels = range(4)
-        if channel not in channels:
-            raise InvalidChannel(channel, channels)
-        self.metadata = metadata.get_metadata(fname)
+    valid_channels = [0,1,2,3]
+    def __init__(self, fname):
+        TimestampFile.__init__(self, fname, jiffy = None)
+        self._metadata = metadata.get_metadata(fname)
         if self.metadata is not None:
-            self.jiffy = 1. / self.metadata['clockrate']
+            self._jiffy = 1. / self.metadata['clockrate']
         if not os.path.isfile(fname):
             raise IOError("File %s does not exist" % fname)
-        self.data = timetag_parse.get_strobe_events(fname, 1<<channel)['t']
 
-class RawFile(TimestampReader):
-    """ Read raw unsigned 64-bit timestamps """
+    def _read_channel(self, channel):
+        return timetag_parse.get_strobe_events(self._fname, 1<<channel)['t']
+
+class RawFile(TimestampFile):
+    """ Raw unsigned 64-bit timestamps """
     extensions = ['times']
-    def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        if channel != 0:
-            raise InvalidChannel(channel, [0])
-        self.data = np.fromfile(fname, dtype='u8')
+    valid_channels = [0]
+    def __init__(self, fname):
+        TimestampFile.__init__(self, fname, jiffy = None)
 
-class RawChFile(TimestampReader):
-    """ Read raw unsigned 64-bit timestamps, followed by 8-bit channel number """
+    def _read_channel(self, channel):
+        return np.fromfile(fname, dtype='u8')
+
+class RawChFile(TimestampFile):
+    """ Raw unsigned 64-bit timestamps, followed by 8-bit channel number """
     extensions = 'timech'
+    valid_channels = range(256)
     def __init__(self, fname, channel):
-        TimestampReader.__init__(self)
-        if channel > 255:
-            raise InvalidChannel(channel, range(256))
+        TimestampFile.__init__(self, fname, jiffy = None)
+
+    def _read_channel(self, channel):
         d = np.fromfile(fname, dtype='u8,u1', names='time,chan')
-        self.data = d[d['chan'] == channel]['time']
+        return d[d['chan'] == channel]['time']
 
 readers = [
     PicoquantFile,
@@ -91,8 +165,8 @@ readers = [
 
 def supported_extensions():
     """
-    Construct a map from supported file extensions to their
-    associated reader.
+    A dictionary mapping supported file extensions to their associated
+    :class:`TimestampFile` class.
     """
     extensions = {}
     for reader in readers:
@@ -105,18 +179,18 @@ def find_reader(fname):
     root,ext = os.path.splitext(fname)
     return exts.get(ext[1:])
 
-def open(fname, channel, reader=None):
+def open(fname, reader=None):
     """
-    open(filename, channel)
+    Read a timestamp file.
 
-    Read a timestamp file. Channel number is zero-based.
+    :type fname: ``str``
+    :param fname: Path of timestamp file
+    :type reader: class inheriting ``TimestampFile``, optional
+    :param reader: Specify the file format explicitly
     """
     if reader is None:
         reader = find_reader(fname)
     if reader is None:
         raise RuntimeError("Unknown file type")
 
-    f = reader(fname, channel)
-    verify_monotonic(f.data)
-    verify_continuity(f.data)
-    return f
+    return reader(fname)

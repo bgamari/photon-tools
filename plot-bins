@@ -20,7 +20,7 @@ def plot_file(fname, channels={0: 'Channel 0'},
     Produce a plot of the binned timestamps in a file.
 
     :param fname: Name of file containing timestamps (to be read by :func:`read_photons.open`).
-    :type channels: dict of (channel number, label) pairs.
+    :type channels: dict of (channel name, label) pairs.
     :param bin_width: Bin width given in seconds.
     :param jiffy: Override timestamp resolution. Will infer fromm metadata by default.
     :type max_count: float or ``max``, ``avg``
@@ -30,7 +30,7 @@ def plot_file(fname, channels={0: 'Channel 0'},
     data_sets = []
     for chan, label in channels.items():
         try:
-            t = read_photons.open(fname, chan)
+            t = read_photons.open(fname).channel(chan)
             if jiffy is None:
                 jiffy = t.jiffy
             elif jiffy != t.jiffy:
