@@ -66,10 +66,10 @@ parser.add_argument('-p', '--plot', action='store_true',
                     help='Plot each computed correlation function')
 parser.add_argument('-P', '--plot-type', default='png',
                     help='File format of plot output (svg, png, pdf, or ps)')
-parser.add_argument('-t', '--start-time', default=None, type=float,
-                    help='Start time of usable data (seconds)')
-parser.add_argument('-T', '--stop-time', default=None, type=float,
-                    help='Stop time of usable data (seconds)')
+parser.add_argument('-t', '--start-time', default=None, type=str,
+                    help='Start time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
+parser.add_argument('-T', '--stop-time', default=None, type=str,
+                    help='Stop time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
 parser.add_argument('-e', '--exclude', action='append', metavar='T-T',
                     help='Exclude a range of times (given in seconds)')
 parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
@@ -154,12 +154,26 @@ for file in args.files:
             continue
 
         t0 = min(ad[0], bd[0])
+        t1 = max(ad[-1], bd[-1])
         if args.start_time is not None:
-            ad = ad[ad - t0 >= args.start_time / jiffy]
-            bd = bd[bd - t0 >= args.start_time / jiffy]
+            if args.start_time[0] == '-':
+                start_time = t1 - float(args.start_time[1:]) / jiffy
+            elif args.start_time[0] == '+':
+                start_time = t0 + float(args.start_time[1:]) / jiffy
+            else:
+                start_time = float(args.start_time) / jiffy
+            ad = ad[ad >= start_time]
+            bd = bd[bd >= start_time]
+
         if args.stop_time is not None:
-            ad = ad[ad - t0 < args.stop_time / jiffy]
-            bd = bd[bd - t0 < args.stop_time / jiffy]
+            if args.stop_time[0] == '-':
+                stop_time = t1 - float(args.stop_time[1:]) / jiffy
+            elif args.stop_time[0] == '+':
+                stop_time = t0 + float(args.stop_time[1:]) / jiffy
+            else:
+                stop_time = float(args.stop_time) / jiffy
+            ad = ad[ad < stop_time]
+            bd = bd[bd < stop_time]
 
         print label
 

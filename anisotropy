@@ -198,9 +198,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
         # IRF leakage
         leakage = 0
         if exc_leakage:
-            idx = np.argmax(irfs.par)
-            leakage = fit.param('c%d_leakage' % pair_idx,
-                                initial=par[idx] / irfs.par[idx])
+            leakage = fit.param('c%d_leakage' % pair_idx, initial=0.1)
 
         def add_curve(corr, name, rot_model, offset, norm, irf):
             times = jiffy_ps * np.arange(corr.shape[0])
