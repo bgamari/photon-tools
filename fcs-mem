@@ -39,8 +39,8 @@ def main():
     parser.add_argument('-e', '--early-time', type=float, default=None,
                         metavar='LAG',
                         help='Discard correlation function below given lag')
-    parser.add_argument('-t', '--start-time', type=float, default=1e-6, help='Shortest diffusion time to fit')
-    parser.add_argument('-T', '--end-time', type=float, default=1, help='Longest diffusion time to fit')
+    parser.add_argument('-t', '--start-tau', type=float, default=1e-6, help='Shortest diffusion time to fit')
+    parser.add_argument('-T', '--end-tau', type=float, default=1, help='Longest diffusion time to fit')
     parser.add_argument('-m', '--models', type=int, default=500, help='Number of models')
     parser.add_argument('-N', '--nu', type=float, default=1e-3, help='Regularization parameter')
     parser.add_argument('-n', '--runs', type=int, default=10, help='How many randomly initialized fits to run')
@@ -56,7 +56,7 @@ def main():
         # FIXME: Actually fit
         corr['G'] -= np.mean(corr['G'][-10:])
 
-    tauDs = np.logspace(np.log10(args.start_time), np.log10(args.end_time), Nmodels)
+    tauDs = np.logspace(np.log10(args.start_tau), np.log10(args.end_tau), Nmodels)
     models = np.vstack([three_dim_diffusion(lag=corr['lag'], aspect=args.aspect, n=1, tauD=tauD)
                         for tauD in tauDs])
 
@@ -94,7 +94,7 @@ def main():
     weights.set_xscale('log')
     weights.set_ylabel('weights')
     weights.set_xlabel(r'$\tau$ (seconds)')
-    weights.set_xlim(args.start_time, args.end_time)
+    weights.set_xlim(args.start_tau, args.end_tau)
     weights.locator_params('y', nbins=3)
     plots.set_title(os.path.basename(args.file.name))
     bbox = legend.get_position(pl.gcf())

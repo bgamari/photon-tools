@@ -25,9 +25,9 @@ plotting library. On the whole, `photon-tools` depends on,
  * Python >= 2.6
  * Numpy
  * Scipy
- * Matplotlib >= 1.2 (due to [issue #1246](https://github.com/matplotlib/matplotlib/issues/1246/))
+ * Matplotlib >= 1.4
  * Cython >= 0.15
- * Boost
+ * Boost (`boost-format` in particular)
 
 The scripts and libraries included in `photon-tools` can be installed
 like any Python `distutils` package,

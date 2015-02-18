@@ -1,0 +1,4 @@
+numpy >= 1.5
+scipy >= 0.13
+matplotlib >= 1.4
+squmfit >= 0.1
