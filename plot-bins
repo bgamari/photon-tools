@@ -30,16 +30,17 @@ def plot_file(fname, channels={0: 'Channel 0'},
     data_sets = []
     for chan, label in channels.items():
         try:
-            t = read_photons.open(fname).channel(chan)
+            f = read_photons.open(fname)
             if jiffy is None:
-                jiffy = t.jiffy
-            elif jiffy != t.jiffy:
+                jiffy = f.jiffy
+            elif jiffy != f.jiffy:
                 raise RuntimeError("Incompatible jiffys")
 
-            if len(t.data) == 0:
+            d = f.channel(chan)
+            if len(d) == 0:
                 print 'Channel %d has no photons, ignoring' % chan
                 continue
-            data_sets.append(DataSet(t.data, label))
+            data_sets.append(DataSet(d, label))
 
         except Exception as e:
             print 'Unknown exception reading channel %d: %s' % (chan, e)
