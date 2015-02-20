@@ -1,5 +1,5 @@
 PROGS=
-DESTDIR?=/usr
+DESTDIR?=/usr/local
 
 CXXFLAGS += -std=c++11
 
