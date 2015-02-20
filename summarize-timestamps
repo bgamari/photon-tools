@@ -1,0 +1,31 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import argparse
+import numpy as np
+from photon_tools.io import read_photons
+import matplotlib.pyplot as pl
+from photon_tools.bin_photons import bin_photons
+from scipy.stats import linregress
+
+parser = argparse.ArgumentParser()
+parser.add_argument('file', nargs='+', type=argparse.FileType('r'), help='Timestamp file')
+args = parser.parse_args()
+for f in args.file:
+    ts = read_photons.open(f.name)
+    print '%s:' % (f.name)
+    print '    jiffy = %g' % ts.jiffy
+    for c in ts.valid_channels:
+        d = ts.channel(c)
+        jiffy = a.jiffy
+        N = len(ad)
+        dur = d[-1] - d[0]
+        dur *= jiffy
+        bins = bin_photons(d, 1. / jiffy)
+        m, b, r, p, stderr = linregress(bins['time'], bins['count'])
+
+        print '    channel %s: T=%f seconds, N=%1.2e' % (c, dur, N)
+        print '        rate = %5f Hz ± %f' % (N / dur, np.std(bins['count']))
+        print '        dI/dt = %f' % m
+
+    print

@@ -13,7 +13,7 @@ setup(name = 'photon-tools',
       version = '1.0',
       packages = ['photon_tools', 'photon_tools.io', 'photon_tools.correlate'],
       scripts = ['bin_photons', 'fcs-fit', 'fcs-corr', 'plot-fret', 'plot-bins', 'lifetime-deconvolve',
-                 'trim-stamps', 'anisotropy', 'fcs-mem'],
+                 'trim-stamps', 'anisotropy', 'fcs-mem', 'summarize-timestamps'],
       license = 'GPLv3',
       install_requires=[
           'numpy',
