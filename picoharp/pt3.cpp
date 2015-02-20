@@ -35,7 +35,6 @@ pt3_record pt3_file::read_record() {
         r.numsync = 0xffff & rec;
 	r.channel = 0xf & (rec >> 28);
 	
-        nsync = overflow_time + r.numsync;
 	if (r.channel == 0xf) {
 		r.is_special = true;
                 r.special.markers = 0x0fff & (rec >> 16);
@@ -45,7 +44,7 @@ pt3_record pt3_file::read_record() {
 	} else {
                 r.is_special = false;
                 r.normal.time = 0x0fff & (rec >> 16);
-                r.normal.time += nsync * sync_period + r.normal.time;
+                r.normal.time += (overflow_time + r.numsync) * sync_period;
         }
 
 	return r;

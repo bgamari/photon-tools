@@ -43,21 +43,18 @@ struct pt3_record {
 };
 
 class pt3_file : public picoharp_file {
-	unsigned int nsync;
-	unsigned int sync_period; // in cycles
+	uint64_t sync_period; // in cycles
 public:
 	pt3_file(std::istream& is) :
 		picoharp_file(is),
-		nsync(0),
-		sync_period(1e-9 * tttr_hdr.counter_rate[0] / board_hdr.resolution)
+		sync_period(1e9 / tttr_hdr.counter_rate[0] / board_hdr.resolution)
 	{
 		if (binary_hdr.meas_mode != PT2_MEASMODE_T3)
 			throw std::runtime_error("Unsupported measurement mode");
 	}
 	pt3_file(picoharp_file& pf) :
 		picoharp_file(pf),
-		nsync(0),
-		sync_period(1e-9 * tttr_hdr.counter_rate[0] / board_hdr.resolution)
+		sync_period(1e9 / tttr_hdr.counter_rate[0] / board_hdr.resolution)
 	{
 		if (binary_hdr.meas_mode != PT2_MEASMODE_T3)
 			throw std::runtime_error("Unsupported measurement mode");
