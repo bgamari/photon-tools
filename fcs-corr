@@ -140,15 +140,10 @@ for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
         output_base = os.path.join(args.output, fname+'.'+label)
-        a = read_photons.open(file.name)
-        b = read_photons.open(file.name)
+        f = read_photons.open(file.name)
 
-        jiffy = get_jiffy(a)
-        if args.jiffy is not None:
-            a.jiffy = args.jiffy
-            b.jiffy = args.jiffy
-
-        ad,bd = a.channel(ac), b.channel(bc)
+        jiffy = get_jiffy(f)
+        ad, bd = f.channel(ac), f.channel(bc)
         na, nb = len(ad), len(bd)
         for (start,end) in exclude:
             ad = ad[np.logical_or(ad < start / jiffy, ad > end / jiffy)]
@@ -185,12 +180,12 @@ for file in args.files:
         print '  %20s, channel %d:' % (fname, ac)
         print '    %d events, %d after filtering' % (na, len(ad))
         durA = ad[-1] - ad[0]
-        print '    duration = %d = %1.2f seconds' % (durA, (durA * a.jiffy))
+        print '    duration = %d = %1.2f seconds' % (durA, (durA * jiffy))
 
         print '  %20s, channel %d:' % (fname, bc)
         print '    %d events, %d after filtering' % (nb, len(bd))
         durB = bd[-1] - bd[0]
-        print '    duration = %d = %1.2f seconds' % (durB, (durB * b.jiffy))
+        print '    duration = %d = %1.2f seconds' % (durB, (durB * jiffy))
 
         kwargs = {
             'jiffy': jiffy,
