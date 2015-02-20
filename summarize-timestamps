@@ -23,10 +23,10 @@ for f in args.file:
         dur = d[-1] - d[0]
         dur *= ts.jiffy
         bins = bin_photons(d, 1. / ts.jiffy)
-        m, b, r, p, stderr = linregress(bins['time'], bins['count'])
+        m, b, r, p, stderr = linregress(bins['start_t'], bins['count'])
 
-        print '    channel %s: T=%f seconds, N=%1.2e' % (c, dur, N)
-        print '        rate = %5f Hz ± %f' % (N / dur, np.std(bins['count']))
-        print '        dI/dt = %f' % m
+        print '    channel %s: T=%1.1f seconds, N=%1.2e' % (c, dur, N)
+        print '        rate = %1.1f ± %1.1f Hz' % (N / dur, np.std(bins['count']))
+        print '        dI/dt = %g ± %1.1g Hz / second' % (m / ts.jiffy, stderr / ts.jiffy)
 
     print
