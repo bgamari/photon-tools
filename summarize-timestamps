@@ -17,11 +17,12 @@ for f in args.file:
     print '    jiffy = %g' % ts.jiffy
     for c in ts.valid_channels:
         d = ts.channel(c)
-        jiffy = a.jiffy
-        N = len(ad)
+        N = len(d)
+        if N == 0:
+            continue
         dur = d[-1] - d[0]
-        dur *= jiffy
-        bins = bin_photons(d, 1. / jiffy)
+        dur *= ts.jiffy
+        bins = bin_photons(d, 1. / ts.jiffy)
         m, b, r, p, stderr = linregress(bins['time'], bins['count'])
 
         print '    channel %s: T=%f seconds, N=%1.2e' % (c, dur, N)
