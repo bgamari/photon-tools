@@ -118,7 +118,7 @@ class PicoquantFile(TimestampFile):
         TimestampFile.__init__(self, fname, jiffy=4e-12)
 
     def _read_channel(self, channel):
-        return pt2_parse.read_pt2(self._fname)
+        return pt2_parse.read_pt2(self._fname, channel)
 
 class TimetagFile(TimestampFile):
     """ A timestamp file from the Goldner lab FPGA timetagger """
