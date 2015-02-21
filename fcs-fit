@@ -34,7 +34,7 @@ def main():
         description='Fit FCS correlation functions',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-e', '--early-cutoff', metavar='LAG', type=float, default=0,
-                        help='Early lag cutoff time')
+                        help='Early lag cutoff time in seconds')
     parser.add_argument('-p', '--plot', action='store_true',
                         help='Produce plot of data and fits')
     parser.add_argument('-o', '--output', metavar='[FILE]', nargs='?', const='AUTO',
@@ -59,7 +59,7 @@ def main():
         tauF = fit.param('tauF', initial=0.5)
     for curve_idx, f in enumerate(args.curves):
         datum = load_corr(f)
-        take = datum['lag'] > args.early_cutoff
+        take = datum['lag'] > args.early_cutoff * 1e6
         # Somehow we occassionally get zero and negative variances from favia
         take = np.logical_and(take, datum['var'] > 0)
         taken = datum[take]
