@@ -136,6 +136,9 @@ def afterpulsing_correction(ch):
 if not os.path.isdir(args.output):
     os.makedirs(args.output)
     
+# Memoize the correlation functions for afterpulsing correction
+afterpulse_cache = {}
+
 for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
@@ -220,7 +223,9 @@ for file in args.files:
                 warnings.warn("Can only perform afterpulsing correction on autocorrelations, won't be performed")
             else:
                 mu = 1.0 * na / durA
-                afterpulse_corr, afterpulse_var = afterpulsing_correction(ac)
+                if ac not in afterpulse_cache:
+                    afterpulse_cache[ac] = afterpulsing_correction(ac)
+                afterpulse_corr, afterpulse_var = afterpulse_cache[ac]
                 c['G'] -= jiffy / mu * afterpulse_corr
                 c['var'] += (jiffy / mu)**2 * afterpulse_var
 
