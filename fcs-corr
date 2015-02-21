@@ -42,7 +42,7 @@ parser.add_argument('-a', '--a-channel', type=int, default=0,
                     help='Channel to run correlate')
 parser.add_argument('-b', '--b-channel', type=int, default=1,
                     help='Channel to run correlate')
-parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
+parser.add_argument('-E', '--min-lag', type=float, default=5e-7,
                     help='Smallest lag to compute')
 parser.add_argument('-L', '--max-lag', type=float, default=1,
                     help='Longest lag to compute')
