@@ -156,6 +156,10 @@ if __name__ == '__main__':
         plot_file(f.name, channels=channels, bin_width=args.bin_width, override_jiffy=args.jiffy,
                   max_count=args.max_count, rows=args.rows, row_width=args.row_width)
 
+        pl.subplot(args.rows, 1, 1)
+        pl.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                  ncol=4, mode="expand", borderaxespad=0.)
+
         if args.output is not None:
             pl.savefig(args.output.name)
         elif args.auto_output:
