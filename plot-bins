@@ -15,25 +15,28 @@ colors = 'rgb'
 DataSet = namedtuple('DataSet', 'data,label')
 
 def plot_file(fname, channels={0: 'Channel 0'},
-              bin_width=10e-3, jiffy=None, max_count='max', **kwargs):
+              bin_width=10e-3, override_jiffy=None, max_count='max', **kwargs):
     """
     Produce a plot of the binned timestamps in a file.
 
     :param fname: Name of file containing timestamps (to be read by :func:`read_photons.open`).
     :type channels: dict of (channel name, label) pairs.
     :param bin_width: Bin width given in seconds.
-    :param jiffy: Override timestamp resolution. Will infer fromm metadata by default.
+    :param override_jiffy: Override timestamp resolution. Will infer from metadata by default.
     :type max_count: float or ``max``, ``avg``
     :param max_count: The upper limit of the Y axis of the plot given in counts per second.
     :param kwargs: Keyword arguments passed to :func:`plot_bins`.
     """
     data_sets = []
+    jiffy = None
     for chan, label in channels.items():
         try:
             f = read_photons.open(fname)
-            if jiffy is None:
+            if override_jiffy is not None:
+                jiffy = override_jiffy
+            elif f.jiffy is not None and f.jiffy == jiffy:
                 jiffy = f.jiffy
-            elif jiffy != f.jiffy:
+            elif f.jiffy is not None and f.jiffy != jiffy:
                 raise RuntimeError("Incompatible jiffys")
 
             d = f.channel(chan)
@@ -150,7 +153,7 @@ if __name__ == '__main__':
 
     for f in args.input:
         pl.clf()
-        plot_file(f.name, channels=channels, bin_width=args.bin_width, jiffy=args.jiffy,
+        plot_file(f.name, channels=channels, bin_width=args.bin_width, override_jiffy=args.jiffy,
                   max_count=args.max_count, rows=args.rows, row_width=args.row_width)
 
         if args.output is not None:
