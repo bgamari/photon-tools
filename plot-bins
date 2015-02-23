@@ -10,7 +10,7 @@ from matplotlib.ticker import MaxNLocator
 from photon_tools.io import read_photons
 import photon_tools.bin_photons as bp
 
-colors = 'rgb'
+colors = pl.rcParams['axes.color_cycle']
 
 DataSet = namedtuple('DataSet', 'data,label')
 
