@@ -1,3 +1,6 @@
 [submodule "corr"]
 	path = corr
 	url = git://goldnerlab.physics.umass.edu/corr
+[submodule "squmfit"]
+	path = squmfit
+	url = git@github.com:bgamari/squmfit.git
