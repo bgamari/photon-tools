@@ -10,7 +10,7 @@ include picoharp/Makefile
 programs : ${PROGS}
 
 .PHONY : install
-install : ${PROGS}
+install : ${PROGS} install-squmfit
 	cp ${PROGS} ${DESTDIR}/bin
 
 .PHONY : clean
@@ -19,3 +19,8 @@ clean :
 
 readme.pdf : readme.mkd
 	pandoc $< -o $@
+
+.PHONY : install-squmfit
+install-squmfit :
+	cd squmfit
+	python setup.py install
