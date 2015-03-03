@@ -136,7 +136,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
 
     :type irfs: :class:`Aniso` of arrays
     :param irfs: Normalized IRF histograms
-    :type corrs: :class:`Aniso` of filenames
+    :type corrs: :class:`Aniso` of :class:`file`s
     :type exc_period: `float`
     :param exc_period: the approximate excitation period in bins
     :type n_components: `int`
@@ -183,8 +183,8 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             return corr
 
         # generate fluorescence decay model
-        par = read_histogram(corr.par)
-        perp = read_histogram(corr.perp)
+        par = read_histogram(corr.par.name)
+        perp = read_histogram(corr.perp.name)
         assert len(par) == len(perp)
 
         decay_models = []
@@ -221,13 +221,13 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
                   norm = 1,
                   offset = offset_par,
-                  name = corr.par+'_par',
+                  name = corr.par.name+'_par',
                   irf = irfs.par)
         add_curve(corr = perp,
                   rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
                   norm = imbalance,
                   offset = offset_perp,
-                  name = corr.perp+'_perp',
+                  name = corr.perp.name+'_perp',
                   irf = irfs.perp)
 
     return fit.fit(params0)
@@ -246,7 +246,7 @@ def print_params(p, corrs, ncomponents):
         print '    tau', 1/rate
 
     for pair_idx,pair in enumerate(corrs):
-        print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par, pair.perp)
+        print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par.name, pair.perp.name)
         leakage = 'c%d_leakage' % pair_idx
         if leakage in p:
             print '    leakage', '%1.2g' % p[leakage]
@@ -258,12 +258,12 @@ def print_params(p, corrs, ncomponents):
             print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (ampls[comp_idx], frac * 100)
 
 def main():
-    from argparse import ArgumentParser
+    import argparse
 
-    parser = ArgumentParser()
-    parser.add_argument('corr', metavar='FILE', nargs='+',
+    parser = argparse.ArgumentParser()
+    parser.add_argument('corr', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                         help="correlation function")
-    parser.add_argument('--irf', '-i', metavar='FILE', action='append',
+    parser.add_argument('--irf', '-i', metavar='FILE', action='append', type=argparse.FileType('r'),
                         help='instrument response function')
     parser.add_argument('--components', '-c', type=int, default=1,
                         help='number of fit components')
@@ -271,7 +271,7 @@ def main():
                         help='pulse repetition rate (Hertz)')
     parser.add_argument('--periods', '-p', type=int, default=1,
                         help='how many pulse periods we should fit to')
-    parser.add_argument('--output', '-o', type=str,
+    parser.add_argument('--output', '-o', type=argparse.FileType('w'),
                         help='where to send output')
     parser.add_argument('--no-offset', action='store_true',
                         help='do not fit temporal offset between data and IRF')
@@ -364,7 +364,7 @@ def main():
 
     color_cycle = pl.rcParams['axes.color_cycle']
     for pair_idx, aniso in enumerate(corrs):
-        for name, ch in [(aniso.par, 'par'), (aniso.perp, 'perp')]:
+        for name, ch in [(aniso.par.name, 'par'), (aniso.perp.name, 'perp')]:
             cres = res.curves['%s_%s' % (name, ch)]
             color = color_cycle[pair_idx % len(color_cycle)]
             times = jiffy * np.arange(cres.fit.shape[0])
