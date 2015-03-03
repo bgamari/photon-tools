@@ -42,7 +42,7 @@ def interpolate_irf(response, period, offset):
     shift = len(response) % period
     periodic_irf_f = interp1d(np.arange(len(response)), response,
                               assume_sorted=True)
-    ts = np.arange(10 * len(response)) + shift + offset
+    ts = np.arange(3 * len(response)) + shift + offset
     ts %= period
     # sometimes numerical error gives us values slightly outside
     # the interpolation range, be sure to clamp these
@@ -62,7 +62,7 @@ def convolved_model(response, model):
     """
     from scipy.signal import fftconvolve
     a = fftconvolve(response, model, 'same')
-    return a[0:len(model)]
+    return a[len(model) : 2*len(model)]
 
 def estimate_rep_rate(irf):
     """ Estimate excitation repetition rate (measured in bins) from IRF """
