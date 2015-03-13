@@ -5,3 +5,4 @@
 build
 *~
 photon_tools/*.c
+photon_tools/io/*.c

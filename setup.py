@@ -21,9 +21,10 @@ setup(name = 'photon-tools',
           'squmfit',
       ],
       ext_modules = cythonize([
-          'photon_tools/bin_photons.pyx',
-          'photon_tools/filter_photons.pyx',
-          'photon_tools/io/timetag_parse.pyx'
-      ], include_path=['photon_tools']),
+          Extension('photon_tools',['photon_tools/bin_photons.pyx',
+                                    'photon_tools/filter_photons.pyx',
+                                    'photon_tools/io/timetag_parse.pyx'],
+                      include_dirs=['photon_tools',np.get_include()])
+          ]
+      )
 )
-
