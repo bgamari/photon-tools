@@ -23,7 +23,8 @@ setup(name = 'photon-tools',
       ext_modules = cythonize([
           Extension('photon_tools',['photon_tools/bin_photons.pyx',
                                     'photon_tools/filter_photons.pyx',
-                                    'photon_tools/io/timetag_parse.pyx'])
+                                    'photon_tools/io/timetag_parse.pyx'],
+                                    include_dirs=[np.get_include()])
           ],
           include_path=['photon_tools'],
       )
