@@ -279,7 +279,7 @@ def main():
     parser.add_argument('--no-offset', action='store_true',
                         help='do not fit temporal offset between data and IRF')
     parser.add_argument('-j', '--jiffy', type=float,
-                        help='Bin width')
+                        help='Bin width in seconds')
     parser.add_argument('-e', '--exc-leakage', action='store_true',
                         help='Whether to model leakage of excitation into detection channels')
     parser.add_argument('--imbalance', '-g', type=float,
@@ -300,13 +300,12 @@ def main():
         jiffy_ps = args.jiffy / 1e-12
     else:
         jiffy_ps = (times[1] - times[0]) # in picoseconds
-    jiffy = jiffy_ps / 1000
 
     # Determine the pulse repetition rate
     if args.rep_rate is None:
         period = estimate_rep_rate(irfs.par)
     else:
-        period = int(1 / args.rep_rate / jiffy) # period in ticks
+        period = int(1e12 / args.rep_rate / jiffy_ps) # period in ticks
 
     print 'Period', period, 'bins'
     print 'Channel width', jiffy_ps, 'ps'
@@ -372,7 +371,7 @@ def main():
         for name, ch in [(aniso.par.name, 'par'), (aniso.perp.name, 'perp')]:
             cres = res.curves['%s_%s' % (name, ch)]
             color = color_cycle[pair_idx % len(color_cycle)]
-            times = jiffy * np.arange(cres.fit.shape[0])
+            times = 1000 * jiffy_ps * np.arange(cres.fit.shape[0])
             sym = '+' if ch == 'par' else 'x'
             label = name if ch == 'par' else None
             alpha = 0.1
