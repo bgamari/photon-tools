@@ -103,6 +103,8 @@ class Fit(object):
         Provides global fitting of the detector imbalance and channel offsets 
         using the lmfit package. The model calculates g and offsets for each dataset
         such that parallel channel = g * perpendicular channel (shifted by offset).
+        The fit will return the offsets measured in bins and the imbalance g is the
+        ratio of amplitudes of the parallel channel to the perpendicular channel.
         
         :type params: lmfit `Parameters` object
         :param params: Initially only containing parameter g, the detector imbalance
@@ -194,7 +196,11 @@ class Fit(object):
         pl.show()
 
     def fit(self):
-        """ Fit the model after initializing and adding at least one curve with self.add_curve. """
+        """
+        Fit the model after initializing and adding at least one curve with self.add_curve.
+
+        :rtype: lmfit `minimize` fit result
+        """
         from lmfit import minimize, report_errors
         result = minimize(self.residual, self._params, method='leastsq')
         self.print_redchis()
