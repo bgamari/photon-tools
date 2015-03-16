@@ -312,7 +312,7 @@ def main():
 
     res0, res = fit(irfs, corrs, jiffy_ps, period, args.components,
                     periods=args.periods, trim_end=5,
-                    exc_leakage=args.exc_leakage)
+                    exc_leakage=args.exc_leakage, imbalance=args.imbalance)
 
     # Present results
     print
