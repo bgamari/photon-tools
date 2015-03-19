@@ -129,6 +129,17 @@ class Fit(object):
         print 'Component %d par period: %.2f' % (len(self._anisos), period.par)
         print 'Component %d sen period: %.2f' % (len(self._anisos), period.sen)
 
+    def period(self):
+        """ Average period from all datasets and both channels """
+        period_sum = 0
+
+        for p in self._periods:
+            period_sum += p.par + p.sen
+           
+        period = period_sum/len(self._periods)/2
+
+        return period
+
     def unpack(self, params):
         """
         Unpack values and curves from params object.
@@ -201,6 +212,8 @@ class Fit(object):
 
         :rtype: lmfit `minimize` fit result
         """
+        print "Average period: %.2f" % self.period()
+        
         from lmfit import minimize, report_errors
         result = minimize(self.residual, self._params, method='leastsq')
         self.print_redchis()
@@ -208,23 +221,88 @@ class Fit(object):
         report_errors(result.params)
         self.print_gs()
         self.plot()
+       
         return result
 
-def fit(anisos):
+class Fit_Single_Offset(Fit):
+    def __init__(self, params):
+        """
+        Provides global fitting of the detector imbalance and a single global channel 
+        offset using the lmfit package. The model calculates g and an offset for all datasets
+        such that parallel channel = g * perpendicular channel (shifted by offset).
+        The fit will return the offset measured in bins and the imbalance g is the
+        ratio of amplitudes of the parallel channel to the perpendicular channel.
+        
+        :type params: lmfit `Parameters` object
+        :param params: Needs to contain a parameter `g` for the detector imbalance
+                       and a parameter `offset` for the offset between par and sen channels
+        """
+        self._params = params
+        self._anisos = []
+        self._offset_names = []
+        self._periods = []
+
+    def add_curve(self, aniso):
+        """
+        Add a dataset to be fit.
+
+        :type aniso: `Aniso` of histogram
+        :type offset_name: str
+        :param offset_name: Name of offset parameter in parameters object
+        """
+        self._anisos.append(aniso)
+        period = aniso.map(estimate_period)
+        self._periods.append(period)
+        print 'Component %d par period: %.2f' % (len(self._anisos), period.par)
+        print 'Component %d sen period: %.2f' % (len(self._anisos), period.sen)
+
+    def unpack(self, params):
+        """
+        Unpack values and curves from params object.
+
+        :rtype: tuple of (g, pars, sens, weights)
+        """
+        g = params['g'].value
+        offset = params['offset'].value
+        period = self.period()
+
+        pars, sens, weights = [], [], []
+        for aniso in self._anisos:
+            par, sen = interpolate(aniso.par, period), interpolate(aniso.sen, period, offset)
+            weight = 1./np.sqrt(par+sen)
+            pars.append(par)
+            sens.append(sen)
+            weights.append(weight)
+        return g, pars, sens, weights
+
+
+def fit(anisos, single_offset=False):
     """
     :type anisos: [`Aniso`] of histograms
     :params anisos: Fluorescence depolarization histograms
+    :params single_offset: Whether to fit a single offset or one offset per dataset
     """
     params = Parameters()
     params.add('g', 1)
-    fit = Fit(params)
 
-    for pair_idx, aniso in enumerate(anisos):
-        offset_name = 'offset%d' % pair_idx
-        params.add(offset_name,80)
-        fit.add_curve(aniso, offset_name)
+    if single_offset:
+        params.add('offset', 80)
+        fit = Fit_Single_Offset(params)
+      
+        for aniso in anisos:
+            fit.add_curve(aniso)
+       
+        return fit.fit()
 
-    return fit.fit()
+    else:
+        fit = Fit(params)
+
+        for pair_idx, aniso in enumerate(anisos):
+            offset_name = 'offset%d' % pair_idx
+            params.add(offset_name,80)
+            fit.add_curve(aniso, offset_name)
+
+        return fit.fit()
 
 def main():
     import argparse
@@ -233,6 +311,8 @@ def main():
                         help="correlation function")
     parser.add_argument('--rep-rate', '-r', type=float,
                         help='pulse repetition rate (Hertz)')
+    parser.add_argument('--single-offset', '-so', action='store_true',
+                        help='fit a single offset only')
     args = parser.parse_args()
 
     corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
@@ -242,7 +322,7 @@ def main():
 
     corrs = [aniso.map(lambda name: np.genfromtxt(name, names='time,counts')['counts']) for aniso in corrs]
     
-    result = fit(corrs)
+    result = fit(corrs, single_offset=args.single_offset)
     
 
 if __name__=='__main__':
