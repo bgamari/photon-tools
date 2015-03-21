@@ -36,7 +36,7 @@ def plot_file(fname, channels={0: 'Channel 0'},
                 jiffy = override_jiffy
             elif f.jiffy is not None and f.jiffy == jiffy:
                 jiffy = f.jiffy
-            elif f.jiffy is not None and f.jiffy != jiffy:
+            elif jiffy is not None and f.jiffy != jiffy:
                 raise RuntimeError("Incompatible jiffys")
 
             d = f.channel(chan)
