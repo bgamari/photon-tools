@@ -28,16 +28,15 @@ def plot_file(fname, channels={0: 'Channel 0'},
     :param kwargs: Keyword arguments passed to :func:`plot_bins`.
     """
     data_sets = []
-    jiffy = None
+    jiffy = override_jiffy
     for chan, label in channels.items():
         try:
             f = read_photons.open(fname)
-            if override_jiffy is not None:
-                jiffy = override_jiffy
-            elif f.jiffy is not None and f.jiffy == jiffy:
-                jiffy = f.jiffy
-            elif jiffy is not None and f.jiffy != jiffy:
-                raise RuntimeError("Incompatible jiffys")
+            if override_jiffy is None:
+                if jiffy is None:
+                    jiffy = f.jiffy
+                elif f.jiffy != jiffy:
+                    raise RuntimeError("Incompatible jiffys")
 
             d = f.channel(chan)
             if len(d) == 0:
