@@ -282,6 +282,8 @@ def main():
                         help='Bin width in seconds')
     parser.add_argument('-e', '--exc-leakage', action='store_true',
                         help='Whether to model leakage of excitation into detection channels')
+    parser.add_argument('-J', '--json', type=argparse.FileType('w'),
+                        help='JSON output file')
     parser.add_argument('--imbalance', '-g', type=float,
                         help='Fix detector imbalance factor g')
     args = parser.parse_args()
@@ -399,6 +401,10 @@ def main():
                  bbox_to_anchor=bbox,
                  bbox_transform=pl.gcf().transFigure,
                  mode='expand', fontsize='small', ncol=1, frameon=False)
+
+    if args.json is not None:
+        import json
+        json.dump(res.params, args.json)
 
     if args.output is not None:
         pl.savefig(args.output, figsize=(5,5), dpi=600)
