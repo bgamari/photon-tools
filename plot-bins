@@ -10,7 +10,7 @@ from matplotlib.ticker import MaxNLocator
 from photon_tools.io import read_photons
 import photon_tools.bin_photons as bp
 
-colors = 'rgb'
+colors = pl.rcParams['axes.color_cycle']
 
 DataSet = namedtuple('DataSet', 'data,label')
 
@@ -154,6 +154,10 @@ if __name__ == '__main__':
         pl.clf()
         plot_file(f.name, channels=channels, bin_width=args.bin_width, override_jiffy=args.jiffy,
                   max_count=args.max_count, rows=args.rows, row_width=args.row_width)
+
+        pl.subplot(args.rows, 1, 1)
+        pl.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                  ncol=4, mode="expand", borderaxespad=0.)
 
         if args.output is not None:
             pl.savefig(args.output.name)
