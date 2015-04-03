@@ -28,16 +28,11 @@ def plot_file(fname, channels={0: 'Channel 0'},
     :param kwargs: Keyword arguments passed to :func:`plot_bins`.
     """
     data_sets = []
-    jiffy = override_jiffy
+    f = read_photons.open(fname)
+    jiffy = override_jiffy if override_jiffy is None else f.jiffy
+
     for chan, label in channels.items():
         try:
-            f = read_photons.open(fname)
-            if override_jiffy is None:
-                if jiffy is None:
-                    jiffy = f.jiffy
-                elif f.jiffy != jiffy:
-                    raise RuntimeError("Incompatible jiffys")
-
             d = f.channel(chan)
             if len(d) == 0:
                 print 'Channel %d has no photons, ignoring' % chan
