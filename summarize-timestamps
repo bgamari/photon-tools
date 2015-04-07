@@ -26,7 +26,7 @@ for f in args.file:
         m, b, r, p, stderr = linregress(bins['start_t'], bins['count'])
 
         print '    channel %s: T=%1.1f seconds, N=%1.2e' % (c, dur, N)
-        print '        rate = %1.1f ± %1.1f Hz' % (N / dur, np.std(bins['count']))
+        print '        rate = %1.1f Hz, variance = %1.1f Hz²' % (N / dur, np.var(bins['count']))
         print '        dI/dt = %g ± %1.1g Hz / second' % (m / ts.jiffy, stderr / ts.jiffy)
 
     print

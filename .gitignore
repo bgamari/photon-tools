@@ -5,3 +5,6 @@
 build
 *~
 photon_tools/*.c
+photon_tools/io/*.c
+picoharp/dump_pt[2,3]
+picoharp/extract_pt2_timestamps

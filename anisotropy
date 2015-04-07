@@ -42,7 +42,7 @@ def interpolate_irf(response, period, offset):
     shift = len(response) % period
     periodic_irf_f = interp1d(np.arange(len(response)), response,
                               assume_sorted=True)
-    ts = np.arange(10 * len(response)) + shift + offset
+    ts = np.arange(3 * len(response)) + shift + offset
     ts %= period
     # sometimes numerical error gives us values slightly outside
     # the interpolation range, be sure to clamp these
@@ -62,7 +62,7 @@ def convolved_model(response, model):
     """
     from scipy.signal import fftconvolve
     a = fftconvolve(response, model, 'same')
-    return a[0:len(model)]
+    return a[len(model) : 2*len(model)]
 
 def estimate_rep_rate(irf):
     """ Estimate excitation repetition rate (measured in bins) from IRF """
@@ -130,13 +130,13 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
 
 def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             params0=None, free_period=False, trim_end=0,
-            exc_leakage=False):
+            exc_leakage=False, imbalance=None):
     """
     Fit a set of anisotropy data with the given IRF and model
 
     :type irfs: :class:`Aniso` of arrays
     :param irfs: Normalized IRF histograms
-    :type corrs: :class:`Aniso` of filenames
+    :type corrs: :class:`Aniso` of :class:`file`s
     :type exc_period: `float`
     :param exc_period: the approximate excitation period in bins
     :type n_components: `int`
@@ -151,8 +151,10 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
        This is to work around the spurious bins with low counts near the end of
        histograms produced by the Picoharp 300.
     :type exc_leakage: `bool`
-    :param exc_leakage: Whether to include leakage of the excitation
-       (modelled by the IRF) in the detection model.
+    :param exc_leakage: Whether to include leakage of the excitation (modelled by
+       the IRF) in the detection model.
+    :type imbalance: `float` or None
+    :param imbalance: Fix detector imbalance factor g
     :type indep_aniso: `bool`
     :param indep_aniso: Whether to fit a different rotational
        coherence time for each curve.
@@ -173,9 +175,11 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
 
     # Parameters for anisotropy model
     r0 = fit.param('r0', initial=0.4)
+    rate_rot = fit.param('lambda_rot', initial=1/100)
+    if imbalance is None:
+        imbalance = fit.param('g', initial=1)
     if not indep_aniso:
         rate_rot = fit.param('lambda_rot', initial=1/100)
-    imbalance = fit.param('g', initial=1)
 
     for pair_idx,corr in enumerate(corrs):
         if indep_aniso:
@@ -190,8 +194,8 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             return corr
 
         # generate fluorescence decay model
-        par = read_histogram(corr.par)
-        perp = read_histogram(corr.perp)
+        par = read_histogram(corr.par.name)
+        perp = read_histogram(corr.perp.name)
         assert len(par) == len(perp)
 
         decay_models = []
@@ -228,13 +232,13 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-rate_rot * times),
                   norm = 1,
                   offset = offset_par,
-                  name = corr.par+'_par',
+                  name = corr.par.name+'_par',
                   irf = irfs.par)
         add_curve(corr = perp,
                   rot_model = lambda times: 1 - r0 * np.exp(-rate_rot * times),
                   norm = imbalance,
                   offset = offset_perp,
-                  name = corr.perp+'_perp',
+                  name = corr.perp.name+'_perp',
                   irf = irfs.perp)
 
     return fit.fit(params0)
@@ -243,7 +247,7 @@ def print_params(p, corrs, ncomponents):
     print '  irf period', p['period']
     print '  irf offset (parallel)', p['offset-par']
     print '  irf offset (perpendicular)', p['offset-perp']
-    print '  g', p['g']
+    if 'g' in p: print '  g', p['g']
     print '  r0', p['r0']
     if 'lambda_rot' in p:
         print '  tau_rot', 1/p['lambda_rot']
@@ -254,7 +258,7 @@ def print_params(p, corrs, ncomponents):
         print '    tau', 1/rate
 
     for pair_idx,pair in enumerate(corrs):
-        print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par, pair.perp)
+        print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par.name, pair.perp.name)
         leakage = 'c%d_leakage' % pair_idx
         if leakage in p:
             print '    leakage', '%1.2g' % p[leakage]
@@ -269,12 +273,12 @@ def print_params(p, corrs, ncomponents):
             print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (ampls[comp_idx], frac * 100)
 
 def main():
-    from argparse import ArgumentParser
+    import argparse
 
-    parser = ArgumentParser()
-    parser.add_argument('corr', metavar='FILE', nargs='+',
+    parser = argparse.ArgumentParser()
+    parser.add_argument('corr', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                         help="correlation function")
-    parser.add_argument('--irf', '-i', metavar='FILE', action='append',
+    parser.add_argument('--irf', '-i', metavar='FILE', action='append', type=argparse.FileType('r'),
                         help='instrument response function')
     parser.add_argument('--components', '-c', type=int, default=1,
                         help='number of fit components')
@@ -282,14 +286,18 @@ def main():
                         help='pulse repetition rate (Hertz)')
     parser.add_argument('--periods', '-p', type=int, default=1,
                         help='how many pulse periods we should fit to')
-    parser.add_argument('--output', '-o', type=str,
+    parser.add_argument('--output', '-o', type=argparse.FileType('w'),
                         help='where to send output')
     parser.add_argument('--no-offset', action='store_true',
                         help='do not fit temporal offset between data and IRF')
     parser.add_argument('-j', '--jiffy', type=float,
-                        help='Bin width')
+                        help='Bin width in seconds')
     parser.add_argument('-e', '--exc-leakage', action='store_true',
                         help='Whether to model leakage of excitation into detection channels')
+    parser.add_argument('-J', '--json', type=argparse.FileType('w'),
+                        help='JSON output file')
+    parser.add_argument('--imbalance', '-g', type=float,
+                        help='Fix detector imbalance factor g')
     parser.add_argument('-A', '--indep-aniso',
                         help='Fit against a single global rotational coherence time')
     args = parser.parse_args()
@@ -308,13 +316,12 @@ def main():
         jiffy_ps = args.jiffy / 1e-12
     else:
         jiffy_ps = (times[1] - times[0]) # in picoseconds
-    jiffy = jiffy_ps / 1000
 
     # Determine the pulse repetition rate
     if args.rep_rate is None:
         period = estimate_rep_rate(irfs.par)
     else:
-        period = int(1 / args.rep_rate / jiffy) # period in ticks
+        period = int(1e12 / args.rep_rate / jiffy_ps) # period in ticks
 
     print 'Period', period, 'bins'
     print 'Channel width', jiffy_ps, 'ps'
@@ -322,6 +329,7 @@ def main():
     res0, res = fit(irfs, corrs, jiffy_ps, period, args.components,
                     periods=args.periods, trim_end=5,
                     exc_leakage=args.exc_leakage,
+                    imbalance=args.imbalance,
                     indep_aniso=args.indep_aniso)
 
     # Present results
@@ -378,17 +386,17 @@ def main():
 
     color_cycle = pl.rcParams['axes.color_cycle']
     for pair_idx, aniso in enumerate(corrs):
-        for name, ch in [(aniso.par, 'par'), (aniso.perp, 'perp')]:
+        for name, ch in [(aniso.par.name, 'par'), (aniso.perp.name, 'perp')]:
             cres = res.curves['%s_%s' % (name, ch)]
             color = color_cycle[pair_idx % len(color_cycle)]
-            times = jiffy * np.arange(cres.fit.shape[0])
+            times = 1000 * jiffy_ps * np.arange(cres.fit.shape[0])
             sym = '+' if ch == 'par' else 'x'
             label = name if ch == 'par' else None
             alpha = 0.1
             kwargs = {'color': color, 'markersize': 1.5}
             plots.plot(times, cres.curve.data, sym, alpha=alpha, **kwargs)
             plots.plot(times, cres.fit, label=label, alpha=0.6, **kwargs)
-            residuals.plot(times, cres.residuals, sym, alpha=alpha, **kwargs)
+            residuals.plot(times, cres.residuals, sym, alpha=alpha/3, **kwargs)
 
     plots.set_ylabel('number of occurences')
     residuals.set_ylabel('residual')
@@ -409,6 +417,10 @@ def main():
                  bbox_to_anchor=bbox,
                  bbox_transform=pl.gcf().transFigure,
                  mode='expand', fontsize='small', ncol=1, frameon=False)
+
+    if args.json is not None:
+        import json
+        json.dump(res.params, args.json)
 
     if args.output is not None:
         pl.savefig(args.output, figsize=(5,5), dpi=600)

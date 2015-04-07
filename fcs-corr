@@ -15,25 +15,13 @@ try:
     import matplotlib
     matplotlib.use('Agg')
     from matplotlib import pyplot as pl
+    from matplotlib import cm
     mpl_available = True
 except:
     mpl_available = False
 
 verbose = False
 
-def plot_corr(corrs, output=None):
-    if not mpl_available:
-        raise RuntimeError('Matplotlib import failed, plotting not available')
-    pl.clf()
-    pl.xscale('log')
-    for corr in corrs:
-        pl.errorbar(corr['lag'], corr['G'], yerr=np.sqrt(corr['var']), fmt='.')
-    pl.axhline(1, color='0.7')
-    pl.xlabel('Lag (s)')
-    pl.ylabel('Correlation')
-    if output is not None:
-        pl.savefig(output)
-    
 parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps',
                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
@@ -42,7 +30,7 @@ parser.add_argument('-a', '--a-channel', type=int, default=0,
                     help='Channel to run correlate')
 parser.add_argument('-b', '--b-channel', type=int, default=1,
                     help='Channel to run correlate')
-parser.add_argument('-E', '--min-lag', type=float, default=1e-7,
+parser.add_argument('-E', '--min-lag', type=float, default=5e-7,
                     help='Smallest lag to compute')
 parser.add_argument('-L', '--max-lag', type=float, default=1,
                     help='Longest lag to compute')
@@ -210,11 +198,6 @@ for file in args.files:
             c,chunks = corr_chunks(ad, bd, n=nchunks, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
-            if args.plot_chunks:
-                plot_corr([np.rec.fromarrays([c['lag'], chunks[i,:], np.zeros(c.shape)],
-                                             names='lag,G,var')
-                           for i in range(chunks.shape[0])],
-                          output_base+'.chunks.'+args.plot_type)
         else:
             c = corr(ad, bd, **kwargs)
 
@@ -238,5 +221,19 @@ for file in args.files:
                 np.savetxt(f, c)
 
         if args.plot:
-            plot_corr([c], output_base+'.'+args.plot_type)
+            if not mpl_available:
+                raise RuntimeError('Matplotlib import failed, plotting not available')
+            pl.clf()
+            pl.xscale('log')
+            pl.xlabel('Lag (s)')
+            pl.ylabel('Correlation')
+            pl.axhline(1, color='0.7')
+            if args.plot_chunks:
+                for i in range(chunks.shape[0]):
+                    pl.scatter(c['lag'], chunks[i,:], marker='+', alpha=0.6,
+                               color='%f' % (0.3 + i * 0.7 / chunks.shape[0]))
+                pl.scatter(c['lag'], np.mean(chunks, axis=0), marker='+', color='k')
+
+            pl.errorbar(c['lag'], c['G'], yerr=np.sqrt(c['var']), fmt='+')
+            pl.savefig(output_base+'.'+args.plot_type)
 

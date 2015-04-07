@@ -13,7 +13,7 @@ setup(name = 'photon-tools',
       version = '1.0',
       packages = ['photon_tools', 'photon_tools.io', 'photon_tools.correlate'],
       scripts = ['bin_photons', 'fcs-fit', 'fcs-corr', 'plot-fret', 'plot-bins', 'lifetime-deconvolve',
-                 'trim-stamps', 'anisotropy', 'fcs-mem', 'summarize-timestamps'],
+                 'trim-stamps', 'anisotropy', 'fcs-mem', 'summarize-timestamps', 'imbalance'],
       license = 'GPLv3',
       install_requires=[
           'numpy',
@@ -21,9 +21,11 @@ setup(name = 'photon-tools',
           'squmfit',
       ],
       ext_modules = cythonize([
-          'photon_tools/bin_photons.pyx',
-          'photon_tools/filter_photons.pyx',
-          'photon_tools/io/timetag_parse.pyx'
-      ], include_path=['photon_tools']),
+          Extension('photon_tools',['photon_tools/bin_photons.pyx',
+                                    'photon_tools/filter_photons.pyx',
+                                    'photon_tools/io/timetag_parse.pyx'],
+                                    include_dirs=[np.get_include()])
+          ],
+          include_path=['photon_tools'],
+      )
 )
-

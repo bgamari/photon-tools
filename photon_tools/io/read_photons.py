@@ -1,7 +1,7 @@
 import os
 import warnings
 import numpy as np
-from photon_tools import timetag_parse, pt2_parse, metadata
+from photon_tools.io import timetag_parse, pt2_parse, metadata
 
 def verify_monotonic(times, filename):
     """ Verify that timestamps are monotonically increasing """

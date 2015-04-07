@@ -83,7 +83,10 @@ def main():
     pl.axhline(0, c='k')
     pl.xlabel(r'$\tau$ (microseconds)')
     pl.ylabel(r'$G(\tau)$')
-    pl.show()
+    if args.output is None:
+        pl.show()
+    else:
+        pl.savefig(args.output)
 
 if __name__ == '__main__':
     main()
