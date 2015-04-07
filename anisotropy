@@ -151,8 +151,11 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
        This is to work around the spurious bins with low counts near the end of
        histograms produced by the Picoharp 300.
     :type exc_leakage: `bool`
-    :param exc_leakage: Whether to include leakage of the excitation (modelled by
-       the IRF) in the detection model.
+    :param exc_leakage: Whether to include leakage of the excitation
+       (modelled by the IRF) in the detection model.
+    :type indep_aniso: `bool`
+    :param indep_aniso: Whether to fit a different rotational
+       coherence time for each curve.
     """
     fit = Fit()
     lag = Argument('t')
@@ -170,10 +173,14 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
 
     # Parameters for anisotropy model
     r0 = fit.param('r0', initial=0.4)
-    rate_rot = fit.param('lambda_rot', initial=1/100)
+    if not indep_aniso:
+        rate_rot = fit.param('lambda_rot', initial=1/100)
     imbalance = fit.param('g', initial=1)
 
     for pair_idx,corr in enumerate(corrs):
+        if indep_aniso:
+            rate_rot = fit.param('lambda_rot%d' % pair_idx, initial=1/100)
+
         def read_histogram(path):
             # read histogram
             corr = np.genfromtxt(path)[:,1]
@@ -238,7 +245,8 @@ def print_params(p, corrs, ncomponents):
     print '  irf offset (perpendicular)', p['offset-perp']
     print '  g', p['g']
     print '  r0', p['r0']
-    print '  tau_rot', 1/p['lambda_rot']
+    if 'lambda_rot' in p:
+        print '  tau_rot', 1/p['lambda_rot']
 
     for comp_idx in range(ncomponents):
         rate = p['lambda%d' % comp_idx]
@@ -250,6 +258,9 @@ def print_params(p, corrs, ncomponents):
         leakage = 'c%d_leakage' % pair_idx
         if leakage in p:
             print '    leakage', '%1.2g' % p[leakage]
+        if ('lambda_rot%d' % pair_idx) in p:
+            print '    tau_rot', 1/p['lambda_rot%d' % pair_idx]
+
         ampls = [ p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
                   for comp_idx in range(ncomponents) ]
         for comp_idx in range(ncomponents):
@@ -279,6 +290,8 @@ def main():
                         help='Bin width')
     parser.add_argument('-e', '--exc-leakage', action='store_true',
                         help='Whether to model leakage of excitation into detection channels')
+    parser.add_argument('-A', '--indep-aniso',
+                        help='Fit against a single global rotational coherence time')
     args = parser.parse_args()
 
     corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
@@ -308,7 +321,8 @@ def main():
 
     res0, res = fit(irfs, corrs, jiffy_ps, period, args.components,
                     periods=args.periods, trim_end=5,
-                    exc_leakage=args.exc_leakage)
+                    exc_leakage=args.exc_leakage,
+                    indep_aniso=args.indep_aniso)
 
     # Present results
     print
