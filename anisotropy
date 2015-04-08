@@ -130,7 +130,7 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
 
 def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             params0=None, free_period=False, trim_end=0,
-            exc_leakage=False, imbalance=None):
+            exc_leakage=False, imbalance=None, indep_aniso=False):
     """
     Fit a set of anisotropy data with the given IRF and model
 
