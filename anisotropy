@@ -298,7 +298,7 @@ def main():
     parser.add_argument('--imbalance', '-g', type=float,
                         help='Fix detector imbalance factor g')
     parser.add_argument('-A', '--indep-aniso',
-                        help='Fit against a single global rotational coherence time')
+                        help='Fit per-dataset rotational coherence models')
     args = parser.parse_args()
 
     corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
