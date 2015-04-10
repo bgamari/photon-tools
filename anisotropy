@@ -197,7 +197,6 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
         decay_models = []
         initial_amp = np.max(par) / np.sum(par)
         for comp_idx, rate in enumerate(rates):
-            times = jiffy_ps * np.arange(par.shape[0])
             amp = fit.param('c%d_amplitude%d' % (pair_idx, comp_idx), initial=initial_amp)
             decay_models.append(exponential(t=lag, rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
