@@ -95,10 +95,7 @@ def normalize_irfs(irfs):
     irfs = irfs.map(background_subtract)
 
     # Fix normalization of IRF
-    # We need to take care to preserve the relative magnitude of the
-    # perpendicular/parallel IRFs
-    norm = sum(irfs.par)
-    return irfs.map(lambda x: x / norm)
+    return irfs.map(lambda x: x / sum(x))
 
 def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     """
