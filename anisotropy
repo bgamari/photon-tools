@@ -388,7 +388,7 @@ def main():
         for name, ch in [(aniso.par.name, 'par'), (aniso.perp.name, 'perp')]:
             cres = res.curves['%s_%s' % (name, ch)]
             color = color_cycle[pair_idx % len(color_cycle)]
-            times = 1000 * jiffy_ps * np.arange(cres.fit.shape[0])
+            times = jiffy_ps / 1000 * np.arange(cres.fit.shape[0])
             sym = '+' if ch == 'par' else 'x'
             label = name if ch == 'par' else None
             alpha = 0.1
