@@ -277,6 +277,34 @@ def print_params(p, corrs, ncomponents):
             frac = ampls[comp_idx] / sum(ampls)
             print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (ampls[comp_idx], frac * 100)
 
+def gen_json(p, corrs, ncomponents):
+    out = {}
+    out['period'] = p.get('period')
+    out['offset-par'] = p.get('offset-par')
+    out['offset-perp'] = p.get('offset-perp')
+    out['g'] = p.get('g')
+    out['r0'] = p.get('r0')
+    out['tau-rot'] = p.get('tau-rot')
+
+    out['components'] = []
+    for comp_idx in range(ncomponents):
+        rate = p['lambda%d' % comp_idx]
+        out['components'].append({
+            'tau': 1/rate
+        })
+
+    out['curves'] = []
+    for pair_idx,pair in enumerate(corrs):
+        ampls = [ p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
+                  for comp_idx in range(ncomponents) ]
+        out['curves'].append({
+            'files': {'par': pair.par.name, 'perp': pair.perp.name},
+            'leakage': p.get('leakage'),
+            'tau_rot': p.get('tau_rot%d' % pair_idx),
+            'ampls': ampls,
+        })
+    return out
+
 def main():
     import argparse
 
@@ -446,7 +474,7 @@ def main():
 
     if args.json is not None:
         import json
-        json.dump(res.params, args.json)
+        json.dump(gen_json(res.params, corrs, args.components), args.json, indent=4)
 
     if args.output is not None:
         pl.savefig(args.output, figsize=(5,5), dpi=600)
