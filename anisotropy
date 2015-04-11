@@ -422,12 +422,13 @@ def main():
         axes.axhline(0, color='k')
         pl.setp(axes.get_xticklabels(), visible=False)
         if args.sep_resid:
-            axes.locator_params(nbins=3)
+            axes.locator_params(nbins=2)
 
-    residuals.values()[0].set_ylabel('residual')
+    residuals.values()[len(corrs)//2].set_ylabel('residual')
     residuals.values()[len(corrs)-1].set_xlabel('time (ns)')
     pl.setp(residuals.values()[len(corrs)-1].get_xticklabels(), visible=True)
     plots.set_yscale('log')
+    pl.setp(plots.get_xticklabels(), visible=False)
 
     import matplotlib.lines as mlines
     handles, labels = plots.get_legend_handles_labels()
