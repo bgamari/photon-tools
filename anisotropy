@@ -422,7 +422,7 @@ def main():
         axes.axhline(0, color='k')
         pl.setp(axes.get_xticklabels(), visible=False)
         if args.sep_resid:
-            axes.locator_params(nbins=2)
+            axes.locator_params(axis='y', nbins=2)
 
     residuals.values()[len(corrs)//2].set_ylabel('residual')
     residuals.values()[len(corrs)-1].set_xlabel('time (ns)')
