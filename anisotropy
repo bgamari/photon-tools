@@ -23,18 +23,20 @@ def exponential(t, rate, amplitude):
     return amplitude * np.exp(-t * rate)
 
 @model
-def interpolate_irf(response, period, offset):
+def interpolate_irf(response, period, offset, periods=1):
     """
     An instrument response function which is interpolated and
     (possibly) shifted in time.
 
-    Evaluates to an array of the same shape as `response`.
+    Evaluates to an array of the same shape as `response` times `periods`.
 
     :type response: array of shape (N,)
     :param response: Instrument response
     :param period: The period of the instrument response
     :param offset: The temporal offset between the response and
         the measured curve (in bins)
+    :type periods: int
+    :param periods: The number of periods to produce
     """
 
     from scipy.interpolate import interp1d
@@ -42,13 +44,13 @@ def interpolate_irf(response, period, offset):
     shift = len(response) % period
     periodic_irf_f = interp1d(np.arange(len(response)), response,
                               assume_sorted=True)
-    ts = np.arange(3 * len(response)) + shift + offset
+    ts = np.arange(3 * periods * len(response)) + shift + offset
     ts %= period
     # sometimes numerical error gives us values slightly outside
     # the interpolation range, be sure to clamp these
     ts = np.clip(ts, a_min=0, a_max = len(response) - 1)
     interpolated_irf = periodic_irf_f(ts)
-    return interpolated_irf
+    return interpolated_irf[:periods * len(response)]
 
 @model
 def convolved_model(response, model):
@@ -62,7 +64,7 @@ def convolved_model(response, model):
     """
     from scipy.signal import fftconvolve
     a = fftconvolve(response, model, 'same')
-    return a[len(model) : 2*len(model)]
+    return a
 
 def estimate_rep_rate(irf):
     """ Estimate excitation repetition rate (measured in bins) from IRF """
@@ -210,7 +212,7 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             leakage = fit.param('c%d_leakage' % pair_idx, initial=0.1)
 
         def add_curve(corr, name, rot_model, offset, norm, irf):
-            times = jiffy_ps * np.arange(corr.shape[0])
+            times = jiffy_ps * np.arange(10*corr.shape[0])
 
             # generate weights
             weights = np.zeros_like(corr)
@@ -219,12 +221,14 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             # generate model
             iirf = interpolate_irf(response=irf,
                                    period=period if free_period else exc_period,
-                                   offset=offset)
+                                   offset=offset,
+                                   periods=10)
             convolved = convolved_model(response=iirf, model=decay_model * rot_model(times))
             model = norm * convolved
             if leakage != 0:
                 model = model + leakage * iirf.map(lambda a: a[:len(corr)])
-            fit.add_curve(name, np.sum(corr) * model, corr, weights=weights, t=times)
+
+            fit.add_curve(name, np.sum(corr) * model[:len(corr)], corr, weights=weights, t=times)
 
         add_curve(corr = par,
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-1 / tau_rot * times),
