@@ -174,68 +174,12 @@ def main():
     else:
         print "  Failed to compute due to flat axis"
 
-    import matplotlib.gridspec as gridspec
-    if args.sep_resid:
-        ncurves = len(corrs)
-        gs = gridspec.GridSpec(1 + ncurves, 2,
-                               width_ratios=[3,1],
-                               height_ratios=[4] + [1]*ncurves)
-    else:
-        gs = gridspec.GridSpec(2, 2, width_ratios=[3,1], height_ratios=[3,1])
-
-    plots = pl.subplot(gs[0, 0])
-    legend = gs[0:1, 1]
-    if args.sep_resid:
-        residuals = {pair_idx: pl.subplot(gs[1+pair_idx, 0]) for pair_idx,_ in enumerate(corrs)}
-    else:
-        resid = pl.subplot(gs[1, 0])
-        residuals = {pair_idx: resid for pair_idx,_ in enumerate(corrs)}
-
-    color_cycle = pl.rcParams['axes.color_cycle']
-    for pair_idx, aniso in enumerate(corrs):
-        for name, ch in [(aniso.par.name, 'par'), (aniso.perp.name, 'perp')]:
-            cres = res.curves['%s_%s' % (name, ch)]
-            color = color_cycle[pair_idx % len(color_cycle)]
-            times = jiffy_ps / 1000 * np.arange(cres.fit.shape[0])
-            sym = '+' if ch == 'par' else 'x'
-            label = name if ch == 'par' else None
-            alpha = 0.1
-            kwargs = {'color': color, 'markersize': 1.5}
-            plots.plot(times, cres.curve.data, sym, alpha=alpha, **kwargs)
-            plots.plot(times, cres.fit, label=label, alpha=0.6, **kwargs)
-            residuals[pair_idx].plot(times, cres.residuals, sym, alpha=alpha/3, **kwargs)
-
-    plots.set_ylabel('number of occurences')
-    for k,axes in residuals.items():
-        axes.axhline(0, color='k')
-        pl.setp(axes.get_xticklabels(), visible=False)
-        if args.sep_resid:
-            axes.locator_params(axis='y', nbins=2)
-
-    residuals.values()[len(corrs)//2].set_ylabel('residual')
-    residuals.values()[len(corrs)-1].set_xlabel('time (ns)')
-    pl.setp(residuals.values()[len(corrs)-1].get_xticklabels(), visible=True)
-    plots.set_yscale('log')
-    pl.setp(plots.get_xticklabels(), visible=False)
-
-    import matplotlib.lines as mlines
-    handles, labels = plots.get_legend_handles_labels()
-    handles = [
-        mlines.Line2D([], [], color='k', label='fit'),
-        mlines.Line2D([], [], color='k', marker='+', label='parallel'),
-        mlines.Line2D([], [], color='k', marker='x', label='perpendicular'),
-        mlines.Line2D([], [], alpha=0, label=''),  # Spacer
-    ] + handles
-    bbox = legend.get_position(pl.gcf())
-    plots.legend(handles=handles, loc='upper left',
-                 bbox_to_anchor=bbox,
-                 bbox_transform=pl.gcf().transFigure,
-                 mode='expand', fontsize='small', ncol=1, frameon=False)
-
     if args.json is not None:
         import json
         json.dump(gen_json(res.params, corrs, args.components), args.json, indent=4)
 
+    fig = pl.figure()
+    plot(fig, corrs, result=res, jiffy_ps=jiffy_ps, sep_resid=args.sep_resid)
     if args.output is not None:
         pl.savefig(args.output, figsize=(5,5), dpi=600)
     else:
