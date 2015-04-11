@@ -127,7 +127,8 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
 
 def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
             params0=None, free_period=False, trim_end=0,
-            exc_leakage=False, imbalance=None, indep_aniso=False):
+            exc_leakage=False, imbalance=None, indep_aniso=False,
+            no_offset=False):
     """
     Fit a set of anisotropy data with the given IRF and model
 
@@ -155,12 +156,14 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
     :type indep_aniso: `bool`
     :param indep_aniso: Whether to fit a different rotational
        coherence time for each curve.
+    :type no_offset: `bool`
+    :param no_offset: Disable fitting of temporal offset between IRF and fluorescence curve.
     """
     fit = Fit()
     lag = Argument('t')
 
-    offset_par = fit.param('offset-par', 0)
-    offset_perp = fit.param('offset-perp', 0)
+    offset_par = 0 if no_offset else fit.param('offset-par', 0)
+    offset_perp = 0 if no_offset else fit.param('offset-perp', 0)
     period = fit.param('period', exc_period)
 
     # Build decay model
@@ -239,9 +242,12 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
     return fit.fit(params0)
 
 def print_params(p, corrs, ncomponents):
-    print '  irf period', p['period']
-    print '  irf offset (parallel)', p['offset-par']
-    print '  irf offset (perpendicular)', p['offset-perp']
+    if 'period' in p:
+        print '  irf period', p['period']
+    if 'offset_par' in p:
+        print '  irf offset (parallel)', p['offset-par']
+    if 'offset_perp' in p:
+        print '  irf offset (perpendicular)', p['offset-perp']
     if 'g' in p: print '  g', p['g']
     print '  r0', p['r0']
     if 'tau_rot' in p:
@@ -324,6 +330,7 @@ def main():
     print 'Channel width', jiffy_ps, 'ps'
 
     res0, res = fit(irfs, corrs, jiffy_ps, period, args.components,
+                    no_offset=args.no_offset,
                     periods=args.periods, trim_end=5,
                     exc_leakage=args.exc_leakage,
                     imbalance=args.imbalance,
