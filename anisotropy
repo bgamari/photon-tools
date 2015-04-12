@@ -135,15 +135,6 @@ def main():
                                         read_hist(b)['counts'][:n-trim]))
              for a,b in zip(args.corr[::2], args.corr[1::2])]
 
-    if False:
-        for c in corrs:
-            pl.plot(c.irf.par)
-            pl.plot(c.irf.perp)
-            pl.plot(c.decay.par)
-            pl.plot(c.decay.perp)
-            pl.yscale('log')
-            pl.show()
-
     res0, res = fit(corrs, jiffy_ps, period, args.components,
                     no_offset=args.no_offset,
                     periods=args.periods,
