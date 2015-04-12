@@ -8,9 +8,9 @@ from photon_tools.anisotropy import *
 def print_params(p, corrs, ncomponents):
     if 'period' in p:
         print '  irf period', p['period']
-    if 'offset_par' in p:
+    if 'offset-par' in p:
         print '  irf offset (parallel)', p['offset-par']
-    if 'offset_perp' in p:
+    if 'offset-perp' in p:
         print '  irf offset (perpendicular)', p['offset-perp']
     if 'g' in p: print '  g', p['g']
     print '  r0', p['r0']
@@ -23,14 +23,14 @@ def print_params(p, corrs, ncomponents):
         print '    tau', 1/rate
 
     for pair_idx,pair in enumerate(corrs):
-        print '  Sample %d (par=%s, perp=%s)' % (pair_idx, pair.par.name, pair.perp.name)
-        leakage = 'c%d_leakage' % pair_idx
+        print '  Pair %d (par=%s, perp=%s)' % (pair_idx, pair.name, pair.name)
+        leakage = '%s_leakage' % pair.name
         if leakage in p:
             print '    leakage', '%1.2g' % p[leakage]
         if ('tau_rot%d' % pair_idx) in p:
             print '    tau_rot', p['tau_rot%d' % pair_idx]
 
-        ampls = [ p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
+        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / rate
                   for comp_idx in range(ncomponents) ]
         for comp_idx in range(ncomponents):
             rate = p['lambda%d' % comp_idx]
@@ -55,12 +55,11 @@ def gen_json(p, corrs, ncomponents):
 
     out['curves'] = []
     for pair_idx,pair in enumerate(corrs):
-        ampls = [ p['c%d_amplitude%d' % (pair_idx, comp_idx)] / rate
+        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / rate
                   for comp_idx in range(ncomponents) ]
         out['curves'].append({
-            'files': {'par': pair.par.name, 'perp': pair.perp.name},
             'leakage': p.get('leakage'),
-            'tau_rot': p.get('tau_rot%d' % pair_idx),
+            'tau_rot': p.get('%s_tau_rot' % pair.name),
             'ampls': ampls,
         })
     return out
@@ -97,14 +96,15 @@ def main():
                         help='Plot residuals on separate per-dataset axes')
     args = parser.parse_args()
 
-    corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
+    def read_hist(fname):
+        return np.genfromtxt(fname, dtype=None, names='time,counts')
 
-    irfs = [np.genfromtxt(irf, dtype=None, names='time,counts') for irf in args.irf]
+    # Read IRF
+    irfs = [read_hist(irf) for irf in args.irf]
     if len(irfs) != 2:
         raise RuntimeError('Expected two IRFs')
     times = irfs[0]['time']
-    irfs = [irf['counts'] for irf in irfs]
-    irfs = normalize_irfs(Aniso(irfs[0], irfs[1]))
+    irfs = Aniso(irfs[0]['counts'], irfs[1]['counts'])
 
     # Determine the channel width (jiffy)
     if args.jiffy is not None:
@@ -120,10 +120,33 @@ def main():
 
     print 'Period', period, 'bins'
     print 'Channel width', jiffy_ps, 'ps'
+    print 'Total decay length', args.periods * period, 'bins'
 
-    res0, res = fit(irfs, corrs, jiffy_ps, period, args.components,
+    # Trim curves to desired length
+    trim = 0
+    n = args.periods * period
+    irfs = irfs.map(lambda x: x[:n-trim])
+
+    # Normalize IRF
+    irfs = normalize_irfs(irfs)
+
+    # Read fluorescence decays
+    corrs = [FitSet(a.name, irfs, Aniso(read_hist(a)['counts'][:n-trim],
+                                        read_hist(b)['counts'][:n-trim]))
+             for a,b in zip(args.corr[::2], args.corr[1::2])]
+
+    if False:
+        for c in corrs:
+            pl.plot(c.irf.par)
+            pl.plot(c.irf.perp)
+            pl.plot(c.decay.par)
+            pl.plot(c.decay.perp)
+            pl.yscale('log')
+            pl.show()
+
+    res0, res = fit(corrs, jiffy_ps, period, args.components,
                     no_offset=args.no_offset,
-                    periods=args.periods, trim_end=5,
+                    periods=args.periods,
                     exc_leakage=args.exc_leakage,
                     imbalance=args.imbalance,
                     indep_aniso=args.indep_aniso)

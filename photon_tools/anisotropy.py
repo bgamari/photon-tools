@@ -11,13 +11,26 @@ def make_map(type):
     setattr(type, "map", map)
 
 class Aniso(object):
-    """ Anisotropy detection channels """
+    """ A pair of anisotropy detection channels """
     def __init__(self, par, perp):
         self.par = par
         self.perp = perp
 
     def map(self, f):
         return Aniso(f(self.par), f(self.perp))
+
+class FitSet(object):
+    """ A pair of anisotropy decay curves along with their IRF """
+    def __init__(self, name, irf, decay):
+        """
+        :type name: str
+        :type irf: :class:`Aniso`
+        :param irf: normalized IRF histogram
+        :type decay: :class:`Aniso`
+        """
+        self.name = name
+        self.irf = irf
+        self.decay = decay
 
 @model
 def exponential(t, rate, amplitude):
@@ -65,12 +78,27 @@ def convolved_model(response, model):
     :type model: :class:`squmfit.Expr`
     :param model: The model we are trying to evaluate
     """
-    from scipy.signal import fftconvolve
-    a = fftconvolve(response, model, 'same')
+    #from scipy.signal import fftconvolve
+    #a = fftconvolve(model, response, 'valid')
+    from scipy.fftpack import fft, ifft
+    a = ifft(fft(response) * fft(model)).real
+    debug = False
+    if debug:
+        pl.plot(response)
+        pl.plot(model)
+        pl.plot(a)
+        #pl.yscale('log')
+        pl.show()
     return a
 
 def estimate_rep_rate(irf):
-    """ Estimate excitation repetition rate (measured in bins) from IRF """
+    """
+    Estimate excitation repetition rate (measured in bins) from IRF histogram.
+
+    :param irf: IRF histogram counts
+    :type irf: array of shape ``(N,)``
+    :rtype: int
+    """
     middle = (np.max(irf) - np.min(irf)) / 2 + np.min(irf)
     idxs, = np.nonzero(np.logical_and(irf[:-1] < middle, middle < irf[1:]))
     a,b = sorted(idxs)[:2]
@@ -89,8 +117,8 @@ def normalize_irfs(irfs):
     """
     Subtract background from and normalize IRF
 
-    :type irfs: Aniso of histograms
-    :rtype: Aniso of histograms
+    :type irfs: :class:`Aniso` of histograms
+    :rtype: :class:`Aniso` of histograms
     """
     def background_subtract(irf):
         bg = np.median(irf)
@@ -102,12 +130,10 @@ def normalize_irfs(irfs):
     # Fix normalization of IRF
     return irfs.map(lambda x: x / sum(x))
 
-def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
+def fit(corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     """
-    :type irfs: :class:`Aniso` of arrays
-    :param irfs: Normalized IRF histograms
-    :type corrs: list of :class:`Aniso`s
-    :param corrs: Fluorescence histograms
+    :type corrs: list of :class:`FitSet`s
+    :param corrs: Fluorescence histograms along with their IRFs
     :type jiffy_ps: int
     :param jiffy_ps: Bin width in picoseconds
     :type exc_period: int
@@ -119,27 +145,21 @@ def fit(irfs, corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     :param kwargs: Other keyword arguments passed to `analyze`
     :rtype: tuple of two :class:`FitResults`
     """
-    jiffy = jiffy_ps * 1e-12
-    n = periods * exc_period
-    irfs = irfs.map(lambda x: x[:n])
-
     # Run the fit first to get the parameters roughly correct, then
     # then infer the period
-    res1 = analyze(irfs, corrs, exc_period, n_components, jiffy_ps, **kwargs)
-    res2 = analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
+    res1 = analyze(corrs, exc_period, n_components, jiffy_ps, **kwargs)
+    res2 = analyze(corrs, exc_period, n_components, jiffy_ps,
                    free_period=True, params0=res1.params, **kwargs)
     return res1, res2
 
-def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
-            params0=None, free_period=False, trim_end=0,
+def analyze(corrs, exc_period, n_components, jiffy_ps,
+            params0=None, free_period=False,
             exc_leakage=False, imbalance=None, indep_aniso=False,
             no_offset=False):
     """
     Fit a set of anisotropy data with the given IRF and model
 
-    :type irfs: :class:`Aniso` of arrays
-    :param irfs: Normalized IRF histograms
-    :type corrs: :class:`Aniso` of :class:`file`s
+    :type corrs: :class:`FitSet`
     :type exc_period: `float`
     :param exc_period: the approximate excitation period in bins
     :type n_components: `int`
@@ -149,10 +169,6 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
     :param params0: The initial parameters to fit with
     :type free_period: `bool`
     :param free_period: Whether to fit the excitation period
-    :type trim_end: `int`
-    :param trim_end: Number of bins to drop off of the end of the correlations.
-       This is to work around the spurious bins with low counts near the end of
-       histograms produced by the Picoharp 300.
     :type exc_leakage: `bool`
     :param exc_leakage: Whether to include leakage of the excitation (modelled by
        the IRF) in the detection model.
@@ -187,38 +203,32 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
 
     for pair_idx,corr in enumerate(corrs):
         if indep_aniso:
-            tau_rot = fit.param('tau_rot%d' % pair_idx, initial=1000)
-
-        def read_histogram(path):
-            # read histogram
-            corr = np.genfromtxt(path)[:,1]
-            n = len(irfs.par) # FIXME?
-            assert len(corr) >= n
-            corr = corr[:n - trim_end] # FIXME?
-            return corr
+            tau_rot = fit.param('%s_tau_rot' % pair.name, initial=1000)
 
         # generate fluorescence decay model
-        par = read_histogram(corr.par.name)
-        perp = read_histogram(corr.perp.name)
-        assert len(par) == len(perp)
+        n = len(corr.irf.par) # FIXME?
+        assert len(corr.decay.par) >= n
+        assert len(corr.decay.perp) >= n
+        par = corr.decay.par
+        perp = corr.decay.perp
 
         decay_models = []
         initial_amp = np.max(par) / np.sum(par)
         for comp_idx, rate in enumerate(rates):
-            amp = fit.param('c%d_amplitude%d' % (pair_idx, comp_idx), initial=initial_amp)
+            amp = fit.param('%s_amplitude%d' % (corr.name, comp_idx), initial=initial_amp)
             decay_models.append(exponential(t=lag, rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
         # IRF leakage
         leakage = 0
         if exc_leakage:
-            leakage = fit.param('c%d_leakage' % pair_idx, initial=0.1)
+            leakage = fit.param('%s_leakage' % corr.name, initial=0.1)
 
         def add_curve(corr, name, rot_model, offset, norm, irf):
             times = jiffy_ps * np.arange(10*corr.shape[0])
 
             # generate weights
-            weights = np.zeros_like(corr)
+            weights = np.zeros_like(corr, dtype='f')
             weights[corr != 0] = 1 / np.sqrt(corr[corr != 0])
 
             # generate model
@@ -237,14 +247,14 @@ def analyze(irfs, corrs, exc_period, n_components, jiffy_ps,
                   rot_model = lambda times: 1 + 2 * r0 * np.exp(-1 / tau_rot * times),
                   norm = 1,
                   offset = offset_par,
-                  name = corr.par.name+'_par',
-                  irf = irfs.par)
+                  name = '%s_par' % corr.name,
+                  irf = corr.irf.par)
         add_curve(corr = perp,
                   rot_model = lambda times: 1 - r0 * np.exp(-1 / tau_rot * times),
                   norm = imbalance,
                   offset = offset_perp,
-                  name = corr.perp.name+'_perp',
-                  irf = irfs.perp)
+                  name = '%s_perp' % corr.name,
+                  irf = corr.irf.perp)
 
     return fit.fit(params0)
 
@@ -279,12 +289,12 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False):
 
     color_cycle = pl.rcParams['axes.color_cycle']
     for pair_idx, aniso in enumerate(corrs):
-        for name, ch in [(aniso.par.name, 'par'), (aniso.perp.name, 'perp')]:
-            cres = result.curves['%s_%s' % (name, ch)]
+        for ch in ['par', 'perp']:
+            cres = result.curves['%s_%s' % (aniso.name, ch)]
             color = color_cycle[pair_idx % len(color_cycle)]
             times = jiffy_ps / 1000 * np.arange(cres.fit.shape[0])
             sym = '+' if ch == 'par' else 'x'
-            label = name if ch == 'par' else None
+            label = aniso.name if ch == 'par' else None
             alpha = 0.1
             kwargs = {'color': color, 'markersize': 1.5}
             plots.plot(times, cres.curve.data, sym, alpha=alpha, **kwargs)
