@@ -199,11 +199,11 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     if imbalance is None:
         imbalance = fit.param('g', initial=1)
     if not indep_aniso:
-        tau_rot = fit.param('tau_rot', initial=1000)
+        tau_rot = fit.param('tau_rot', initial=500)
 
     for pair_idx,corr in enumerate(corrs):
         if indep_aniso:
-            tau_rot = fit.param('%s_tau_rot' % pair.name, initial=1000)
+            tau_rot = fit.param('%s_tau_rot' % pair.name, initial=500)
 
         # generate fluorescence decay model
         n = len(corr.irf.par) # FIXME?
