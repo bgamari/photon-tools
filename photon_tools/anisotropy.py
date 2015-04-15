@@ -91,7 +91,7 @@ def convolved_model(response, model):
         pl.show()
     return a
 
-def estimate_rep_rate(irf):
+def estimate_rep_rate(irf, debug=False):
     """
     Estimate excitation repetition rate (measured in bins) from IRF histogram.
 
@@ -103,7 +103,6 @@ def estimate_rep_rate(irf):
     idxs, = np.nonzero(np.logical_and(irf[:-1] < middle, middle < irf[1:]))
     a,b = sorted(idxs)[:2]
     period = b - a
-    debug = False
     if debug:
         pl.plot(irf)
         pl.axhline(middle, c='k')
