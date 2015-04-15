@@ -25,7 +25,8 @@ def fcs_mem(y, models, sigma, p0=None, expected=None, nu=5e-6, delta_thresh=1e-4
     :type delta_thresh: ``float``, optional
     :param delta_thresh: Maximum allowable anti-parallelism between
         gradients of :math:`\chi^2` and :math:`S` for convergence.
-
+    :rtype: array of shape ``(Nmodels,)``
+    :returns: Model weights
     """
     (Nmodels, Npts) = models.shape  # (N, M)
     assert y.shape == (Npts,)
