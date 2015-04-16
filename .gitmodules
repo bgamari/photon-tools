@@ -1,6 +1,6 @@
 [submodule "corr"]
 	path = corr
-	url = git://github.com/goldner-lab/corr
+	url = https://github.com/goldner-lab/corr
 [submodule "squmfit"]
 	path = squmfit
-	url = git@github.com:bgamari/squmfit.git
+	url = https://github.com/bgamari/squmfit.git
