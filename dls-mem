@@ -9,20 +9,7 @@ import scipy.optimize
 from scipy.stats import lognorm
 from scipy.integrate import quad
 from photon_tools.fcs_mem import fcs_mem
-
-def parse_runs(runs):
-    def parse_range(r):
-        i = r.find('-')
-        if i != -1:
-            a = int(r[:i])
-            b = int(r[i+1:])
-            if a > b:
-                raise RuntimeError('lower range bound must be less than or equal to upper bound')
-            return range(a,b+1)
-        else:
-            return [int(r)]
-
-    return [i for r in runs.split(',') for i in parse_range(r)]
+from photon_tools.utils import parse_int_list
 
 def main():
     parser = argparse.ArgumentParser()
@@ -34,7 +21,7 @@ def main():
 
     n_models = 800
 
-    runs = parse_runs(args.runs)
+    runs = parse_int_list(args.runs)
 
     curvesP = pl.subplot(311)
     residualsP = pl.subplot(312)
