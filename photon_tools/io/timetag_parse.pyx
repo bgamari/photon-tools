@@ -25,7 +25,7 @@ ELSE:
         print 'Invalid ENDIANESS'
 
 def get_strobe_events(f, channel_mask, skip_wraps=1):
-        cdef char* fname 
+        cdef char* fname
         if isinstance(f, str):
                 fname = f
         else:
@@ -77,7 +77,7 @@ def get_strobe_events(f, channel_mask, skip_wraps=1):
                                 chunks.append(chunk)
                                 chunk = np.empty(chunk_sz, dtype=strobe_event_dtype)
                                 j = 0
-        
+
         chunks.append(chunk[:j])
         fclose(fl)
         return np.hstack(chunks)
@@ -87,7 +87,7 @@ def get_delta_events(f, channel, skip_wraps=1):
         Returns a list of delta channel events. The event is defined by a start
         time past which the state is the given value.
         """
-        cdef char* fname 
+        cdef char* fname
         if isinstance(f, str):
                 fname = f
         else:
@@ -146,7 +146,7 @@ def get_delta_events(f, channel, skip_wraps=1):
                                 chunks.append(chunk)
                                 chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
                                 j = 0
-        
+
         chunk[j].start_t = last_t
         chunk[j].state = last_state
         j += 1
@@ -220,7 +220,7 @@ def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1, on_
                                 chunks.append(chunk)
                                 chunk = np.empty(chunk_sz, dtype=strobe_event_dtype)
                                 j = 0
-        
+
         chunks.append(chunk[:j])
         fclose(fl)
         return np.hstack(chunks)
