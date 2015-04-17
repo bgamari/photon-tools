@@ -92,7 +92,7 @@ class TimestampFile(object):
         """
         Read photon data for a channel of the file
 
-        :type channel: A valid channel name from :function:`valid_channels`.
+        :type channel: A valid channel name from :func:`valid_channels`.
         """
         self._validate_channel(channel)
         data = self._read_channel(channel)
