@@ -18,9 +18,10 @@ def print_params(p, corrs, ncomponents):
         print '  tau_rot', p['tau_rot']
 
     for comp_idx in range(ncomponents):
-        rate = p['lambda%d' % comp_idx]
-        print '  Component %d' % comp_idx
-        print '    tau', 1/rate
+        rate = p.get('lambda%d' % comp_idx)
+        if rate is not None:
+            print '  Component %d' % comp_idx
+            print '    tau', 1/rate
 
     for pair_idx,pair in enumerate(corrs):
         print '  Pair %d (par=%s, perp=%s)' % (pair_idx, pair.name, pair.name)
@@ -90,6 +91,8 @@ def main():
                         help='JSON output file')
     parser.add_argument('--imbalance', '-g', type=float,
                         help='Fix detector imbalance factor g')
+    parser.add_argument('--lifetimes', '-t', type=float, action='append', default=[],
+                        help='Fix fluorescence decay lifetimes (in nanoseconds)')
     parser.add_argument('-A', '--indep-aniso',
                         help='Fit per-dataset rotational coherence models')
     parser.add_argument('-R', '--sep-resid', action='store_true',
@@ -140,7 +143,8 @@ def main():
                     periods=args.periods,
                     exc_leakage=args.exc_leakage,
                     imbalance=args.imbalance,
-                    indep_aniso=args.indep_aniso)
+                    indep_aniso=args.indep_aniso,
+                    fix_lifetimes=args.lifetimes)
 
     # Present results
     print

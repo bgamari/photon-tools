@@ -76,7 +76,7 @@ def main():
         fit.add_curve(f.name, model, taken['G'],
                       weights=1/sqrt(taken['var']),
                       lag=taken['lag'])
-        
+
     res = fit.fit()
     print squmfit.pretty.markdown_fit_result(res)
     squmfit.plot.plot_fit('lag', res, xscale='log')

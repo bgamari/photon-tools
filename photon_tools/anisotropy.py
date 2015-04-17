@@ -154,7 +154,7 @@ def fit(corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
 def analyze(corrs, exc_period, n_components, jiffy_ps,
             params0=None, free_period=False,
             exc_leakage=False, imbalance=None, indep_aniso=False,
-            no_offset=False):
+            no_offset=False, fix_lifetimes=[]):
     """
     Fit a set of anisotropy data with the given IRF and model
 
@@ -178,6 +178,8 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
        coherence time for each curve.
     :type no_offset: `bool`
     :param no_offset: Disable fitting of temporal offset between IRF and fluorescence curve.
+    :type fix_lifetimes: list of floats, times in ns
+    :param fix_lifetimes: Fix the lifetimes of some fluorescence decay components
     """
     fit = Fit()
     lag = Argument('t')
@@ -187,10 +189,14 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     period = fit.param('period', exc_period)
 
     # Build decay model
+    assert len(fix_lifetimes) <= n_components
     rates = []
     for i in range(n_components):
-        tau = 1000 + 1000*i
-        rate = fit.param('lambda%d' % i, initial=1/tau)
+        if i < len(fix_lifetimes):
+            rate = 1 / (1000 * fix_lifetimes[i])
+        else:
+            tau = 1000 + 1000*i
+            rate = fit.param('lambda%d' % i, initial=1/tau)
         rates.append(rate)
 
     # Parameters for anisotropy model
