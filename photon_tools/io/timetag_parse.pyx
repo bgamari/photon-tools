@@ -154,8 +154,35 @@ def get_delta_events(f, channel, skip_wraps=1):
         fclose(fl)
         return np.hstack(chunks)
 
-def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1, on_offset=0):
-        cdef char* fname 
+def get_filtered_strobe_events(f, strobe_mask, delta_channel, skip_wraps=-1,
+                               on_offset=0):
+        """
+        Return the strobe events from any of the channels selected by :arg:`strobe_mask`
+        which occur while :arg:`delta_channel` is in the high state.
+
+        For instance, a typical alternating laser excitation analysis may begin by reading
+        the four emission-excitation channel timestamps with the following,
+
+        .. code:: python
+
+            on_offset = 460 # about 5 microseconds
+            donor_em_donor_exc       = get_filtered_strobe_events(fname, 0x1, 1, on_offset=on_offset)
+            donor_em_acceptor_exc    = get_filtered_strobe_events(fname, 0x1, 2, on_offset=on_offset)
+            acceptor_em_donor_exc    = get_filtered_strobe_events(fname, 0x2, 1, on_offset=on_offset)
+            acceptor_em_acceptor_exc = get_filtered_strobe_events(fname, 0x2, 2, on_offset=on_offset)
+
+        :type f: :class:`file` or :class:`str` (file name)
+        :param f: timetag file
+        :type strobe_mask: int
+        :param strobe_mask: Logical bitmask of strobe channels of interest
+        :type delta_channel: int
+        :param delta_channel: Delta channel number of interest (first channel is ``0``)
+        :type on_offset: int
+        :param on_offset: Dead time after initial delta turn-on. This allows one
+            to drop photon arrivals occuring during the transient turn-on interval
+            of, say, a slow AOTF. Measured in cycles.
+        """
+        cdef char* fname
         if isinstance(f, str):
                 fname = f
         else:
