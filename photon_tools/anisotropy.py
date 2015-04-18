@@ -142,14 +142,23 @@ def fit(corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     :type periods: int
     :param periods: Number of periods to fit against
     :param kwargs: Other keyword arguments passed to `analyze`
-    :rtype: tuple of two :class:`FitResults`
+    :rtype: tuple of (:class:`FitResults`, :class:`FitResults`, :class:`CurveDesc`)
+    :returns:
+      1. :class:`FitResult` of fit with period held fixed at initial value
+      2. :class:`FitResult` of fit with period free
+      3. :class:`CurveDesc` of fit with period free
     """
     # Run the fit first to get the parameters roughly correct, then
     # then infer the period
-    res1 = analyze(corrs, exc_period, n_components, jiffy_ps, **kwargs)
-    res2 = analyze(corrs, exc_period, n_components, jiffy_ps,
+    res1,desc1 = analyze(corrs, exc_period, n_components, jiffy_ps, **kwargs)
+    res2,desc2 = analyze(corrs, exc_period, n_components, jiffy_ps,
                    free_period=True, params0=res1.params, **kwargs)
-    return res1, res2
+    return res1, res2, desc2
+
+# curve parameters
+CurveDesc = namedtuple('CurveDesc', 'amps exc_leakage tau_rot')
+# model parameters
+ModelDesc = namedtuple('ModelDesc', 'fluor_rates period offset_par offset_perp r0 imbalance tau_rot curves')
 
 def analyze(corrs, exc_period, n_components, jiffy_ps,
             params0=None, free_period=False,
@@ -206,6 +215,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     if not indep_aniso:
         tau_rot = fit.param('tau_rot', initial=500)
 
+    curve_descs = []
     for pair_idx,corr in enumerate(corrs):
         if indep_aniso:
             tau_rot = fit.param('%s_tau_rot' % pair.name, initial=500)
@@ -219,8 +229,10 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
 
         decay_models = []
         initial_amp = np.max(par) / np.sum(par)
+        amplitudes = []
         for comp_idx, rate in enumerate(rates):
             amp = fit.param('%s_amplitude%d' % (corr.name, comp_idx), initial=initial_amp)
+            amplitudes.append(amp / rates[comp_idx])
             decay_models.append(exponential(t=lag, rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
@@ -261,7 +273,24 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
                   name = '%s_perp' % corr.name,
                   irf = corr.irf.perp)
 
-    return fit.fit(params0)
+        curve_descs.append(CurveDesc(
+            amps = amplitudes,
+            tau_rot = tau_rot,
+            exc_leakage = leakage,
+        ))
+
+    model_desc = ModelDesc(
+        fluor_rates = rates,
+        period = period,
+        offset_par=offset_par,
+        offset_perp = offset_perp,
+        r0 = r0,
+        imbalance = imbalance,
+        tau_rot = tau_rot,
+        curves = curve_descs,
+    )
+    res = fit.fit(params0)
+    return (res, model_desc)
 
 def plot(fig, corrs, jiffy_ps, result, sep_resid=False):
     """

@@ -138,13 +138,13 @@ def main():
                                         read_hist(b)['counts'][:n-trim]))
              for a,b in zip(args.corr[::2], args.corr[1::2])]
 
-    res0, res = fit(corrs, jiffy_ps, period, args.components,
-                    no_offset=args.no_offset,
-                    periods=args.periods,
-                    exc_leakage=args.exc_leakage,
-                    imbalance=args.imbalance,
-                    indep_aniso=args.indep_aniso,
-                    fix_lifetimes=args.lifetimes)
+    res0, res, desc = fit(corrs, jiffy_ps, period, args.components,
+                          no_offset=args.no_offset,
+                          periods=args.periods,
+                          exc_leakage=args.exc_leakage,
+                          imbalance=args.imbalance,
+                          indep_aniso=args.indep_aniso,
+                          fix_lifetimes=args.lifetimes)
 
     # Present results
     print
