@@ -38,28 +38,25 @@ def print_params(p, corrs, ncomponents):
 
 def gen_json(p, corrs, ncomponents):
     out = {}
-    out['period'] = p.get('period')
-    out['offset-par'] = p.get('offset-par')
-    out['offset-perp'] = p.get('offset-perp')
-    out['g'] = p.get('g')
-    out['r0'] = p.get('r0')
-    out['tau-rot'] = p.get('tau-rot')
+    out['period'] = p.period
+    out['offset-par'] = p.offset_par
+    out['offset-perp'] = p.offset_perp
+    out['g'] = p.imbalance
+    out['r0'] = p.r0
+    out['tau-rot'] = p.tau_rot
 
     out['components'] = []
     for comp_idx in range(ncomponents):
-        rate = p['lambda%d' % comp_idx]
         out['components'].append({
-            'tau': 1/rate
+            'tau': 1/p.fluor_rates[comp_idx]
         })
 
     out['curves'] = []
-    for pair_idx,pair in enumerate(corrs):
-        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / rate
-                  for comp_idx in range(ncomponents) ]
+    for pair_idx,(cdesc, pair) in enumerate(zip(p.curves, corrs)):
         out['curves'].append({
-            'leakage': p.get('leakage'),
-            'tau_rot': p.get('%s_tau_rot' % pair.name),
-            'ampls': ampls,
+            'leakage': cdesc.exc_leakage,
+            'tau_rot': cdesc.tau_rot,
+            'ampls': cdesc.amps,
         })
     return out
 
@@ -192,7 +189,7 @@ def main():
 
     if args.json is not None:
         import json
-        json.dump(gen_json(res.params, corrs, args.components), args.json, indent=4)
+        json.dump(gen_json(desc, corrs, args.components), args.json, indent=4)
 
     fig = pl.figure()
     plot(fig, corrs, result=res, jiffy_ps=jiffy_ps, sep_resid=args.sep_resid)
