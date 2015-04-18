@@ -31,7 +31,7 @@ def print_params(p, corrs, ncomponents):
         if ('tau_rot%d' % pair_idx) in p:
             print '    tau_rot', p['tau_rot%d' % pair_idx]
 
-        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / rate
+        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / p['lambda%d' % comp_idx]
                   for comp_idx in range(ncomponents) ]
         for comp_idx in range(ncomponents):
             rate = p['lambda%d' % comp_idx]
