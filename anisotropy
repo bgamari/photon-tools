@@ -7,34 +7,32 @@ from photon_tools.anisotropy import *
 
 def print_params(p, corrs, ncomponents):
     if 'period' in p:
-        print '  irf period', p['period']
+        print '  irf period', p.period
     if 'offset-par' in p:
-        print '  irf offset (parallel)', p['offset-par']
+        print '  irf offset (parallel)', p.offset_par
     if 'offset-perp' in p:
-        print '  irf offset (perpendicular)', p['offset-perp']
-    if 'g' in p: print '  g', p['g']
-    print '  r0', p['r0']
-    if 'tau_rot' in p:
-        print '  tau_rot', p['tau_rot']
+        print '  irf offset (perpendicular)', p.offset_perp
+    print '  g', p.imbalance
+    print '  r0', p.r0
+    if p.tau_rot is not None:
+        print '  tau_rot', p.tau_rot
 
     for comp_idx in range(ncomponents):
-        rate = p.get('lambda%d' % comp_idx)
+        rate = p.fluor_rates[comp_idx]
         if rate is not None:
             print '  Component %d' % comp_idx
             print '    tau', 1/rate
 
-    for pair_idx,pair in enumerate(corrs):
+    for pair_idx,(cdesc, pair) in enumerate(zip(p.curves, corrs)):
         print '  Pair %d (par=%s, perp=%s)' % (pair_idx, pair.name, pair.name)
         leakage = '%s_leakage' % pair.name
-        if leakage in p:
-            print '    leakage', '%1.2g' % p[leakage]
-        if ('tau_rot%d' % pair_idx) in p:
-            print '    tau_rot', p['tau_rot%d' % pair_idx]
+        if p.leakage != 0:
+            print '    leakage', '%1.2g' % p.leakage
+        if cdesc.tau_rot is not None:
+            print '    tau_rot', cdesc.tau_rot
 
-        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / p['lambda%d' % comp_idx]
-                  for comp_idx in range(ncomponents) ]
+        ampls = cdesc.amps
         for comp_idx in range(ncomponents):
-            rate = p['lambda%d' % comp_idx]
             frac = ampls[comp_idx] / sum(ampls)
             print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (ampls[comp_idx], frac * 100)
 
