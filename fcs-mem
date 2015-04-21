@@ -103,7 +103,7 @@ def main():
                  bbox_transform=pl.gcf().transFigure,
                  mode='expand', fontsize='x-small', ncol=1,
                  frameon=False)
-    pl.savefig('%s.png' % args.file.name)
+    pl.savefig('%s.mem.png' % args.file.name)
 
 if __name__ == '__main__':
     main()
