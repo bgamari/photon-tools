@@ -88,7 +88,7 @@ def main():
     parser.add_argument('--imbalance', '-g', type=float,
                         help='Fix detector imbalance factor g')
     parser.add_argument('--lifetimes', '-t', type=float, action='append', default=[],
-                        help='Fix fluorescence decay lifetimes (in nanoseconds)')
+                        help='Fix fluorescence decay lifetimes (in picoseconds)')
     parser.add_argument('-A', '--indep-aniso',
                         help='Fit per-dataset rotational coherence models')
     parser.add_argument('-R', '--sep-resid', action='store_true',

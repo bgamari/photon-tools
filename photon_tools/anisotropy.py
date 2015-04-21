@@ -187,7 +187,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
        coherence time for each curve.
     :type no_offset: `bool`
     :param no_offset: Disable fitting of temporal offset between IRF and fluorescence curve.
-    :type fix_lifetimes: list of floats, times in ns
+    :type fix_lifetimes: list of floats, times in picoseconds
     :param fix_lifetimes: Fix the lifetimes of some fluorescence decay components
     """
     fit = Fit()
@@ -202,7 +202,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     rates = []
     for i in range(n_components):
         if i < len(fix_lifetimes):
-            rate = 1 / (1000 * fix_lifetimes[i])
+            rate = 1 / fix_lifetimes[i]
         else:
             tau = 1000 + 1000*i
             rate = fit.param('lambda%d' % i, initial=1/tau)
