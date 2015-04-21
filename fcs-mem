@@ -77,7 +77,8 @@ def main():
         resid = (corr['G']  - np.dot(models.T, res)) / np.sqrt(corr['var'])
         chiSqr = np.sum(resid**2) / corr.shape[0]
         entropy = -np.sum(res * np.log(res))
-        print os.path.basename(args.file.name), nu, chiSqr, entropy, chiSqr
+        zAvg = np.average(tauDs, weights=res)
+        print os.path.basename(args.file.name), nu, chiSqr, entropy, chiSqr, zAvg
         l = plots.plot(corr['lag'], np.dot(models.T, res),
                        label=r'$\nu=%1.2g$ ($\chi^2 = %1.4g$, $S = %1.2f$)' % (nu, chiSqr, entropy))
         color = l[0].get_color()
