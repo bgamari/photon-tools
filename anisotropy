@@ -17,7 +17,7 @@ def print_params(fit, desc, corrs, ncomponents):
     print '  g', fit.eval(desc.imbalance)
     print '  r0', fit.eval(desc.r0)
     if desc.tau_rot is not None:
-        print '  tau_rot', desc.tau_rot
+        print '  tau_rot', fit.eval(desc.tau_rot)
 
     for comp_idx in range(ncomponents):
         rate = desc.fluor_rates[comp_idx]
