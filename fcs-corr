@@ -229,7 +229,7 @@ for file in args.files:
             pl.xlabel('Lag (s)')
             pl.ylabel('Correlation')
             pl.axhline(1, color='0.7')
-            if args.plot_chunks:
+            if n_chunks > 1 and args.plot_chunks:
                 for i in range(chunks.shape[0]):
                     pl.scatter(c['lag'], chunks[i,:], marker='+', alpha=0.6,
                                color='%f' % (0.3 + i * 0.7 / chunks.shape[0]))
