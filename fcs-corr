@@ -189,12 +189,13 @@ for file in args.files:
 
         c = None
         nchunks = args.nchunks
-        if durA / nchunks < 10 * args.max_lag or durB / nchunks < 10 * args.max_lag:
-            orig = nchunks
-            nchunks = dur / nchunks / args.max_lag / 10
-            warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
 
         if nchunks > 1:
+            if durA / nchunks < 10 * args.max_lag \
+               or durB / nchunks < 10 * args.max_lag:
+                orig = nchunks
+                nchunks = dur / nchunks / args.max_lag / 10
+                warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
             c,chunks = corr_chunks(ad, bd, n=nchunks, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
