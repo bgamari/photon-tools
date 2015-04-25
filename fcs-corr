@@ -24,51 +24,67 @@ verbose = False
 
 parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps',
                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
-                    help='Input timestamp files')
-parser.add_argument('-a', '--a-channel', type=int, default=0,
-                    help='Channel to run correlate')
-parser.add_argument('-b', '--b-channel', type=int, default=1,
-                    help='Channel to run correlate')
-parser.add_argument('-E', '--min-lag', type=float, default=5e-7,
-                    help='Smallest lag to compute')
-parser.add_argument('-L', '--max-lag', type=float, default=1,
-                    help='Longest lag to compute')
-parser.add_argument('-n', '--nchunks', type=int, default=10,
-                    help='Number of subsamples to split data into for variance computation. If 1 the Wohland estimator is used.')
-parser.add_argument('-O', '--output', default='.',
-                     help='Output directory')
-parser.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
-parser.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation functions of subsamples')
-parser.add_argument('--cross-chunks', action='store_true',
-                    help='Use cross-correlations between non-cooccurent chunks to evaluate uncertainties')
-parser.add_argument('-f', '--fineness', type=int, default=8,
-                    help='Number of lags per octave')
-parser.add_argument('-v', '--verbose', action='store_true',
-                    help='Produce debugging output')
-parser.add_argument('-l', '--label', type=str, default='corr',
-                    help='Descriptive label for dataset shown in plot')
-parser.add_argument('-j', '--jiffy', type=float, default=None,
-                    help='Acquisition timebase period')
-parser.add_argument('-s', '--single', action='store_true',
-                    help="Produce only cross-correlations of given channels, skipping auto-correlations")
-parser.add_argument('-p', '--plot', action='store_true',
-                    help='Plot each computed correlation function')
-parser.add_argument('-P', '--plot-type', default='png',
-                    help='File format of plot output (svg, png, pdf, or ps)')
-parser.add_argument('-t', '--start-time', default=None, type=str,
-                    help='Start time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
-parser.add_argument('-T', '--stop-time', default=None, type=str,
-                    help='Stop time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
-parser.add_argument('-e', '--exclude', action='append', metavar='T-T',
-                    help='Exclude a range of times (given in seconds)')
-parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
-                    metavar='FILE',
-                    help='Uncorrelated timestamps for afterpulsing correction')
-parser.add_argument('--engine', default=None,
-                    help='Which correlator engine to use (hphoton or favia)')
-parser.add_argument('--afterpulse-cutoff', default=None,
-                    help="Don't apply afterpulsing correction beyond given lag")
+group = parser.add_argument_group('input options',
+                                  'Options controlling input data')
+group.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
+                   help='Input timestamp files')
+group.add_argument('-j', '--jiffy', type=float, default=None,
+                   help='Acquisition timebase period')
+group.add_argument('-a', '--a-channel', type=int, default=0,
+                   help='Channel to run correlate')
+group.add_argument('-b', '--b-channel', type=int, default=1,
+                   help='Channel to run correlate')
+group.add_argument('-t', '--start-time', default=None, type=str,
+                   help='Start time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
+group.add_argument('-T', '--stop-time', default=None, type=str,
+                   help='Stop time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
+
+group.add_argument('-e', '--exclude', action='append', metavar='T-T',
+                   help='Exclude a range of times (given in seconds)')
+
+group = parser.add_argument_group('correlator options',
+                                  'Options controlling how the correlation function is computed')
+group.add_argument('-E', '--min-lag', type=float, default=5e-7,
+                   help='Smallest lag to compute')
+group.add_argument('-L', '--max-lag', type=float, default=1,
+                   help='Longest lag to compute')
+group.add_argument('-n', '--nchunks', type=int, default=10,
+                   help='Number of subsamples to split data into for variance computation. If 1 the Wohland estimator is used.')
+group.add_argument('-f', '--fineness', type=int, default=8,
+                   help='Number of lags per octave')
+group.add_argument('-s', '--single', action='store_true',
+                   help="Produce only cross-correlations of given channels, skipping auto-correlations")
+
+group = parser.add_argument_group('output options',
+                                  'Options controlling how output is produced')
+group.add_argument('-O', '--output', default='.',
+                   help='Output directory')
+group.add_argument('-v', '--verbose', action='store_true',
+                   help='Produce debugging output')
+group.add_argument('-p', '--plot', action='store_true',
+                   help='Plot each computed correlation function')
+group.add_argument('-l', '--label', type=str, default='corr',
+                   help='Descriptive label for dataset shown in plot')
+group.add_argument('-P', '--plot-type', default='png',
+                   help='File format of plot output (svg, png, pdf, or ps)')
+
+group = parser.add_argument_group('uncertainty options',
+                                  'Options controlling how the uncertainty of the resulting correlation function is estimated')
+group.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
+group.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation functions of subsamples')
+group.add_argument('--cross-chunks', action='store_true',
+                   help='Use cross-correlations between non-cooccurent chunks to evaluate uncertainties')
+
+group = parser.add_argument_group('afterpulsing correction',
+                                  'Options controlling whether and how afterpulsing correction is applied')
+group.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
+                   metavar='FILE',
+                   help='Uncorrelated timestamps for afterpulsing correction')
+group.add_argument('--engine', default=None,
+                   help='Which correlator engine to use (hphoton or favia)')
+group.add_argument('--afterpulse-cutoff', default=None,
+                   help="Don't apply afterpulsing correction beyond given lag")
+
 args = parser.parse_args()
 verbose = args.verbose
 
