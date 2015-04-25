@@ -40,9 +40,9 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
     `fineness` parameter gives the number of lags computed per
     octave.
 
-    :type x: array of integer timestamps
+    :type x: array of ``u8`` integer timestamps
     :param x: Timeseries to convolve
-    :type y: array of integer timestamps
+    :type y: array of ``u8`` integer timestamps
     :param x: Timeseries to convolve
     :type jiffy: ``float``, optional
     :param jiffy: The timestamp resolution
