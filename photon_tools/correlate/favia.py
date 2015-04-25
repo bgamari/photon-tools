@@ -63,8 +63,11 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
     fo = NamedTemporaryFile(delete=not keep)
     fx = NamedTemporaryFile(delete=not keep)
     fy = NamedTemporaryFile(delete=not keep)
-    x.tofile(fx.name)
-    y.tofile(fy.name)
+
+    # While offsets should not matter in principle, it seems that favia cares
+    # about this sort of thing.
+    (x - x[0]).tofile(fx.name)
+    (y - y[0]).tofile(fy.name)
 
     args = [
             'favia',

@@ -101,9 +101,7 @@ def corr_chunks(x, y, n=10, cross_chunks=False, **kwargs):
     y_chunks = _split_at(y, splits)
 
     if cross_chunks:
-        pairs = [(x - x[0], y - y[0])
-                 for x in x_chunks
-                 for y in y_chunks]
+        pairs = [(x, y) for x in x_chunks for y in y_chunks]
     else:
         pairs = zip(x_chunks, y_chunks)
 
