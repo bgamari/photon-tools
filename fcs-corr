@@ -40,6 +40,8 @@ parser.add_argument('-O', '--output', default='.',
                      help='Output directory')
 parser.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
 parser.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation functions of subsamples')
+parser.add_argument('--cross-chunks', action='store_true',
+                    help='Use cross-correlations between non-cooccurent chunks to evaluate uncertainties')
 parser.add_argument('-f', '--fineness', type=int, default=8,
                     help='Number of lags per octave')
 parser.add_argument('-v', '--verbose', action='store_true',
@@ -196,7 +198,7 @@ for file in args.files:
                 orig = nchunks
                 nchunks = dur / nchunks / args.max_lag / 10
                 warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
-            c,chunks = corr_chunks(ad, bd, n=nchunks, **kwargs)
+            c,chunks = corr_chunks(ad, bd, n=nchunks, cross_chunks=args.cross_chunks, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
         else:
