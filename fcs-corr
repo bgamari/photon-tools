@@ -22,7 +22,14 @@ except:
 
 verbose = False
 
-parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps',
+description = """
+fcs-corr computes cross- and auto-correlation functions on photon timestamp data.
+In addition to the calculation of the correlation function itself, it supports
+estimation of uncertainties, detection of anomalies (e.g. due to sample contamination),
+and correction for instrument artifacts.
+"""
+
+parser = ArgumentParser(description=description,
                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 group = parser.add_argument_group('input options',
                                   'Options controlling input data')
@@ -31,14 +38,13 @@ group.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='
 group.add_argument('-j', '--jiffy', type=float, default=None,
                    help='Acquisition timebase period')
 group.add_argument('-a', '--a-channel', type=int, default=0,
-                   help='Channel to run correlate')
+                   help='Channel on which to compute the correlation')
 group.add_argument('-b', '--b-channel', type=int, default=1,
-                   help='Channel to run correlate')
+                   help='Channel on which to compute the correlation')
 group.add_argument('-t', '--start-time', default=None, type=str,
                    help='Start time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
 group.add_argument('-T', '--stop-time', default=None, type=str,
                    help='Stop time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
-
 group.add_argument('-e', '--exclude', action='append', metavar='T-T',
                    help='Exclude a range of times (given in seconds)')
 
@@ -68,7 +74,7 @@ group.add_argument('-l', '--label', type=str, default='corr',
 group.add_argument('-P', '--plot-type', default='png',
                    help='File format of plot output (svg, png, pdf, or ps)')
 
-group = parser.add_argument_group('uncertainty options',
+group = parser.add_argument_group('uncertainty estimation',
                                   'Options controlling how the uncertainty of the resulting correlation function is estimated')
 group.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
 group.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation functions of subsamples')
