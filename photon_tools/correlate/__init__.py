@@ -76,7 +76,7 @@ def _split_at(timestamps, splits):
     chunks.append(xs)
     return chunks
 
-def corr_chunks(x, y, n=10, cross_chunks=False, **kwargs):
+def corr_chunks(x, y, n=10, cross_chunks=False, anomaly_thresh=None, **kwargs):
     """
     Compute the cross-correlation between two photon timeseries ``x``
     and ``y``, computing the variance by splitting the series into
@@ -87,6 +87,8 @@ def corr_chunks(x, y, n=10, cross_chunks=False, **kwargs):
     :param kwargs: Keyword arguments to be passed to :func:`corr`
     :type cross_chunks: :class:`bool`
     :param cross_chunks: Use cross-correlations between non-cooccurrant chunks.
+    :type anomaly_thresh: (optional) :class:`float`
+    :param anomaly_thresh: Anomaly normalized-log-likelihood threshold. See :func:`anomaly_thresh`
     :returns: tuple of ``(Gmean, corrs)`` where ``Gmean`` is a record array with
       fields ``lag``, ``G``, and ``var`` and ``corrs`` is a :class:`array` of
       shape ``(n,nlags)`` containing the correlation functions of the individual
@@ -106,6 +108,39 @@ def corr_chunks(x, y, n=10, cross_chunks=False, **kwargs):
         pairs = zip(x_chunks, y_chunks)
 
     corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in pairs )
-    g = corr(x, y, **kwargs)['G']
+
+    if anomaly_thresh is not None:
+        likelihoods = anomaly_likelihood(corrs['G']) / corrs.shape[1]
+        print likelihoods
+        corrs = corrs[likelihoods > anomaly_thresh, :]
+        g = np.mean(corrs['G'], axis=0)
+    else:
+        g = corr(x, y, **kwargs)['G']
+
     var = np.var(corrs['G'], axis=0) / n
-    return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
+
+    return (np.rec.fromarrays([corrs[0,:]['lag'], g, var], names='lag,G,var'), corrs['G'])
+
+def anomaly_likelihood(xs):
+    """
+    Evaluate the likelihood of each sample under a Gaussian model induced by the
+    others.
+
+    :type xs: :class:`array` of shape ``(Nsamples, Nfeatures)``
+    :param xs: samples
+    :rtype: :class:`array` of shape ``(Nsamples,)``
+    :returns: The log likelihood
+    """
+    likelihoods = []
+    for i in range(xs.shape[0]):
+        take = np.ones(xs.shape[0], dtype=bool)
+        take[i] = False
+        subsample = xs[take,:]
+        mean = np.mean(subsample, axis=0)
+        var = np.var(subsample, axis=0)
+
+        test = xs[i,:]
+        likelihood = -(test - mean)**2 / 2 / var**2 + 0.5 * np.log(2*np.pi*var)
+        likelihoods.append(np.sum(likelihood))
+
+    return np.array(likelihoods)

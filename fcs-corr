@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import warnings
 import os.path
 
-from photon_tools.correlate import corr, autocorr, corr_chunks
+from photon_tools.correlate import corr, autocorr, corr_chunks, anomaly_likelihood
 from photon_tools.io import read_photons
 
 import numpy as np
@@ -60,6 +60,8 @@ group.add_argument('-f', '--fineness', type=int, default=8,
                    help='Number of lags per octave')
 group.add_argument('-s', '--single', action='store_true',
                    help="Produce only cross-correlations of given channels, skipping auto-correlations")
+group.add_argument('--anomaly-thresh', type=float,
+                   help='Threshold on log-likelihood of chunk anomly model')
 
 group = parser.add_argument_group('output options',
                                   'Options controlling how output is produced')
@@ -220,7 +222,8 @@ for file in args.files:
                 orig = nchunks
                 nchunks = dur / nchunks / args.max_lag / 10
                 warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
-            c,chunks = corr_chunks(ad, bd, n=nchunks, cross_chunks=args.cross_chunks, **kwargs)
+            c,chunks = corr_chunks(ad, bd, n=nchunks, cross_chunks=args.cross_chunks,
+                                   anomaly_thresh=args.anomaly_thresh, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
         else:
