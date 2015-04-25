@@ -49,9 +49,31 @@ def autocorr(x, **kwargs):
     """
     return corr(x, x, **kwargs)
 
-def _split_chunks(x, n):
-    l = len(x) / n
-    return [ x[i*l : (i+1)*l] - x[i*l] for i in range(n) ]
+def _split_at(timestamps, splits):
+    """
+    Split up an array into chunks.
+
+        >>> _split_chunks(np.arange(5, 19), [11, 14])
+        [[5,6,7,8,9,10], [11,12,13], [14,15,16,17,18]]
+
+    :type timestamps: an :class:`array`s of timestamps
+    :type splits: iterable
+    """
+    # Since numpy doesn't yet offer a `find` function, we need
+    # take effort to avoid doing repeated work
+    chunks = []
+    xs = timestamps
+    for i, upper in enumerate(splits):
+        take, = np.nonzero(xs >= upper)
+        if len(take) == 0:
+            idx = 0
+        else:
+            idx = take[0]
+
+        chunks.append(xs[:idx])
+        xs = xs[idx:]
+
+    return chunks
 
 def corr_chunks(x, y, n=10, **kwargs):
     """
@@ -67,8 +89,14 @@ def corr_chunks(x, y, n=10, **kwargs):
       shape ``(n,nlags)`` containing the correlation functions of the individual
       chunks.
     """
-    x_chunks = _split_chunks(x, n)
-    y_chunks = _split_chunks(y, n)
+    max_t = max(x[-1], y[-1])
+    min_t = min(x[0], y[-1])
+    dt = (max_t - min_t) / (n+1)
+    splits = np.arange(1, n) * dt + min_t
+
+    x_chunks = _split_at(x, splits)
+    y_chunks = _split_at(y, splits)
+
     corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
     g = corr(x, y, **kwargs)['G']
     var = np.var(corrs['G'], axis=0) / n
