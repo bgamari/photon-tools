@@ -53,7 +53,7 @@ def _split_at(timestamps, splits):
     """
     Split up an array into chunks.
 
-        >>> _split_chunks(np.arange(5, 19), [11, 14])
+        >>> _split_at(np.arange(5, 19), [11, 14])
         [[5,6,7,8,9,10], [11,12,13], [14,15,16,17,18]]
 
     :type timestamps: an :class:`array`s of timestamps
@@ -66,13 +66,14 @@ def _split_at(timestamps, splits):
     for i, upper in enumerate(splits):
         take, = np.nonzero(xs >= upper)
         if len(take) == 0:
-            idx = 0
+            chunks.append(xs)
+            xs = xs[:0]
         else:
             idx = take[0]
+            chunks.append(xs[:idx])
+            xs = xs[idx:]
 
-        chunks.append(xs[:idx])
-        xs = xs[idx:]
-
+    chunks.append(xs)
     return chunks
 
 def corr_chunks(x, y, n=10, cross_chunks=False, **kwargs):
