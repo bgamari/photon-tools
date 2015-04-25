@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup
+from setuptools.extension import Extension
 from Cython.Build import cythonize
 import numpy as np
+
+from Cython.Distutils import build_ext
 
 setup(name = 'photon-tools',
       author = 'Ben Gamari',
@@ -20,12 +22,11 @@ setup(name = 'photon-tools',
           'scipy',
           'squmfit',
       ],
-      ext_modules = cythonize([
-          Extension('photon_tools',['photon_tools/bin_photons.pyx',
-                                    'photon_tools/filter_photons.pyx',
-                                    'photon_tools/io/timetag_parse.pyx'],
-                                    include_dirs=[np.get_include()])
-          ],
-          include_path=['photon_tools'],
-      )
+      cmdclass = { 'build_ext': build_ext },
+      ext_modules = [
+          Extension('photon_tools.bin_photons', ['photon_tools/bin_photons.pyx']),
+          Extension('photon_tools.filter_photons', ['photon_tools/filter_photons.pyx']),
+          Extension('photon_tools.io.timetag_parse', ['photon_tools/io/timetag_parse.pyx'],
+                    include_dirs=[np.get_include()]),
+      ],
 )
