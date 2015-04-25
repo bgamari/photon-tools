@@ -1,3 +1,4 @@
+from __future__ import division
 import favia
 import hphoton
 import numpy as np
