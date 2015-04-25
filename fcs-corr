@@ -94,7 +94,7 @@ def get_jiffy(timestamps):
 def afterpulsing_correction(ch):
     """
     Afterpulsing correction as described by,
-    
+
       M. Zhao, L. Jin, B. Chen, et al.
       "Afterpulsing and its correction in fluorescence correlation spectroscopy
       experiments." _Applied Optics_ (2003)
@@ -123,7 +123,7 @@ def afterpulsing_correction(ch):
 
 if not os.path.isdir(args.output):
     os.makedirs(args.output)
-    
+
 # Memoize the correlation functions for afterpulsing correction
 afterpulse_cache = {}
 
