@@ -75,7 +75,7 @@ def _split_at(timestamps, splits):
 
     return chunks
 
-def corr_chunks(x, y, n=10, **kwargs):
+def corr_chunks(x, y, n=10, cross_chunks=False, **kwargs):
     """
     Compute the cross-correlation between two photon timeseries ``x``
     and ``y``, computing the variance by splitting the series into
@@ -84,6 +84,8 @@ def corr_chunks(x, y, n=10, **kwargs):
     :type n: ``int``
     :param n: The number of chunks to use for computation of the variance.
     :param kwargs: Keyword arguments to be passed to :func:`corr`
+    :type cross_chunks: :class:`bool`
+    :param cross_chunks: Use cross-correlations between non-cooccurrant chunks.
     :returns: tuple of ``(Gmean, corrs)`` where ``Gmean`` is a record array with
       fields ``lag``, ``G``, and ``var`` and ``corrs`` is a :class:`array` of
       shape ``(n,nlags)`` containing the correlation functions of the individual
@@ -97,7 +99,14 @@ def corr_chunks(x, y, n=10, **kwargs):
     x_chunks = _split_at(x, splits)
     y_chunks = _split_at(y, splits)
 
-    corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in zip(x_chunks,y_chunks) )
+    if cross_chunks:
+        pairs = [(x - x[0], y - y[0])
+                 for x in x_chunks
+                 for y in y_chunks]
+    else:
+        pairs = zip(x_chunks, y_chunks)
+
+    corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in pairs )
     g = corr(x, y, **kwargs)['G']
     var = np.var(corrs['G'], axis=0) / n
     return (np.rec.fromarrays([corrs[0]['lag'], g, var], names='lag,G,var'), corrs['G'])
