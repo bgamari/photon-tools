@@ -51,7 +51,7 @@ def autocorr(x, **kwargs):
 
 def _split_chunks(x, n):
     l = len(x) / n
-    return [ x[i*l:(i+1)*l] - x[i*l] for i in range(n) ]
+    return [ x[i*l : (i+1)*l] - x[i*l] for i in range(n) ]
 
 def corr_chunks(x, y, n=10, **kwargs):
     """
@@ -62,6 +62,10 @@ def corr_chunks(x, y, n=10, **kwargs):
     :type n: ``int``
     :param n: The number of chunks to use for computation of the variance.
     :param kwargs: Keyword arguments to be passed to :func:`corr`
+    :returns: tuple of ``(Gmean, corrs)`` where ``Gmean`` is a record array with
+      fields ``lag``, ``G``, and ``var`` and ``corrs`` is a :class:`array` of
+      shape ``(n,nlags)`` containing the correlation functions of the individual
+      chunks.
     """
     x_chunks = _split_chunks(x, n)
     y_chunks = _split_chunks(y, n)
