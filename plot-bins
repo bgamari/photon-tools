@@ -29,7 +29,7 @@ def plot_file(fname, channels={0: 'Channel 0'},
     """
     data_sets = []
     f = read_photons.open(fname)
-    jiffy = override_jiffy if override_jiffy is None else f.jiffy
+    jiffy = override_jiffy if override_jiffy is not None else f.jiffy
 
     for chan, label in channels.items():
         try:
