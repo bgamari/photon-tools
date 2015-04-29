@@ -107,19 +107,22 @@ def corr_chunks(x, y, n=10, cross_chunks=False, anomaly_thresh=None, **kwargs):
     else:
         pairs = zip(x_chunks, y_chunks)
 
-    corrs = np.vstack( corr(xc, yc, **kwargs) for (xc,yc) in pairs )
+    # g.shape == (Nlags,)
+    g = corr(x, y, **kwargs)
+    lags = g['lag']
+    g = g['G']
+    # corrs.shape == (Nlags, len(pairs))
+    corrs = np.vstack( corr(xc, yc, **kwargs)['G'] for (xc,yc) in pairs )
+    corrs = (corrs-1) * ((g-1).sum() / (corrs-1).sum(axis=1))[:,np.newaxis] + 1
 
     if anomaly_thresh is not None:
-        likelihoods = anomaly_likelihood(corrs['G']) / corrs.shape[1]
+        likelihoods = anomaly_likelihood(corrs) / corrs.shape[1]
         print likelihoods
         corrs = corrs[likelihoods > anomaly_thresh, :]
-        g = np.mean(corrs['G'], axis=0)
-    else:
-        g = corr(x, y, **kwargs)['G']
 
-    var = np.var(corrs['G'], axis=0) / n
+    var = np.var(corrs, axis=0) / n
 
-    return (np.rec.fromarrays([corrs[0,:]['lag'], g, var], names='lag,G,var'), corrs['G'])
+    return (np.rec.fromarrays([lags, g, var], names='lag,G,var'), corrs)
 
 def anomaly_likelihood(xs):
     """
