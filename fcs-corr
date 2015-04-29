@@ -37,10 +37,8 @@ group.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='
                    help='Input timestamp files')
 group.add_argument('-j', '--jiffy', type=float, default=None,
                    help='Acquisition timebase period')
-group.add_argument('-a', '--a-channel', type=int, default=0,
-                   help='Channel on which to compute the correlation')
-group.add_argument('-b', '--b-channel', type=int, default=1,
-                   help='Channel on which to compute the correlation')
+group.add_argument('-c', '--channels', type=str, metavar='CH,CH,{NAME}', action='append', default=[],
+                   help='Channels between which to compute the correlation')
 group.add_argument('-t', '--start-time', default=None, type=str,
                    help='Start time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
 group.add_argument('-T', '--stop-time', default=None, type=str,
@@ -58,8 +56,6 @@ group.add_argument('-n', '--nchunks', type=int, default=10,
                    help='Number of subsamples to split data into for variance computation. If 1 the Wohland estimator is used.')
 group.add_argument('-f', '--fineness', type=int, default=8,
                    help='Number of lags per octave')
-group.add_argument('-s', '--single', action='store_true',
-                   help="Produce only cross-correlations of given channels, skipping auto-correlations")
 group.add_argument('--anomaly-thresh', type=float,
                    help='Threshold on log-likelihood of chunk anomly model')
 
@@ -101,12 +97,32 @@ def parse_exclude(s):
     return (float(start), float(end))
 exclude = [parse_exclude(e) for e in args.exclude] if args.exclude is not None else []
 
-correlations = [(args.a_channel, args.a_channel, 'acorr-%d' % args.a_channel),
-                (args.b_channel, args.b_channel, 'acorr-%d' % args.b_channel),
-                (args.a_channel, args.b_channel, 'xcorr-%d-%d' % (args.a_channel, args.b_channel))
-               ]
-if args.single:
-    correlations = [(args.a_channel, args.b_channel, args.label)]
+# Parse --channels
+correlations = []
+for s in args.channels:
+    parts = s.split(',')
+    try:
+        a = int(parts[0])
+        b = int(parts[1])
+        if len(parts) == 3:
+            name = parts[2]
+        elif a == b:
+            name = 'acorr-%d' % a
+        else:
+            name = 'xcorr-%d-%d' % (a,b)
+        correlations.append((a,b,name))
+    except Exception as e:
+        raise RuntimeError('Error parsing --channels=%s: Expected pair of channels: %s' % (s, e))
+
+# A reasonable default if --channels isn't specified
+if len(correlations) == 0:
+    a_channel = 0
+    b_channel = 1
+    correlations = [
+        (a_channel, a_channel, 'acorr-%d' % a_channel),
+        (b_channel, b_channel, 'acorr-%d' % b_channel),
+        (a_channel, b_channel, 'xcorr-%d-%d' % (a_channel, b_channel))
+    ]
 
 def get_jiffy(timestamps):
     jiffy = timestamps.jiffy
