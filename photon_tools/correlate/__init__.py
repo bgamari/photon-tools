@@ -111,14 +111,19 @@ def corr_chunks(x, y, n=10, cross_chunks=False, anomaly_thresh=None, **kwargs):
     g = corr(x, y, **kwargs)
     lags = g['lag']
     g = g['G']
-    # corrs.shape == (Nlags, len(pairs))
+    # corrs.shape == (len(pairs), Nlags)
     corrs = np.vstack( corr(xc, yc, **kwargs)['G'] for (xc,yc) in pairs )
     corrs = (corrs-1) * ((g-1).sum() / (corrs-1).sum(axis=1))[:,np.newaxis] + 1
 
     if anomaly_thresh is not None:
         likelihoods = anomaly_likelihood(corrs) / corrs.shape[1]
         print likelihoods
-        corrs = corrs[likelihoods > anomaly_thresh, :]
+        take = likelihoods > anomaly_thresh
+        if np.count_nonzero(take) == 0:
+            raise ValueError('No chunks deemed non-anomalous')
+        corrs = corrs[take, :]
+
+        g = np.mean(corrs, axis=0)
 
     var = np.var(corrs, axis=0) / n
 
