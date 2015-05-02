@@ -148,7 +148,7 @@ def anomaly_likelihood(xs):
         var = np.var(subsample, axis=0)
 
         test = xs[i,:]
-        likelihood = -(test - mean)**2 / 2 / var**2 + 0.5 * np.log(2*np.pi*var)
+        likelihood = -(test - mean)**2 / 2 / var**2 - 0.5 * np.log(2*np.pi*var)
         likelihoods.append(np.sum(likelihood))
 
     return np.array(likelihoods)
