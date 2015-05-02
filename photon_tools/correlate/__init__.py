@@ -19,7 +19,7 @@ def corr(x, y, jiffy, min_lag=1e-6, max_lag=1, fineness=8,
     :type x: array of integer timestamps
     :param x: Timeseries to convolve
     :type y: array of integer timestamps
-    :param x: Timeseries to convolve
+    :param x: Timeseries to convolve (compute autocorrelation if ``None``)
     :type jiffy: ``float``, optional
     :param jiffy: The timestamp resolution
     :type min_grain: ``float``, optional
@@ -47,7 +47,7 @@ def autocorr(x, **kwargs):
     Compute an auto-correlation function of the dataset ``x``. See
     :func:`corr` for a complete description of available options.
     """
-    return corr(x, x, **kwargs)
+    return corr(x, None, **kwargs)
 
 def _split_at(timestamps, splits):
     """

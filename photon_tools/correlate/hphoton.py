@@ -38,7 +38,7 @@ def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=Fals
     :type x: array of integer timestamps
     :param x: Timeseries to convolve
     :type y: array of integer timestamps
-    :param x: Timeseries to convolve
+    :param y: Timeseries to convolve (compute autocorrelation is ``None``)
     :type jiffy: ``float``, optional
     :param jiffy: The timestamp resolution
     :type min_lag: ``float``, optional
@@ -52,13 +52,15 @@ def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=Fals
     """
     fo = NamedTemporaryFile(delete=not keep)
     fx = NamedTemporaryFile(delete=not keep, suffix='.raw')
-    fy = NamedTemporaryFile(delete=not keep, suffix='.raw')
     x.tofile(fx.name)
-    y.tofile(fy.name)
+    if y is not None:
+        fy = NamedTemporaryFile(delete=not keep, suffix='.raw')
+        y.tofile(fy.name)
 
     args = [
         'correlate',
-        '-x'+fx.name, '-y'+fy.name,
+        '-x'+fx.name,
+        '-y'+fy.name if y is not None else '',
         '--jiffy=%e' % jiffy,
         '--max-lag=%e' % max_lag,
         '--min-lag=%e' % min_lag,

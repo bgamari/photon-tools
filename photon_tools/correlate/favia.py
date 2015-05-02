@@ -43,7 +43,7 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
     :type x: array of ``u8`` integer timestamps
     :param x: Timeseries to convolve
     :type y: array of ``u8`` integer timestamps
-    :param x: Timeseries to convolve
+    :param x: Timeseries to convolve (compute autocorrelation if ``None``)
     :type jiffy: ``float``, optional
     :param jiffy: The timestamp resolution
     :type short_grain: ``float``, optional
@@ -62,16 +62,19 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
 
     fo = NamedTemporaryFile(delete=not keep)
     fx = NamedTemporaryFile(delete=not keep)
-    fy = NamedTemporaryFile(delete=not keep)
+    if y is not None:
+        fy = NamedTemporaryFile(delete=not keep)
 
     # While offsets should not matter in principle, it seems that favia cares
     # about this sort of thing.
     (x - x[0]).tofile(fx.name)
-    (y - y[0]).tofile(fy.name)
+    if y is not None:
+        (y - y[0]).tofile(fy.name)
 
     args = [
             'favia',
-            '--xfile=%s' % fx.name, '--yfile=%s' % fy.name,
+            '--xfile=%s' % fx.name,
+            '--yfile=%s' % fy.name if y is not None else '',
             '--jiffy=%e' % jiffy,
             '--long_lag=%e' % long_lag,
             '--short_grain=%e' % short_grain,
