@@ -45,6 +45,8 @@ def main():
                         help='Fit an offset')
     parser.add_argument('--fix-aspect', type=float,
                         help='Fix aspect ratio')
+    parser.add_argument('--initial-tau', action='append', default=[],
+                        help='Set initial value of diffusive lifetime')
     parser.add_argument('-T', '--triplet', action='store_true',
                         help='Fit a triplet process')
     parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
@@ -52,7 +54,8 @@ def main():
     args = parser.parse_args()
 
     fit = squmfit.Fit()
-    lifetimes = [fit.param('tauD-%d' % i, initial=100*(i+1)) for i in range(args.components)]
+    initial_taus = args.initial_tau + [100*(i+1) for i in range(args.components - len(args.initial_tau))]
+    lifetimes = [fit.param('tauD-%d' % i, initial=initial) for i,initial in enumerate(initial_taus)]
     aspect = args.fix_aspect if args.fix_aspect is not None else fit.param('aspect-ratio', initial=10)
     lag = squmfit.Argument('lag')
     if args.triplet:
