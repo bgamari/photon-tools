@@ -93,8 +93,14 @@ args = parser.parse_args()
 verbose = args.verbose
 
 def parse_exclude(s):
-    start, end = s.split('-')
-    return (float(start), float(end))
+    parts = s.split('-')
+    if len(parts) != 2:
+        raise RuntimeError('Expected range (e.g. "5-10" or "80-")')
+    start, end = parts
+    start = None if start == '' else float(start)
+    end = None if end == '' else float(end)
+    return (start, end)
+
 exclude = [parse_exclude(e) for e in args.exclude] if args.exclude is not None else []
 
 # Parse --channels
@@ -169,6 +175,20 @@ if not os.path.isdir(args.output):
 # Memoize the correlation functions for afterpulsing correction
 afterpulse_cache = {}
 
+def in_range(bounds, arr):
+    """
+    :param bounds: a tuple of lower and upper bounds
+    :param arr: an array of times
+    :returns: a boolean array indicating which elements fall in the given time range.
+    """
+    lower, upper = bounds
+    mask = True
+    if lower is not None:
+        mask = np.logical_and(mask, arr >= lower / jiffy)
+    if upper is not None:
+        mask = np.logical_and(mask, arr < upper / jiffy)
+    return mask
+
 for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
@@ -178,9 +198,9 @@ for file in args.files:
         jiffy = get_jiffy(f)
         ad, bd = f.channel(ac), f.channel(bc)
         na, nb = len(ad), len(bd)
-        for (start,end) in exclude:
-            ad = ad[np.logical_or(ad < start / jiffy, ad > end / jiffy)]
-            bd = bd[np.logical_or(bd < start / jiffy, bd > end / jiffy)]
+        for bounds in exclude:
+            ad = ad[in_range(bounds, ad)]
+            bd = bd[in_range(bounds, bd)]
 
         if len(ad) == 0 or len(bd) == 0:
             print "No data in one channel, skipping"
