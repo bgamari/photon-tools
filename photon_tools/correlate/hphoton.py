@@ -17,8 +17,9 @@ keep = False # For debugging
 dtype = np.dtype([('lag', 'f8'), ('G', 'f8'), ('var', 'f8')])
 
 class CorrelateError(RuntimeError):
-    def __init__(self, exit_code, error):
-        RuntimeError.__init__(self, 'hphoton correlate threw an error: exit code %d\n\n%s' % (exit_code, error))
+    def __init__(self, args, exit_code, error):
+        RuntimeError.__init__(self, 'hphoton correlate %s threw an error: exit code %d\n\n%s' % (args, exit_code, error))
+        self.args = args
         self.exit_code = exit_code
         self.error = error
 
@@ -71,6 +72,6 @@ def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=Fals
     p = subprocess.Popen(args, stdout=fo, stderr=stderr)
     error = p.stderr.read() if not verbose else None
     if p.wait() != 0:
-        raise CorrelateError(p.returncode, error)
+        raise CorrelateError(args, p.returncode, error)
 
     return read_correlate(fo.name)
