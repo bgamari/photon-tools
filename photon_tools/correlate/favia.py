@@ -57,8 +57,9 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
     """
     assert x.dtype == np.dtype('u8')
     assert len(x.shape) == 1
-    assert y.dtype == np.dtype('u8')
-    assert len(x.shape) == 1
+    if y is not None:
+        assert y.dtype == np.dtype('u8')
+        assert len(y.shape) == 1
 
     fo = NamedTemporaryFile(delete=not keep)
     fx = NamedTemporaryFile(delete=not keep)
