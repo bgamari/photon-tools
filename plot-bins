@@ -29,7 +29,7 @@ def plot_file(fname, channels={0: 'Channel 0'},
     """
     data_sets = []
     f = read_photons.open(fname)
-    jiffy = override_jiffy if override_jiffy is None else f.jiffy
+    jiffy = override_jiffy if override_jiffy is not None else f.jiffy
 
     for chan, label in channels.items():
         try:
@@ -120,13 +120,13 @@ if __name__ == '__main__':
                         help='Instrument tick period')
     parser.add_argument('-W', '--row-width', metavar='TIME', type=float, default=10,
                         help='Width of row in seconds')
-    parser.add_argument('-y', '--max-count', metavar='COUNT[/sec]|COUNT/bin|max|avg', default='max',
+    parser.add_argument('-y', '--max-count', metavar='COUNT{/sec}|COUNT/bin|max|avg', default='max',
                         help='Maximum count rate of Y axis')
     parser.add_argument('-o', '--output', metavar='FILE', type=argparse.FileType('w'), default=None,
                         help='Output to named file')
-    parser.add_argument('-c', '--channel', metavar='CHANNEL[=LABEL]',
+    parser.add_argument('-c', '--channel', metavar='CHANNEL',
                         action='append', default=[],
-                        help='Channels to plot')
+                        help='Channels to plot (CHANNEL{=LABEL})')
     parser.add_argument('-s', '--start', metavar='TIME', type=float, default=None,
                         help='Time at which to begin plotting')
     parser.add_argument('-O', '--auto-output', action='store_true',

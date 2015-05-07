@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import warnings
 import os.path
 
-from photon_tools.correlate import corr, autocorr, corr_chunks
+from photon_tools.correlate import corr, autocorr, corr_chunks, anomaly_likelihood
 from photon_tools.io import read_photons
 
 import numpy as np
@@ -22,65 +22,113 @@ except:
 
 verbose = False
 
-parser = ArgumentParser(description='Compute and plot correlation functions of photon timestamps',
+description = """
+fcs-corr computes cross- and auto-correlation functions on photon timestamp data.
+In addition to the calculation of the correlation function itself, it supports
+estimation of uncertainties, detection of anomalies (e.g. due to sample contamination),
+and correction for instrument artifacts.
+"""
+
+parser = ArgumentParser(description=description,
                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
-                    help='Input timestamp files')
-parser.add_argument('-a', '--a-channel', type=int, default=0,
-                    help='Channel to run correlate')
-parser.add_argument('-b', '--b-channel', type=int, default=1,
-                    help='Channel to run correlate')
-parser.add_argument('-E', '--min-lag', type=float, default=5e-7,
-                    help='Smallest lag to compute')
-parser.add_argument('-L', '--max-lag', type=float, default=1,
-                    help='Longest lag to compute')
-parser.add_argument('-n', '--nchunks', type=int, default=10,
-                    help='Number of subsamples to split data into for variance computation. If 1 the Wohland estimator is used.')
-parser.add_argument('-O', '--output', default='.',
-                     help='Output directory')
-parser.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
-parser.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation functions of subsamples')
-parser.add_argument('-f', '--fineness', type=int, default=8,
-                    help='Number of lags per octave')
-parser.add_argument('-v', '--verbose', action='store_true',
-                    help='Produce debugging output')
-parser.add_argument('-l', '--label', type=str, default='corr',
-                    help='Descriptive label for dataset shown in plot')
-parser.add_argument('-j', '--jiffy', type=float, default=None,
-                    help='Acquisition timebase period')
-parser.add_argument('-s', '--single', action='store_true',
-                    help="Produce only cross-correlations of given channels, skipping auto-correlations")
-parser.add_argument('-p', '--plot', action='store_true',
-                    help='Plot each computed correlation function')
-parser.add_argument('-P', '--plot-type', default='png',
-                    help='File format of plot output (svg, png, pdf, or ps)')
-parser.add_argument('-t', '--start-time', default=None, type=str,
-                    help='Start time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
-parser.add_argument('-T', '--stop-time', default=None, type=str,
-                    help='Stop time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
-parser.add_argument('-e', '--exclude', action='append', metavar='T-T',
-                    help='Exclude a range of times (given in seconds)')
-parser.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
-                    metavar='FILE',
-                    help='Uncorrelated timestamps for afterpulsing correction')
-parser.add_argument('--engine', default=None,
-                    help='Which correlator engine to use (hphoton or favia)')
-parser.add_argument('--afterpulse-cutoff', default=None,
-                    help="Don't apply afterpulsing correction beyond given lag")
+group = parser.add_argument_group('input options',
+                                  'Options controlling input data')
+group.add_argument('files', metavar='FILE', type=argparse.FileType('r'), nargs='+',
+                   help='Input timestamp files')
+group.add_argument('-j', '--jiffy', type=float, default=None,
+                   help='Acquisition timebase period')
+group.add_argument('-c', '--channels', type=str, metavar='CH,CH,{NAME}', action='append', default=[],
+                   help='Channels between which to compute the correlation')
+group.add_argument('-t', '--start-time', default=None, type=str,
+                   help='Start time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
+group.add_argument('-T', '--stop-time', default=None, type=str,
+                   help='Stop time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
+group.add_argument('-e', '--exclude', action='append', metavar='T-T',
+                   help='Exclude a range of times (given in seconds)')
+
+group = parser.add_argument_group('correlator options',
+                                  'Options controlling how the correlation function is computed')
+group.add_argument('-E', '--min-lag', type=float, default=5e-7,
+                   help='Smallest lag to compute')
+group.add_argument('-L', '--max-lag', type=float, default=1,
+                   help='Longest lag to compute')
+group.add_argument('-n', '--nchunks', type=int, default=10,
+                   help='Number of subsamples to split data into for variance computation. If 1 the Wohland estimator is used.')
+group.add_argument('-f', '--fineness', type=int, default=8,
+                   help='Number of lags per octave')
+group.add_argument('--anomaly-thresh', type=float,
+                   help='Threshold on log-likelihood of chunk anomly model')
+
+group = parser.add_argument_group('output options',
+                                  'Options controlling how output is produced')
+group.add_argument('-O', '--output', default='.',
+                   help='Output directory')
+group.add_argument('-v', '--verbose', action='store_true',
+                   help='Produce debugging output')
+group.add_argument('-p', '--plot', action='store_true',
+                   help='Plot each computed correlation function')
+group.add_argument('-l', '--label', type=str, default='corr',
+                   help='Descriptive label for dataset shown in plot')
+group.add_argument('-P', '--plot-type', default='png',
+                   help='File format of plot output (svg, png, pdf, or ps)')
+
+group = parser.add_argument_group('uncertainty estimation',
+                                  'Options controlling how the uncertainty of the resulting correlation function is estimated')
+group.add_argument('--chunks', action='store_true', help='Produce file containing chunks')
+group.add_argument('--plot-chunks', action='store_true', help='Produce plot showing correlation functions of subsamples')
+group.add_argument('--cross-chunks', action='store_true',
+                   help='Use cross-correlations between non-cooccurent chunks to evaluate uncertainties')
+
+group = parser.add_argument_group('afterpulsing correction',
+                                  'Options controlling whether and how afterpulsing correction is applied')
+group.add_argument('-A', '--afterpulse', default=None, type=argparse.FileType('r'),
+                   metavar='FILE',
+                   help='Uncorrelated timestamps for afterpulsing correction')
+group.add_argument('--engine', default=None,
+                   help='Which correlator engine to use (hphoton or favia)')
+group.add_argument('--afterpulse-cutoff', default=None,
+                   help="Don't apply afterpulsing correction beyond given lag")
+
 args = parser.parse_args()
 verbose = args.verbose
 
 def parse_exclude(s):
-    start, end = s.split('-')
-    return (float(start), float(end))
+    parts = s.split('-')
+    if len(parts) != 2:
+        raise RuntimeError('Expected range (e.g. "5-10" or "80-")')
+    start, end = parts
+    start = None if start == '' else float(start)
+    end = None if end == '' else float(end)
+    return (start, end)
+
 exclude = [parse_exclude(e) for e in args.exclude] if args.exclude is not None else []
 
-correlations = [(args.a_channel, args.a_channel, 'acorr-%d' % args.a_channel),
-                (args.b_channel, args.b_channel, 'acorr-%d' % args.b_channel),
-                (args.a_channel, args.b_channel, 'xcorr-%d-%d' % (args.a_channel, args.b_channel))
-               ]
-if args.single:
-    correlations = [(args.a_channel, args.b_channel, args.label)]
+# Parse --channels
+correlations = []
+for s in args.channels:
+    parts = s.split(',')
+    try:
+        a = int(parts[0])
+        b = int(parts[1])
+        if len(parts) == 3:
+            name = parts[2]
+        elif a == b:
+            name = 'acorr-%d' % a
+        else:
+            name = 'xcorr-%d-%d' % (a,b)
+        correlations.append((a,b,name))
+    except Exception as e:
+        raise RuntimeError('Error parsing --channels=%s: Expected pair of channels: %s' % (s, e))
+
+# A reasonable default if --channels isn't specified
+if len(correlations) == 0:
+    a_channel = 0
+    b_channel = 1
+    correlations = [
+        (a_channel, a_channel, 'acorr-%d' % a_channel),
+        (b_channel, b_channel, 'acorr-%d' % b_channel),
+        (a_channel, b_channel, 'xcorr-%d-%d' % (a_channel, b_channel))
+    ]
 
 def get_jiffy(timestamps):
     jiffy = timestamps.jiffy
@@ -94,7 +142,7 @@ def get_jiffy(timestamps):
 def afterpulsing_correction(ch):
     """
     Afterpulsing correction as described by,
-    
+
       M. Zhao, L. Jin, B. Chen, et al.
       "Afterpulsing and its correction in fluorescence correlation spectroscopy
       experiments." _Applied Optics_ (2003)
@@ -123,9 +171,23 @@ def afterpulsing_correction(ch):
 
 if not os.path.isdir(args.output):
     os.makedirs(args.output)
-    
+
 # Memoize the correlation functions for afterpulsing correction
 afterpulse_cache = {}
+
+def in_range(bounds, arr):
+    """
+    :param bounds: a tuple of lower and upper bounds
+    :param arr: an array of times
+    :returns: a boolean array indicating which elements fall in the given time range.
+    """
+    lower, upper = bounds
+    mask = True
+    if lower is not None:
+        mask = np.logical_and(mask, arr >= lower / jiffy)
+    if upper is not None:
+        mask = np.logical_and(mask, arr < upper / jiffy)
+    return mask
 
 for file in args.files:
     for (ac,bc,label) in correlations:
@@ -136,9 +198,9 @@ for file in args.files:
         jiffy = get_jiffy(f)
         ad, bd = f.channel(ac), f.channel(bc)
         na, nb = len(ad), len(bd)
-        for (start,end) in exclude:
-            ad = ad[np.logical_or(ad < start / jiffy, ad > end / jiffy)]
-            bd = bd[np.logical_or(bd < start / jiffy, bd > end / jiffy)]
+        for bounds in exclude:
+            ad = ad[in_range(bounds, ad)]
+            bd = bd[in_range(bounds, bd)]
 
         if len(ad) == 0 or len(bd) == 0:
             print "No data in one channel, skipping"
@@ -189,13 +251,15 @@ for file in args.files:
 
         c = None
         nchunks = args.nchunks
-        if durA / nchunks < 10 * args.max_lag or durB / nchunks < 10 * args.max_lag:
-            orig = nchunks
-            nchunks = dur / nchunks / args.max_lag / 10
-            warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
 
         if nchunks > 1:
-            c,chunks = corr_chunks(ad, bd, n=nchunks, **kwargs)
+            if durA / nchunks < 10 * args.max_lag \
+               or durB / nchunks < 10 * args.max_lag:
+                orig = nchunks
+                nchunks = dur / nchunks / args.max_lag / 10
+                warnings.warn('%s: Data set too short to compute %d chunks, will compute %d instead' % (fname, orig, nchunks))
+            c,chunks = corr_chunks(ad, bd, n=nchunks, cross_chunks=args.cross_chunks,
+                                   anomaly_thresh=args.anomaly_thresh, **kwargs)
             if args.chunks:
                 np.savetxt(fname+'.chunks.'+label, np.vstack([c['lag'], chunks]).T)
         else:
@@ -228,7 +292,7 @@ for file in args.files:
             pl.xlabel('Lag (s)')
             pl.ylabel('Correlation')
             pl.axhline(1, color='0.7')
-            if args.plot_chunks:
+            if nchunks > 1 and args.plot_chunks:
                 for i in range(chunks.shape[0]):
                     pl.scatter(c['lag'], chunks[i,:], marker='+', alpha=0.6,
                                color='%f' % (0.3 + i * 0.7 / chunks.shape[0]))

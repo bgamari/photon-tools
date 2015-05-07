@@ -142,19 +142,28 @@ def fit(corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     :type periods: int
     :param periods: Number of periods to fit against
     :param kwargs: Other keyword arguments passed to `analyze`
-    :rtype: tuple of two :class:`FitResults`
+    :rtype: tuple of (:class:`FitResults`, :class:`FitResults`, :class:`CurveDesc`)
+    :returns:
+      1. :class:`FitResult` of fit with period held fixed at initial value
+      2. :class:`FitResult` of fit with period free
+      3. :class:`CurveDesc` of fit with period free
     """
     # Run the fit first to get the parameters roughly correct, then
     # then infer the period
-    res1 = analyze(corrs, exc_period, n_components, jiffy_ps, **kwargs)
-    res2 = analyze(corrs, exc_period, n_components, jiffy_ps,
+    res1,desc1 = analyze(corrs, exc_period, n_components, jiffy_ps, **kwargs)
+    res2,desc2 = analyze(corrs, exc_period, n_components, jiffy_ps,
                    free_period=True, params0=res1.params, **kwargs)
-    return res1, res2
+    return res1, res2, desc2
+
+# curve parameters
+CurveDesc = namedtuple('CurveDesc', 'amps exc_leakage tau_rot')
+# model parameters
+ModelDesc = namedtuple('ModelDesc', 'fluor_rates period offset_par offset_perp r0 imbalance tau_rot curves')
 
 def analyze(corrs, exc_period, n_components, jiffy_ps,
             params0=None, free_period=False,
             exc_leakage=False, imbalance=None, indep_aniso=False,
-            no_offset=False):
+            no_offset=False, fix_lifetimes=[]):
     """
     Fit a set of anisotropy data with the given IRF and model
 
@@ -178,6 +187,8 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
        coherence time for each curve.
     :type no_offset: `bool`
     :param no_offset: Disable fitting of temporal offset between IRF and fluorescence curve.
+    :type fix_lifetimes: list of floats, times in picoseconds
+    :param fix_lifetimes: Fix the lifetimes of some fluorescence decay components
     """
     fit = Fit()
     lag = Argument('t')
@@ -187,10 +198,14 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     period = fit.param('period', exc_period)
 
     # Build decay model
+    assert len(fix_lifetimes) <= n_components
     rates = []
     for i in range(n_components):
-        tau = 1000 + 1000*i
-        rate = fit.param('lambda%d' % i, initial=1/tau)
+        if i < len(fix_lifetimes):
+            rate = 1 / fix_lifetimes[i]
+        else:
+            tau = 1000 + 1000*i
+            rate = fit.param('lambda%d' % i, initial=1/tau)
         rates.append(rate)
 
     # Parameters for anisotropy model
@@ -200,6 +215,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     if not indep_aniso:
         tau_rot = fit.param('tau_rot', initial=500)
 
+    curve_descs = []
     for pair_idx,corr in enumerate(corrs):
         if indep_aniso:
             tau_rot = fit.param('%s_tau_rot' % pair.name, initial=500)
@@ -213,8 +229,10 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
 
         decay_models = []
         initial_amp = np.max(par) / np.sum(par)
+        amplitudes = []
         for comp_idx, rate in enumerate(rates):
             amp = fit.param('%s_amplitude%d' % (corr.name, comp_idx), initial=initial_amp)
+            amplitudes.append(amp / rates[comp_idx])
             decay_models.append(exponential(t=lag, rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
 
@@ -255,7 +273,24 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
                   name = '%s_perp' % corr.name,
                   irf = corr.irf.perp)
 
-    return fit.fit(params0)
+        curve_descs.append(CurveDesc(
+            amps = amplitudes,
+            tau_rot = tau_rot,
+            exc_leakage = leakage,
+        ))
+
+    model_desc = ModelDesc(
+        fluor_rates = rates,
+        period = period,
+        offset_par=offset_par,
+        offset_perp = offset_perp,
+        r0 = r0,
+        imbalance = imbalance,
+        tau_rot = tau_rot,
+        curves = curve_descs,
+    )
+    res = fit.fit(params0)
+    return (res, model_desc)
 
 def plot(fig, corrs, jiffy_ps, result, sep_resid=False):
     """

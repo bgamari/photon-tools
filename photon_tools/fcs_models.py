@@ -1,11 +1,11 @@
 from numpy import exp, sqrt
 import squmfit
 
-@squmfit.model 
+@squmfit.model
 def three_dim_diffusion(lag, tauD, aspect, n, alpha=1):
     """
     Model of correlation function for a three dimensional diffuser
-    
+
     :param lag: Lag time
     :param tauD: Diffusion time
     :param aspect: Aspect ratio

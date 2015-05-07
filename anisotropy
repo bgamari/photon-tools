@@ -5,62 +5,59 @@ import numpy as np
 from matplotlib import pyplot as pl
 from photon_tools.anisotropy import *
 
-def print_params(p, corrs, ncomponents):
-    if 'period' in p:
-        print '  irf period', p['period']
-    if 'offset-par' in p:
-        print '  irf offset (parallel)', p['offset-par']
-    if 'offset-perp' in p:
-        print '  irf offset (perpendicular)', p['offset-perp']
-    if 'g' in p: print '  g', p['g']
-    print '  r0', p['r0']
-    if 'tau_rot' in p:
-        print '  tau_rot', p['tau_rot']
+def print_params(fit, desc, corrs, ncomponents):
+    """
+    :type fit: A :class:`FitResult` giving a the fitted parameter values
+    :type desc: A :class:`ModelDesc` describing the model
+    :type corrs: TODO
+    """
+    print '  irf period', fit.eval(desc.period)
+    print '  irf offset (parallel)', fit.eval(desc.offset_par)
+    print '  irf offset (perpendicular)', fit.eval(desc.offset_perp)
+    print '  g', fit.eval(desc.imbalance)
+    print '  r0', fit.eval(desc.r0)
+    if desc.tau_rot is not None:
+        print '  tau_rot', fit.eval(desc.tau_rot)
 
     for comp_idx in range(ncomponents):
-        rate = p['lambda%d' % comp_idx]
-        print '  Component %d' % comp_idx
-        print '    tau', 1/rate
+        rate = desc.fluor_rates[comp_idx]
+        if rate is not None:
+            print '  Component %d' % comp_idx
+            print '    tau', fit.eval(1/rate)
 
-    for pair_idx,pair in enumerate(corrs):
+    for pair_idx,(cdesc, pair) in enumerate(zip(desc.curves, corrs)):
         print '  Pair %d (par=%s, perp=%s)' % (pair_idx, pair.name, pair.name)
-        leakage = '%s_leakage' % pair.name
-        if leakage in p:
-            print '    leakage', '%1.2g' % p[leakage]
-        if ('tau_rot%d' % pair_idx) in p:
-            print '    tau_rot', p['tau_rot%d' % pair_idx]
+        if cdesc.exc_leakage != 0:
+            print '    leakage', '%1.2g' % fit.eval(cdesc.exc_leakage)
+        if cdesc.tau_rot is not None:
+            print '    tau_rot', fit.eval(cdesc.tau_rot)
 
-        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / rate
-                  for comp_idx in range(ncomponents) ]
-        for comp_idx in range(ncomponents):
-            rate = p['lambda%d' % comp_idx]
-            frac = ampls[comp_idx] / sum(ampls)
-            print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (ampls[comp_idx], frac * 100)
+        ampls = map(fit.eval, cdesc.amps)
+        for comp_idx, amp in enumerate(ampls):
+            frac = amp / sum(ampls)
+            print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (amp, frac * 100)
 
 def gen_json(p, corrs, ncomponents):
     out = {}
-    out['period'] = p.get('period')
-    out['offset-par'] = p.get('offset-par')
-    out['offset-perp'] = p.get('offset-perp')
-    out['g'] = p.get('g')
-    out['r0'] = p.get('r0')
-    out['tau-rot'] = p.get('tau-rot')
+    out['period'] = p.period
+    out['offset-par'] = p.offset_par
+    out['offset-perp'] = p.offset_perp
+    out['g'] = p.imbalance
+    out['r0'] = p.r0
+    out['tau-rot'] = p.tau_rot
 
     out['components'] = []
     for comp_idx in range(ncomponents):
-        rate = p['lambda%d' % comp_idx]
         out['components'].append({
-            'tau': 1/rate
+            'tau': 1/p.fluor_rates[comp_idx]
         })
 
     out['curves'] = []
-    for pair_idx,pair in enumerate(corrs):
-        ampls = [ p['%s_amplitude%d' % (pair.name, comp_idx)] / rate
-                  for comp_idx in range(ncomponents) ]
+    for pair_idx,(cdesc, pair) in enumerate(zip(p.curves, corrs)):
         out['curves'].append({
-            'leakage': p.get('leakage'),
-            'tau_rot': p.get('%s_tau_rot' % pair.name),
-            'ampls': ampls,
+            'leakage': cdesc.exc_leakage,
+            'tau_rot': cdesc.tau_rot,
+            'ampls': cdesc.amps,
         })
     return out
 
@@ -90,6 +87,8 @@ def main():
                         help='JSON output file')
     parser.add_argument('--imbalance', '-g', type=float,
                         help='Fix detector imbalance factor g')
+    parser.add_argument('--lifetimes', '-t', type=float, action='append', default=[],
+                        help='Fix fluorescence decay lifetimes (in picoseconds)')
     parser.add_argument('-A', '--indep-aniso',
                         help='Fit per-dataset rotational coherence models')
     parser.add_argument('-R', '--sep-resid', action='store_true',
@@ -135,32 +134,29 @@ def main():
                                         read_hist(b)['counts'][:n-trim]))
              for a,b in zip(args.corr[::2], args.corr[1::2])]
 
-    res0, res = fit(corrs, jiffy_ps, period, args.components,
-                    no_offset=args.no_offset,
-                    periods=args.periods,
-                    exc_leakage=args.exc_leakage,
-                    imbalance=args.imbalance,
-                    indep_aniso=args.indep_aniso)
+    res0, res, desc = fit(corrs, jiffy_ps, period, args.components,
+                          no_offset=args.no_offset,
+                          periods=args.periods,
+                          exc_leakage=args.exc_leakage,
+                          imbalance=args.imbalance,
+                          indep_aniso=args.indep_aniso,
+                          fix_lifetimes=args.lifetimes)
 
     # Present results
     print
-    print 'Initial parameters'
-    print_params(res0.initial.params, corrs, args.components)
-
-    print
     print 'Fitted parameters'
-    print_params(res.params, corrs, args.components)
+    print_params(res, desc, corrs, args.components)
 
     # Fix covariance
     for comp_idx1 in range(args.components):
-        for pair_idx1,_ in enumerate(args.corr):
+        for pair1 in corrs:
             for comp_idx2 in range(args.components):
-                for pair_idx2,_ in enumerate(args.corr):
-                    p1 = 'c%d_amplitude%d' % (pair_idx1, comp_idx1)
-                    p2 = 'c%d_amplitude%d' % (pair_idx2, comp_idx2)
-                    rate1 = res.params['lambda%d' % comp_idx1]
-                    rate2 = res.params['lambda%d' % comp_idx2]
-                    #res.covar[p1][p2] *= rate1 * rate2
+                for pair2 in corrs:
+                    p1 = '%s_amplitude%d' % (pair1.name, comp_idx1)
+                    p2 = '%s_amplitude%d' % (pair2.name, comp_idx2)
+                    rate1 = res.eval(desc.fluor_rates[comp_idx1])
+                    rate2 = res.eval(desc.fluor_rates[comp_idx2])
+                    res.covar[p1][p2] /= rate1 * rate2
 
     print
     print 'Reduced chi-squared'
@@ -190,7 +186,7 @@ def main():
 
     if args.json is not None:
         import json
-        json.dump(gen_json(res.params, corrs, args.components), args.json, indent=4)
+        json.dump(gen_json(desc, corrs, args.components), args.json, indent=4)
 
     fig = pl.figure()
     plot(fig, corrs, result=res, jiffy_ps=jiffy_ps, sep_resid=args.sep_resid)
