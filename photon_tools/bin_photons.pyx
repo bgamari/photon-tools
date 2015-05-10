@@ -2,7 +2,8 @@ from cpython cimport bool
 from types cimport *
 from types import *
 
-def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width, uint64_t start_t=-1, uint64_t end_t=-1, bool include_zeros=True):
+def bin_photons(np.ndarray[np.uint64_t] times, uint64_t bin_width,
+                uint64_t start_t=-1, uint64_t end_t=-1, bool include_zeros=True):
         """
         bin_photons(times, bin_width, start_t=-1, end_t=-1, include_zeros=True)
 
