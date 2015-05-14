@@ -94,7 +94,18 @@ verbose = args.verbose
 
 def parse_exclude(s):
     start, end = s.split('-')
-    return (float(start), float(end))
+    if end == '' or end == 'end':
+        end = None
+    else:
+        end = float(end)
+
+    if start == '' or start == 'start':
+        start = None
+    else:
+        start = float(start)
+
+    return (start, end)
+
 exclude = [parse_exclude(e) for e in args.exclude] if args.exclude is not None else []
 
 # Parse --channels
@@ -179,8 +190,16 @@ for file in args.files:
         ad, bd = f.channel(ac), f.channel(bc)
         na, nb = len(ad), len(bd)
         for (start,end) in exclude:
-            ad = ad[np.logical_or(ad < start / jiffy, ad > end / jiffy)]
-            bd = bd[np.logical_or(bd < start / jiffy, bd > end / jiffy)]
+            def filter(d):
+                mask = np.ones_like(d)
+                if start is not None:
+                    np.logical_and(mask, d < start / jiffy, out=mask)
+                if end is not None:
+                    np.logical_and(mask, d > end / jiffy, out=mask)
+                return d[mask]
+
+            ad = filter(ad)
+            bd = filter(bd)
 
         if len(ad) == 0 or len(bd) == 0:
             print "No data in one channel, skipping"
