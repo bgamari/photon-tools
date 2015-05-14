@@ -18,7 +18,7 @@ To install `photon-tools` on Ubuntu,
 
 Many of these utilities are written in Python and generally require Python 2.6
 or greater along with numpy. In particular, some optimized modules require
-Cython. Utilities capable of producing plots require the matplotlib python
+Cython. Utilities capable of producing plots require the matplotlib Python
 plotting library. On the whole, `photon-tools` depends on,
 
  * Gnu make
