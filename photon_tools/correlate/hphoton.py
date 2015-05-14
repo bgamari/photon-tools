@@ -17,8 +17,9 @@ keep = False # For debugging
 dtype = np.dtype([('lag', 'f8'), ('G', 'f8'), ('var', 'f8')])
 
 class CorrelateError(RuntimeError):
-    def __init__(self, exit_code, error):
-        RuntimeError.__init__(self, 'hphoton correlate threw an error: exit code %d\n\n%s' % (exit_code, error))
+    def __init__(self, args, exit_code, error):
+        RuntimeError.__init__(self, 'hphoton correlate %s threw an error: exit code %d\n\n%s' % (args, exit_code, error))
+        self.args = args
         self.exit_code = exit_code
         self.error = error
 
@@ -38,7 +39,7 @@ def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=Fals
     :type x: array of integer timestamps
     :param x: Timeseries to convolve
     :type y: array of integer timestamps
-    :param x: Timeseries to convolve
+    :param y: Timeseries to convolve (compute autocorrelation is ``None``)
     :type jiffy: ``float``, optional
     :param jiffy: The timestamp resolution
     :type min_lag: ``float``, optional
@@ -52,23 +53,27 @@ def corr(x, y, jiffy=1./128e6, min_lag=1e-6, max_lag=1, fineness=8, verbose=Fals
     """
     fo = NamedTemporaryFile(delete=not keep)
     fx = NamedTemporaryFile(delete=not keep, suffix='.raw')
-    fy = NamedTemporaryFile(delete=not keep, suffix='.raw')
     x.tofile(fx.name)
-    y.tofile(fy.name)
+    if y is not None:
+        fy = NamedTemporaryFile(delete=not keep, suffix='.raw')
+        y.tofile(fy.name)
 
     args = [
         'correlate',
-        '-x'+fx.name, '-y'+fy.name,
+        '-x'+fx.name,
         '--jiffy=%e' % jiffy,
         '--max-lag=%e' % max_lag,
         '--min-lag=%e' % min_lag,
         '--nbins=%d' % fineness
     ]
+    if y is not None:
+        args.append('-y'+fy.name if y is not None else '')
+
     logging.debug(' '.join(args))
     stderr = sys.stderr if verbose else subprocess.PIPE
     p = subprocess.Popen(args, stdout=fo, stderr=stderr)
     error = p.stderr.read() if not verbose else None
     if p.wait() != 0:
-        raise CorrelateError(p.returncode, error)
+        raise CorrelateError(args, p.returncode, error)
 
     return read_correlate(fo.name)

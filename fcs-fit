@@ -45,16 +45,22 @@ def main():
                         help='Fit an offset')
     parser.add_argument('--fix-aspect', type=float,
                         help='Fix aspect ratio')
+    parser.add_argument('--initial-tau', action='append', default=[],
+                        help='Set initial value of diffusive lifetime')
     parser.add_argument('-T', '--triplet', action='store_true',
                         help='Fit a triplet process')
+    parser.add_argument('-A', '--anomalous', action='store_true',
+                        help='Allow a non-unity diffusion exponent')
     parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                         help='Correlation functions to plot')
     args = parser.parse_args()
 
     fit = squmfit.Fit()
-    lifetimes = [fit.param('tauD-%d' % i, initial=100*(i+1)) for i in range(args.components)]
+    initial_taus = args.initial_tau + [100*(i+1) for i in range(args.components - len(args.initial_tau))]
+    lifetimes = [fit.param('tauD-%d' % i, initial=initial) for i,initial in enumerate(initial_taus)]
     aspect = args.fix_aspect if args.fix_aspect is not None else fit.param('aspect-ratio', initial=10)
     lag = squmfit.Argument('lag')
+    alpha = fit.param('alpha', initial=1) if args.anomalous else 1
     if args.triplet:
         tauF = fit.param('tauF', initial=0.5)
     for curve_idx, f in enumerate(args.curves):
@@ -67,7 +73,7 @@ def main():
         model = 0 if not args.offset else fit.param('offset-%d' % curve_idx, 0)
         for comp_idx, tauD in enumerate(lifetimes):
             n = fit.param('N-%d-%d' % (curve_idx, comp_idx), initial=1)
-            model += three_dim_diffusion(lag=lag, tauD=tauD, aspect=aspect, n=n)
+            model += three_dim_diffusion(lag=lag, tauD=tauD, aspect=aspect, n=n, alpha=alpha)
 
         if args.triplet:
             model *= triplet_correction(lag=lag, tauF=tauF,
