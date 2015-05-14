@@ -175,18 +175,18 @@ if not os.path.isdir(args.output):
 # Memoize the correlation functions for afterpulsing correction
 afterpulse_cache = {}
 
-def in_range(bounds, arr):
+def exclude_range(bounds, arr):
     """
     :param bounds: a tuple of lower and upper bounds
     :param arr: an array of times
     :returns: a boolean array indicating which elements fall in the given time range.
     """
     lower, upper = bounds
-    mask = True
+    mask = False
     if lower is not None:
-        mask = np.logical_and(mask, arr >= lower / jiffy)
+        mask = np.logical_or(mask, arr < lower / jiffy)
     if upper is not None:
-        mask = np.logical_and(mask, arr < upper / jiffy)
+        mask = np.logical_or(mask, arr >= upper / jiffy)
     return mask
 
 for file in args.files:
@@ -199,8 +199,8 @@ for file in args.files:
         ad, bd = f.channel(ac), f.channel(bc)
         na, nb = len(ad), len(bd)
         for bounds in exclude:
-            ad = ad[in_range(bounds, ad)]
-            bd = bd[in_range(bounds, bd)]
+            ad = ad[exclude_range(bounds, ad)]
+            bd = bd[exclude_range(bounds, bd)]
 
         if len(ad) == 0 or len(bd) == 0:
             print "No data in one channel, skipping"
