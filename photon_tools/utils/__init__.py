@@ -71,7 +71,6 @@ def in_intervals(bounds, arr):
     :returns: a boolean array indicating which elements fall in one or more of the given intervals
     """
     a = np.zeros_like(arr, dtype=bool)
-    print bounds
     for b in bounds:
         np.logical_or(a, in_interval(b, arr), a)
     return a
