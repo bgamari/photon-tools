@@ -7,6 +7,7 @@ import os.path
 
 from photon_tools.correlate import corr, autocorr, corr_chunks, anomaly_likelihood
 from photon_tools.io import read_photons
+from photon_tools.utils import parse_intervals, in_intervals
 
 import numpy as np
 import math
@@ -44,7 +45,7 @@ group.add_argument('-t', '--start-time', default=None, type=str,
 group.add_argument('-T', '--stop-time', default=None, type=str,
                    help='Stop time of usable data (seconds). Use + and - to indicate times relative to first and last timestamps of dataset, respectively.')
 group.add_argument('-e', '--exclude', action='append', metavar='T-T',
-                   help='Exclude a range of times (given in seconds)')
+                   help='Exclude a interval of times (given in seconds)')
 
 group = parser.add_argument_group('correlator options',
                                   'Options controlling how the correlation function is computed')
@@ -92,16 +93,7 @@ group.add_argument('--afterpulse-cutoff', default=None,
 args = parser.parse_args()
 verbose = args.verbose
 
-def parse_exclude(s):
-    parts = s.split('-')
-    if len(parts) != 2:
-        raise RuntimeError('Expected range (e.g. "5-10" or "80-")')
-    start, end = parts
-    start = None if start == '' else float(start)
-    end = None if end == '' else float(end)
-    return (start, end)
-
-exclude = [parse_exclude(e) for e in args.exclude] if args.exclude is not None else []
+exclude = parse_intervals(','.join(args.exclude)) if args.exclude is not None else []
 
 # Parse --channels
 correlations = []
@@ -175,20 +167,6 @@ if not os.path.isdir(args.output):
 # Memoize the correlation functions for afterpulsing correction
 afterpulse_cache = {}
 
-def exclude_range(bounds, arr):
-    """
-    :param bounds: a tuple of lower and upper bounds
-    :param arr: an array of times
-    :returns: a boolean array indicating which elements fall in the given time range.
-    """
-    lower, upper = bounds
-    mask = False
-    if lower is not None:
-        mask = np.logical_or(mask, arr < lower / jiffy)
-    if upper is not None:
-        mask = np.logical_or(mask, arr >= upper / jiffy)
-    return mask
-
 for file in args.files:
     for (ac,bc,label) in correlations:
         fname = os.path.basename(file.name)
@@ -198,9 +176,9 @@ for file in args.files:
         jiffy = get_jiffy(f)
         ad, bd = f.channel(ac), f.channel(bc)
         na, nb = len(ad), len(bd)
-        for bounds in exclude:
-            ad = ad[exclude_range(bounds, ad)]
-            bd = bd[exclude_range(bounds, bd)]
+        exclude_ = [(e[0] / jiffy, e[1] / jiffy) for e in exclude]
+        ad = ad[np.logical_not(in_intervals(exclude_, ad))]
+        bd = bd[np.logical_not(in_intervals(exclude_, bd))]
 
         if len(ad) == 0 or len(bd) == 0:
             print "No data in one channel, skipping"
