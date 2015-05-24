@@ -16,7 +16,7 @@ method instead.
 def shrager(Q, g, C, x0, d, mu=1e-4):
     """
     Use Shrager's algorithm to minimize an objective of the form,
-    
+
     :math:`\frac{1}{2} \langle x \vert Q \vert x \rangle - \langle g \vert x \rangle`
 
     under the linear inequality constraints :math:`\langle C \vert x \rangle \le d`.
@@ -25,8 +25,8 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     easily invertible, often being of the form,
 
     :math:`(\nabla f)^T (\nabla f) + \epsilon \mathrm{diag}\left[(\nabla f)^T (\nabla f)\right]`
-    
-    Follows 
+
+    Follows
 
     :type Q: array of shape ``(n,n)``
     :param Q: Quadratic contribution
@@ -39,7 +39,7 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     :param d: Inequality constraint offsets
     :type mu: ``float``, optional
     :returns: In addition to the terminal iterate the routine returns
-    a dictionary containing some state which can be used to verify the 
+    a dictionary containing some state which can be used to verify the
     solution,
 
       * ``on_constraints``: A boolean array indicating which
@@ -56,12 +56,12 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
     # Step 1
     Qinv = inv(Q)
     x = x0 + np.dot(Qinv, g)
-    
+
     # Do we already have a solution?
     p = np.dot(C, x) - d
     if np.all(p <= 0):
         return (x, {})
-    
+
     # Step 2
     R = np.dot(C, np.dot(Qinv, C.T))
     R += mu * np.diag(R)
@@ -103,7 +103,7 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
                     h[:] = (1 - rho[jj]) * h + rho[jj] * lambd
                 else:
                     break # on to Step 5
-            
+
     # Step 6
     Rs = R[b,:][:,b]
     lambd[b] = np.dot(inv(Rs), p[b] + mu * np.diag(Rs * lambd[b]))
