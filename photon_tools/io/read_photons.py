@@ -39,7 +39,7 @@ class TimestampFile(object):
     Represents a timestamp file.
 
     A timestamp file is a file containing a sequential set of integer
-    photon arrival timestamps taken in one or more channels. The 
+    photon arrival timestamps taken in one or more channels.
     """
     def __init__(self, filename, jiffy, valid_channels=None):
         if valid_channels is None:
