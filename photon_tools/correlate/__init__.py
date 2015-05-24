@@ -117,7 +117,6 @@ def corr_chunks(x, y, n=10, cross_chunks=False, anomaly_thresh=None, **kwargs):
 
     if anomaly_thresh is not None:
         likelihoods = anomaly_likelihood(corrs) / corrs.shape[1]
-        print likelihoods
         take = likelihoods > anomaly_thresh
         if np.count_nonzero(take) == 0:
             raise ValueError('No chunks deemed non-anomalous')

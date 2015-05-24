@@ -77,11 +77,11 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
         if not np.any(candidates):
             break # on to Step 6
         else:
-            print 'dz_dlambda', dz_dlambd
+            print('dz_dlambda', dz_dlambd)
             j = argmax_of(dz_dlambd, candidates)
             b[j] = True
-            print np.abs(h-lambd).max()
-            print 'set', j,b
+            print(np.abs(h-lambd).max())
+            print('set', j, b)
             h[:] = lambd
 
             while True:
@@ -92,14 +92,14 @@ def shrager(Q, g, C, x0, d, mu=1e-4):
 
                 # Step 4
                 candidates = lambd < 0
-                print 'lambda', lambd
+                print('lambda', lambd)
                 if np.any(candidates):
                     rho = h[candidates] / (h[candidates] - lambd[candidates])
-                    print 'rho', rho
+                    print('rho', rho)
                     jj = np.argmin(rho)
                     j = np.argwhere(candidates)[jj]
                     b[j] = False
-                    print 'clear', j, b
+                    print('clear', j, b)
                     h[:] = (1 - rho[jj]) * h + rho[jj] * lambd
                 else:
                     break # on to Step 5
