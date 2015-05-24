@@ -41,8 +41,11 @@ def get_strobe_events(f, channel_mask, skip_wraps=1):
             of the data stream.
         """
         cdef char* fname
-        if isinstance(f, str):
+        if isinstance(f, bytes):
                 fname = f
+        elif isinstance(f, str):
+                encoded = f.encode()
+                fname = encoded
         else:
                 fname = f.name
         cdef FILE* fl = fopen(fname, "r")
