@@ -12,7 +12,7 @@ patterns = [
 
 def get_metadata(f):
         """ Returns the parameters associated with the given file """
-        fname = f.name if isinstance(f, file) else f
+        fname = f if isinstance(f, str) else f.name
         for p in patterns:
                 name = p % fname
                 if os.path.isfile(name):
