@@ -1,0 +1,32 @@
+#!/usr/bin/python
+
+from __future__ import division
+from photon_tools.io import read_photons
+import argparse
+import numpy as np
+
+parser = argparse.ArgumentParser(description='Split a timestamp file into equally sized chunks')
+parser.add_argument('file', type=argparse.FileType('r'), help='timestamp file to split')
+parser.add_argument('-n', '--n-splits', type=int, help='number of splits to form')
+parser.add_argument('-k', '--keep-offset', action='store_true', help='retain timestamp offset of splits')
+args = parser.parse_args()
+
+f = read_photons.open(args.file.name)
+times = f.timestamps()
+
+start_t = times[0]['time']
+end_t = times[-1]['time']
+dur = end_t - start_t
+split_dur = dur // args.n_splits
+
+def write_raw_ch(fname, stamps):
+    np.save(open(fname, 'w'), stamps.astype(read_photons.time_ch_dtype))
+
+for i in range(args.n_splits):
+    split_start = start_t + split_dur*i
+    split_end = start_t + split_dur*(i+1)
+    split = times[np.logical_and(times['time'] >= split_start,
+                                 times['time'] <  split_end)]
+    if not args.keep_offset:
+        split['time'] -= split_start
+    write_raw_ch(args.file.name+'.split%d.timech' % i, split)
