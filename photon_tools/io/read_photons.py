@@ -170,22 +170,22 @@ class RawFile(TimestampFile):
         TimestampFile.__init__(self, fname, jiffy = None)
 
     def _read_all(self):
-        timestamps = np.fromfile(fname, dtype='u8')
+        timestamps = np.fromfile(self._fname, dtype='u8')
         return np.from_records([timestamps, np.zeros_like(timestamps, dtype='u1')],
                                dtype=time_ch_dtype)
 
     def _read_channel(self, channel):
-        return np.fromfile(fname, dtype='u8')
+        return np.fromfile(self._fname, dtype='u8')
 
 class RawChFile(TimestampFile):
     """ Raw unsigned 64-bit timestamps, followed by 8-bit channel number """
     extensions = ['timech']
     valid_channels = range(256)
-    def __init__(self, fname, channel):
+    def __init__(self, fname):
         TimestampFile.__init__(self, fname, jiffy = None)
 
     def _read_all(self):
-        return np.fromfile(fname, dtype=time_ch_dtype)
+        return np.fromfile(self._fname, dtype=time_ch_dtype)
 
     def _read_channel(self, channel):
         d = self._read_all()
