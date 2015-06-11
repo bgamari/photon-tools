@@ -3,6 +3,8 @@ import warnings
 import numpy as np
 from photon_tools.io import timetag_parse, pt2_parse, metadata
 
+time_ch_dtype = np.dtype([('time', 'u8'), ('chan', 'u1')])
+
 def verify_monotonic(times, filename):
     """ Verify that timestamps are monotonically increasing """
     if len(times) == 0: return
@@ -88,17 +90,34 @@ class TimestampFile(object):
         """ File name of timestamp file """
         return self._fname
 
+    def timestamps(self):
+        """
+        Read the timestamp data for all channels of the file
+
+        :returns: An array of dtype :var:`time_ch_dtype` containing monotonically
+        increasing timestamps annotated with channel numbers.
+        """
+        data = self._read_all()
+        verify_monotonic(data['time'], self._fname)
+        verify_continuity(data['time'], self._fname)
+        return data
+
     def channel(self, channel):
         """
         Read photon data for a channel of the file
 
         :type channel: A valid channel name from :func:`valid_channels`.
+        :returns: An array of ``u8`` timestamps.
         """
         self._validate_channel(channel)
         data = self._read_channel(channel)
         verify_monotonic(data, self._fname)
         verify_continuity(data, self._fname)
         return data
+
+    def _read_all(self):
+        """ Read the timestamps for all channels """
+        raise NotImplementedError()
 
     def _read_channel(self, channel):
         """ Actually read the data of a channel """
@@ -117,6 +136,9 @@ class PicoquantFile(TimestampFile):
         # TODO: Read metadata
         TimestampFile.__init__(self, fname, jiffy=4e-12)
 
+    def _read_all(self):
+        raise NotImplementedError()
+
     def _read_channel(self, channel):
         return pt2_parse.read_pt2(self._fname, channel)
 
@@ -132,6 +154,11 @@ class TimetagFile(TimestampFile):
         if not os.path.isfile(fname):
             raise IOError("File %s does not exist" % fname)
 
+    def _read_all(self):
+        res = timetag_parse.get_strobe_events(self._fname, 0xf)
+        res.dtype.names = time_ch_dtype.names
+        return res
+
     def _read_channel(self, channel):
         return timetag_parse.get_strobe_events(self._fname, 1<<channel)['t']
 
@@ -141,6 +168,11 @@ class RawFile(TimestampFile):
     valid_channels = [0]
     def __init__(self, fname):
         TimestampFile.__init__(self, fname, jiffy = None)
+
+    def _read_all(self):
+        timestamps = np.fromfile(fname, dtype='u8')
+        return np.from_records([timestamps, np.zeros_like(timestamps, dtype='u1')],
+                               dtype=time_ch_dtype)
 
     def _read_channel(self, channel):
         return np.fromfile(fname, dtype='u8')
@@ -152,8 +184,11 @@ class RawChFile(TimestampFile):
     def __init__(self, fname, channel):
         TimestampFile.__init__(self, fname, jiffy = None)
 
+    def _read_all(self):
+        return np.fromfile(fname, dtype=time_ch_dtype)
+
     def _read_channel(self, channel):
-        d = np.fromfile(fname, dtype='u8,u1', names='time,chan')
+        d = self._read_all()
         return d[d['chan'] == channel]['time']
 
 readers = [
