@@ -179,7 +179,7 @@ class RawFile(TimestampFile):
 
 class RawChFile(TimestampFile):
     """ Raw unsigned 64-bit timestamps, followed by 8-bit channel number """
-    extensions = 'timech'
+    extensions = ['timech']
     valid_channels = range(256)
     def __init__(self, fname, channel):
         TimestampFile.__init__(self, fname, jiffy = None)
