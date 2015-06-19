@@ -93,6 +93,7 @@ def main():
                         help='Fit per-dataset rotational coherence models')
     parser.add_argument('-R', '--sep-resid', action='store_true',
                         help='Plot residuals on separate per-dataset axes')
+    parser.add_argument('--opacity', type=float, default=0.8, help='Set opacity of plot')
     args = parser.parse_args()
 
     def read_hist(fname):
@@ -189,7 +190,7 @@ def main():
         json.dump(gen_json(desc, corrs, args.components), args.json, indent=4)
 
     fig = pl.figure()
-    plot(fig, corrs, result=res, jiffy_ps=jiffy_ps, sep_resid=args.sep_resid)
+    plot(fig, corrs, result=res, jiffy_ps=jiffy_ps, sep_resid=args.sep_resid, opacity=args.opacity)
     if args.output is not None:
         pl.savefig(args.output, figsize=(5,5), dpi=600)
     else:

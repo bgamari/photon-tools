@@ -292,7 +292,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     res = fit.fit(params0)
     return (res, model_desc)
 
-def plot(fig, corrs, jiffy_ps, result, sep_resid=False, alpha=0.4):
+def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4):
     """
     Plot a fit produced by :func:`analyze`
 
@@ -330,9 +330,9 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False, alpha=0.4):
             sym = '+' if ch == 'par' else 'x'
             label = aniso.name if ch == 'par' else None
             kwargs = {'color': color, 'markersize': 1.5}
-            plots.plot(times, cres.curve.data, sym, alpha=alpha, **kwargs)
-            plots.plot(times, cres.fit, label=label, alpha=0.6, **kwargs)
-            residuals[pair_idx].plot(times, cres.residuals, sym, alpha=alpha/3, **kwargs)
+            plots.plot(times, cres.curve.data, sym, alpha=opacity/2, **kwargs)
+            plots.plot(times, cres.fit, label=label, alpha=opacity, **kwargs)
+            residuals[pair_idx].plot(times, cres.residuals, sym, alpha=opacity/3, **kwargs)
 
     plots.set_ylabel('number of occurences')
     for k,axes in residuals.items():
