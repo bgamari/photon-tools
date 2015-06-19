@@ -292,7 +292,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     res = fit.fit(params0)
     return (res, model_desc)
 
-def plot(fig, corrs, jiffy_ps, result, sep_resid=False):
+def plot(fig, corrs, jiffy_ps, result, sep_resid=False, alpha=0.4):
     """
     Plot a fit produced by :func:`analyze`
 
@@ -329,7 +329,6 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False):
             times = jiffy_ps / 1000 * np.arange(cres.fit.shape[0])
             sym = '+' if ch == 'par' else 'x'
             label = aniso.name if ch == 'par' else None
-            alpha = 0.1
             kwargs = {'color': color, 'markersize': 1.5}
             plots.plot(times, cres.curve.data, sym, alpha=alpha, **kwargs)
             plots.plot(times, cres.fit, label=label, alpha=0.6, **kwargs)
