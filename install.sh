@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+sudo rm -Rf build
+
 git submodule update --init
 make -C corr
 sudo make -C corr install
