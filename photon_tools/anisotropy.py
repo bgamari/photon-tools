@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 from matplotlib import pyplot as pl
 import squmfit
-from squmfit import Fit, model, Argument
+from squmfit import Fit, BoundedFit, model, Argument
 from collections import namedtuple
 
 def make_map(type):
@@ -163,7 +163,7 @@ ModelDesc = namedtuple('ModelDesc', 'fluor_rates period offset_par offset_perp r
 def analyze(corrs, exc_period, n_components, jiffy_ps,
             params0=None, free_period=False,
             exc_leakage=False, imbalance=None, indep_aniso=False,
-            no_offset=False, fix_lifetimes=[]):
+            no_offset=False, fix_lifetimes=[], with_bounds=False):
     """
     Fit a set of anisotropy data with the given IRF and model
 
@@ -190,12 +190,14 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
     :type fix_lifetimes: list of floats, times in picoseconds
     :param fix_lifetimes: Fix the lifetimes of some fluorescence decay components
     """
-    fit = Fit()
+    fit = BoundedFit() if with_bounds else Fit()
+    bounds = {}
     lag = Argument('t')
 
     offset_par = 0 if no_offset else fit.param('offset-par', 0)
     offset_perp = 0 if no_offset else fit.param('offset-perp', 0)
     period = fit.param('period', exc_period)
+    bounds[period.name] = (0, None)
 
     # Build decay model
     assert len(fix_lifetimes) <= n_components
@@ -206,19 +208,25 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
         else:
             tau = 1000 + 1000*i
             rate = fit.param('lambda%d' % i, initial=1/tau)
+            bounds[rate.name] = (0, None)
+
         rates.append(rate)
 
     # Parameters for anisotropy model
     r0 = fit.param('r0', initial=0.4)
+    bounds[r0.name] = (0, None)
     if imbalance is None:
         imbalance = fit.param('g', initial=1)
+        bounds[imbalance.name] = (0, None)
     if not indep_aniso:
         tau_rot = fit.param('tau_rot', initial=500)
+        bounds[tau_rot.name] = (0, None)
 
     curve_descs = []
     for pair_idx,corr in enumerate(corrs):
         if indep_aniso:
             tau_rot = fit.param('%s_tau_rot' % pair.name, initial=500)
+            bounds[tau_rot.name] = (0, None)
 
         # generate fluorescence decay model
         n = len(corr.irf.par) # FIXME?
@@ -232,6 +240,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
         amplitudes = []
         for comp_idx, rate in enumerate(rates):
             amp = fit.param('%s_amplitude%d' % (corr.name, comp_idx), initial=initial_amp)
+            bounds[amp.name] = (0, None)
             amplitudes.append(amp / rates[comp_idx])
             decay_models.append(exponential(t=lag, rate=rate, amplitude=amp))
         decay_model = sum(decay_models)
@@ -240,6 +249,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
         leakage = 0
         if exc_leakage:
             leakage = fit.param('%s_leakage' % corr.name, initial=0.1)
+            bounds[leakage.name] = (0, None)
 
         def add_curve(corr, name, rot_model, offset, norm, irf):
             times = jiffy_ps * np.arange(10*corr.shape[0])
@@ -289,7 +299,10 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
         tau_rot = tau_rot,
         curves = curve_descs,
     )
-    res = fit.fit(params0)
+    if with_bounds:
+        res = fit.fit(params0, bounds=bounds, report_progress=1)
+    else:
+        res = fit.fit(params0, report_progress=1)
     return (res, model_desc)
 
 def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4):
