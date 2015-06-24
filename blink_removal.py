@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" 
+"""
 Implementation of Bayesian blink removal algorithm.
 Ben Gamari, 2010
 
@@ -13,7 +13,7 @@ from math import pi, exp, log
 import random
 import numpy as np
 from numpy import mean, array
-from numpy.lib.recfunctions import stack_arrays 
+from numpy.lib.recfunctions import stack_arrays
 
 logging.basicConfig(level=logging.DEBUG)
 plot_iterations = True
@@ -135,10 +135,10 @@ class fret_trajectory(object):
 
 def kinetic_mc(states, steps):
         """ Generate simulated FRET trajectory by Kinetic Monte Carlo method
-        
+
             States are specified as a dictionary in the form of,
               states = { 'state_name': (rate, event_func), ... }
-         
+
             For every step, a state is chosen and the corresponding event_func
             is called. The state trajectory is returned as a list of state names.
         """
@@ -159,7 +159,7 @@ def kinetic_mc(states, steps):
 
 def test_data(transitions=1e4, bg_flux=10, flux=220, fret_eff1=0.40, fret_eff2=0.7, ct_prob=0.005):
         """ Produce fake FRET data.
-        
+
             We generate data for each of the three regions of the experiment
             (FRET, crosstalk, background). The FRET region data is generated
             with two FRET states of the given efficiencies.
@@ -204,7 +204,7 @@ def test_data(transitions=1e4, bg_flux=10, flux=220, fret_eff1=0.40, fret_eff2=0
         states = {
                 'Dblink': (2e-3, lambda l: add_bins(np.zeros(l, dtype='i8'),
                                                     np.zeros(l, dtype='i8'))),
-                'obs'   : (8e-3, lambda l: add_bins(np.zeros(l, dtype='i8'), 
+                'obs'   : (8e-3, lambda l: add_bins(np.zeros(l, dtype='i8'),
                                                     np.random.poisson(flux, l).round())),
         }
         state_traj = kinetic_mc(states, fret_length)
@@ -233,7 +233,7 @@ if __name__ == '__main__':
         parser.add_argument('-c', '--crosstalk', metavar='START:STOP', help='Cross-talk region')
         parser.add_argument('-b', '--background', metavar='START:STOP', help='Background region')
         args = parser.parse_args()
-        
+
         fret,ct,bg = None,None,None
         if args.test:
                 logging.info("Generating test data")
@@ -291,10 +291,9 @@ if __name__ == '__main__':
         pl.vlines(b[b<plot_len], ymin, ymax, alpha=0.1, color='r', label='Acceptor blinks')
         pl.legend()
         pl.savefig('fret.pdf')
-        
+
         pl.clf()
         pl.plot(deblinked['D'][:plot_len], label='Donor')
         pl.plot(deblinked['A'][:plot_len], label='Acceptor')
         pl.legend()
         pl.savefig('deblinked.pdf')
-
