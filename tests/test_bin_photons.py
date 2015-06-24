@@ -18,11 +18,11 @@ def bin_data(data, bin_len):
 test_n = 1
 def result(result, description):
         global test_n
-        print 'ok' if result else 'not ok',
-        print test_n, '-', description
+        print('ok' if result else 'not ok',)
+        print(test_n, '-', description)
         test_n += 1
 
-print '1..3'
+print('1..3')
 
 di = np.arange(1001, dtype='u8')
 do = bin_data(di, 10)
