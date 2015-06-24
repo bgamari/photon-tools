@@ -34,7 +34,7 @@ def random_run(args):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('file', type=argparse.FileType('r'), help='Correlation function')
+    parser.add_argument('file', type=argparse.FileType('rb'), help='Correlation function')
     parser.add_argument('-a', '--aspect', type=float, default=10, help='Aspect ratio of observation volume')
     parser.add_argument('-e', '--early-time', type=float, default=None,
                         metavar='LAG',
