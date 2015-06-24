@@ -88,5 +88,4 @@ def bin_all(times, bin_width):
             lists begin and end at the same times. """
         start_t = max(map(np.amin, times))
         end_t = min(map(np.amax, times))
-        print start_t, end_t
         return map(lambda ts: bin_photons(ts, bin_width, start_t, end_t), times)
