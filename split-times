@@ -20,7 +20,7 @@ dur = end_t - start_t
 split_dur = dur // args.n_splits
 
 def write_raw_ch(fname, stamps):
-    np.save(open(fname, 'w'), stamps.astype(read_photons.time_ch_dtype))
+    np.save(open(fname, 'wb'), stamps.astype(read_photons.time_ch_dtype))
 
 for i in range(args.n_splits):
     split_start = start_t + split_dur*i
