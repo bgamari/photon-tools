@@ -35,7 +35,7 @@ if infile != sys.stdin:
 times = np.memmap(infile, mode='r', dtype='u8')
 bin_width = int(bin_time * clockrate)           # bin width in clocks
 if bin_width == 0:
-        print "Error: Bin width of zero ticks. Is clockrate set properly?"
+        print("Error: Bin width of zero ticks. Is clockrate set properly?")
         exit()
 dt = times[-1] - times[0]
 nbins = int(dt / bin_width)
