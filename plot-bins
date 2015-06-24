@@ -35,12 +35,12 @@ def plot_file(fname, channels={0: 'Channel 0'},
         try:
             d = f.channel(chan)
             if len(d) == 0:
-                print 'Channel %d has no photons, ignoring' % chan
+                print('Channel %d has no photons, ignoring' % chan)
                 continue
             data_sets.append(DataSet(d, label))
 
         except Exception as e:
-            print 'Unknown exception reading channel %d: %s' % (chan, e)
+            print('Unknown exception reading channel %d: %s' % (chan, e))
             pass
 
     if len(data_sets) == 0:
@@ -53,12 +53,12 @@ def plot_file(fname, channels={0: 'Channel 0'},
     if args.start is not None:
         start_t = args.start / jiffy
 
-    print fname
-    print "Average rates:"
+    print(fname)
+    print("Average rates:")
     for c in data_sets:
         dur = c.data[-1] - c.data[0]
-        print "  %20s:    %f / second" % (c.label, len(c.data) / dur / jiffy)
-    print
+        print("  %20s:    %f / second" % (c.label, len(c.data) / dur / jiffy))
+    print()
 
     bin_width_j = round(bin_width / jiffy)
     bins = map(lambda c: DataSet(bp.bin_photons(c.data, bin_width_j, start_t), c.label), data_sets)
