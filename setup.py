@@ -14,7 +14,7 @@ setup(name = 'photon-tools',
       description = 'Tools for manipulating photon data from single-molecule experiments',
       version = '1.0',
       packages = ['photon_tools', 'photon_tools.io', 'photon_tools.correlate', 'photon_tools.utils'],
-      scripts = ['bin_photons', 'fcs-fit', 'fcs-corr', 'plot-fret', 'plot-bins', 'lifetime-deconvolve',
+      scripts = ['fcs-fit', 'fcs-corr', 'plot-fret', 'plot-bins', 'lifetime-deconvolve',
                  'trim-stamps', 'anisotropy', 'fcs-mem', 'summarize-timestamps', 'imbalance', 'dls-mem',
                  'split-times'
              ],
