@@ -51,7 +51,7 @@ def main():
                         help='Fit a triplet process')
     parser.add_argument('-A', '--anomalous', action='store_true',
                         help='Allow a non-unity diffusion exponent')
-    parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('r'),
+    parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('rb'),
                         help='Correlation functions to plot')
     args = parser.parse_args()
 
