@@ -4,9 +4,9 @@ import sys
 import numpy as np
 
 if len(sys.argv) < 3 or '-h' in sys.argv or '--help' in sys.argv:
-        print "Usage: %s [input-file] ..." % sys.argv[0]
-        print 
-        print "Utility to splice a set of timestamp files."
+        print("Usage: %s [input-file] ..." % sys.argv[0])
+        print()
+        print("Utility to splice a set of timestamp files.")
         sys.exit(0)
 
 # First find length of all data
@@ -26,7 +26,7 @@ for f in sys.argv[1:]:
 	scaled = d[1:] - d[0] + offset
 	out[i:i+len(d)-1] = scaled
         offset = scaled[-1]
-	print f, out[i+len(d)-2],
+	print(f, out[i+len(d)-2],)
 	i += len(d) - 1
-	print i
+	print(i)
 
