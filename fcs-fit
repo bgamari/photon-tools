@@ -10,10 +10,10 @@ import squmfit
 import squmfit.plot
 import squmfit.pretty
 
-def load_corr(file):
+def load_corr(fname):
     dt = [('lag','f'), ('G','f'), ('var','f')]
     usecols = None
-    lines = [l for l in open(file.name).readlines() if not l.startswith('#')]
+    lines = [l for l in open(fname, 'rt').readlines() if not l.startswith('#')]
     ncols = len(lines[0].split())
     if ncols == 5:
         # favia format
@@ -23,7 +23,7 @@ def load_corr(file):
     else:
         raise RuntimeError('Unrecognized file format')
 
-    d = np.genfromtxt(file, dtype=dt, usecols=usecols)
+    d = np.genfromtxt(fname, dtype=dt, usecols=usecols)
     d['G'] -= 1.0   # Subtract out offset
     d['lag'] /= 1e-6 # Express times in microseconds
     return d
@@ -51,7 +51,7 @@ def main():
                         help='Fit a triplet process')
     parser.add_argument('-A', '--anomalous', action='store_true',
                         help='Allow a non-unity diffusion exponent')
-    parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('rb'),
+    parser.add_argument('curves', metavar='FILE', nargs='+', type=argparse.FileType('rt'),
                         help='Correlation functions to plot')
     args = parser.parse_args()
 
@@ -64,7 +64,7 @@ def main():
     if args.triplet:
         tauF = fit.param('tauF', initial=0.5)
     for curve_idx, f in enumerate(args.curves):
-        datum = load_corr(f)
+        datum = load_corr(f.name)
         take = datum['lag'] > args.early_cutoff * 1e6
         # Somehow we occassionally get zero and negative variances from favia
         take = np.logical_and(take, datum['var'] > 0)
