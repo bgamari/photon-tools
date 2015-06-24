@@ -1,6 +1,6 @@
 from __future__ import division
-import favia
-import hphoton
+from . import favia
+from . import hphoton
 import numpy as np
 
 default_engine = 'favia'

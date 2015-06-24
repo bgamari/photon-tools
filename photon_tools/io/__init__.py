@@ -1,1 +1,1 @@
-import read_photons
+from . import read_photons

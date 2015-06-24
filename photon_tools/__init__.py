@@ -1,6 +1,6 @@
-import bin_photons
-import fcs_mem
-import filter_photons
+from . import bin_photons
+from . import fcs_mem
+from . import filter_photons
 
-import correlate
-import io
+from . import correlate
+from . import io
