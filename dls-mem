@@ -45,7 +45,7 @@ def main():
 
         avg = np.average(model_taus, weights=weights)
         weightsP.axvline(avg, alpha=0.5, c=color)
-        print i, 'Z average=%f us, mode=%f' % (avg, model_taus[np.argmax(weights)])
+        print(i, 'Z average=%f us, mode=%f' % (avg, model_taus[np.argmax(weights)]))
 
     residualsP.axhline(0, c='k')
     residualsP.set_xscale('log')
