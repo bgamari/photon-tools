@@ -21,8 +21,8 @@ jiffy = 4e-12
 rep_rate = 80e6
 window = 3
 
-print 
-print '  %s with IRF from %s' % (args.corr, args.irf)
+print()
+print('  %s with IRF from %s' % (args.corr, args.irf))
 n = int(window / rep_rate / jiffy)
 corr = np.genfromtxt(args.corr)[:n,1]
 irf = np.genfromtxt(args.irf)[:n,1]
@@ -40,7 +40,7 @@ good_corr = deconv[deconv > 1e-12]
 
 # Find beginning of decay
 peak_time = np.argmax(deconv) % per
-print 'Peak time = %f ns' % (peak_time * jiffy / 1e-9)
+print('Peak time = %f ns' % (peak_time * jiffy / 1e-9))
 
 fit_times = good_times[good_times > peak_time]
 fit_corr = good_corr[good_times > peak_time]
@@ -58,18 +58,18 @@ p0 = []
 for i in range(args.components):
         p0.extend([10**i * 1e-9/jiffy, 1e4 / 10**i])
 p0.append(0.1)
-print p0
+print(p0)
 popt, pcov = scipy.optimize.curve_fit(fit_func, fit_times, fit_corr, p0,
                                       sigma=sqrt(fit_corr))
 
 # Print fit parameters
-print 'offset = %g' % popt[-1]
+print('offset = %g' % popt[-1])
 for i in range(args.components):
-        print 'component %i' % i
-        print '  amplitude = %f' % popt[2*i+1]
-        print '  tau = %f ns' % (popt[2*i] * jiffy / 1e-9)
-print 'covariance =  '
-print pcov
+        print('component %i' % i)
+        print('  amplitude = %f' % popt[2*i+1])
+        print('  tau = %f ns' % (popt[2*i] * jiffy / 1e-9))
+print('covariance =  ')
+print(pcov)
 
 # Plot
 from matplotlib import pyplot as pl
