@@ -300,9 +300,9 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
         curves = curve_descs,
     )
     if with_bounds:
-        res = fit.fit(params0, bounds=bounds, report_progress=1)
+        res = fit.fit(params0, bounds=bounds, report_progress=5)
     else:
-        res = fit.fit(params0, report_progress=1)
+        res = fit.fit(params0, report_progress=5)
     return (res, model_desc)
 
 def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4):
