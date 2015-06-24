@@ -128,7 +128,7 @@ def get_jiffy(timestamps):
         jiffy = args.jiffy
     if jiffy is None:
         jiffy = 1. / 128e6
-        print "Couldn't identify jiffy of file. Defaulting to %e s" % jiffy
+        print("Couldn't identify jiffy of file. Defaulting to %e s" % jiffy)
     return jiffy
 
 def afterpulsing_correction(ch):
@@ -181,7 +181,7 @@ for file in args.files:
         bd = bd[np.logical_not(in_intervals(exclude_, bd))]
 
         if len(ad) == 0 or len(bd) == 0:
-            print "No data in one channel, skipping"
+            print("No data in one channel, skipping")
             continue
 
         t0 = min(ad[0], bd[0])
@@ -206,17 +206,17 @@ for file in args.files:
             ad = ad[ad < stop_time]
             bd = bd[bd < stop_time]
 
-        print label
+        print(label)
 
-        print '  %20s, channel %d:' % (fname, ac)
-        print '    %d events, %d after filtering' % (na, len(ad))
+        print('  %20s, channel %d:' % (fname, ac))
+        print('    %d events, %d after filtering' % (na, len(ad)))
         durA = ad[-1] - ad[0]
-        print '    duration = %d = %1.2f seconds' % (durA, (durA * jiffy))
+        print('    duration = %d = %1.2f seconds' % (durA, (durA * jiffy)))
 
-        print '  %20s, channel %d:' % (fname, bc)
-        print '    %d events, %d after filtering' % (nb, len(bd))
+        print('  %20s, channel %d:' % (fname, bc))
+        print('    %d events, %d after filtering' % (nb, len(bd)))
         durB = bd[-1] - bd[0]
-        print '    duration = %d = %1.2f seconds' % (durB, (durB * jiffy))
+        print('    duration = %d = %1.2f seconds' % (durB, (durB * jiffy)))
 
         kwargs = {
             'jiffy': jiffy,
@@ -254,9 +254,9 @@ for file in args.files:
                 c['G'] -= jiffy / mu * afterpulse_corr
                 c['var'] += (jiffy / mu)**2 * afterpulse_var
 
-        print '  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G'])
-        print '  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G'])
-        print
+        print('  G(%1.2e s) = %1.3f' % (c[0]['lag'], c[0]['G']))
+        print('  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G']))
+        print()
 
         with open(output_base, 'w') as f:
                 f.write('# lag            G(tau)            variance\n')
