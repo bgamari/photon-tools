@@ -258,8 +258,8 @@ for file in args.files:
         print('  G(%1.2e s) = %1.3f' % (c[-1]['lag'], c[-1]['G']))
         print()
 
-        with open(output_base, 'w') as f:
-                f.write('# lag            G(tau)            variance\n')
+        with open(output_base, 'wb') as f:
+                f.write(b'# lag            G(tau)            variance\n')
                 np.savetxt(f, c)
 
         if args.plot:
