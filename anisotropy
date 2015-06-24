@@ -11,31 +11,31 @@ def print_params(fit, desc, corrs, ncomponents):
     :type desc: A :class:`ModelDesc` describing the model
     :type corrs: TODO
     """
-    print '  irf period', fit.eval(desc.period)
-    print '  irf offset (parallel)', fit.eval(desc.offset_par)
-    print '  irf offset (perpendicular)', fit.eval(desc.offset_perp)
-    print '  g', fit.eval(desc.imbalance)
-    print '  r0', fit.eval(desc.r0)
+    print('  irf period', fit.eval(desc.period))
+    print('  irf offset (parallel)', fit.eval(desc.offset_par))
+    print('  irf offset (perpendicular)', fit.eval(desc.offset_perp))
+    print('  g', fit.eval(desc.imbalance))
+    print('  r0', fit.eval(desc.r0))
     if desc.tau_rot is not None:
-        print '  tau_rot', fit.eval(desc.tau_rot)
+        print('  tau_rot', fit.eval(desc.tau_rot))
 
     for comp_idx in range(ncomponents):
         rate = desc.fluor_rates[comp_idx]
         if rate is not None:
-            print '  Component %d' % comp_idx
-            print '    tau', fit.eval(1/rate)
+            print('  Component %d' % comp_idx)
+            print('    tau', fit.eval(1/rate))
 
     for pair_idx,(cdesc, pair) in enumerate(zip(desc.curves, corrs)):
-        print '  Pair %d (par=%s, perp=%s)' % (pair_idx, pair.name, pair.name)
+        print('  Pair %d (par=%s, perp=%s)' % (pair_idx, pair.name, pair.name))
         if cdesc.exc_leakage != 0:
-            print '    leakage', '%1.2g' % fit.eval(cdesc.exc_leakage)
+            print('    leakage', '%1.2g' % fit.eval(cdesc.exc_leakage))
         if cdesc.tau_rot is not None:
-            print '    tau_rot', fit.eval(cdesc.tau_rot)
+            print('    tau_rot', fit.eval(cdesc.tau_rot))
 
         ampls = map(fit.eval, cdesc.amps)
         for comp_idx, amp in enumerate(ampls):
             frac = amp / sum(ampls)
-            print '    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (amp, frac * 100)
+            print('    amplitude%d' % comp_idx, '%1.2f    (%2.1f%%)' % (amp, frac * 100))
 
 def gen_json(p, corrs, ncomponents):
     out = {}
@@ -118,9 +118,9 @@ def main():
     else:
         period = int(1e12 / args.rep_rate / jiffy_ps) # period in ticks
 
-    print 'Period', period, 'bins'
-    print 'Channel width', jiffy_ps, 'ps'
-    print 'Total decay length', args.periods * period, 'bins'
+    print('Period', period, 'bins')
+    print('Channel width', jiffy_ps, 'ps')
+    print('Total decay length', args.periods * period, 'bins')
 
     # Trim curves to desired length
     trim = 0
@@ -144,8 +144,8 @@ def main():
                           fix_lifetimes=args.lifetimes)
 
     # Present results
-    print
-    print 'Fitted parameters'
+    print()
+    print('Fitted parameters')
     print_params(res, desc, corrs, args.components)
 
     # Fix covariance
@@ -159,21 +159,21 @@ def main():
                     rate2 = res.eval(desc.fluor_rates[comp_idx2])
                     res.covar[p1][p2] /= rate1 * rate2
 
-    print
-    print 'Reduced chi-squared'
+    print()
+    print('Reduced chi-squared')
     for name, curve in sorted(res.curves.items()):
-        print '  %-15s     %1.3g' % (name, curve.reduced_chi_sqr)
+        print('  %-15s     %1.3g' % (name, curve.reduced_chi_sqr))
 
-    print
-    print 'Standard error'
+    print()
+    print('Standard error')
     if res.stderr is not None:
         for param, err in res.stderr.items():
-            print '  %-15s     %1.2g' % (param, err)
+            print('  %-15s     %1.2g' % (param, err))
     else:
-        print "  Failed to compute due to flat axis"
+        print("  Failed to compute due to flat axis")
 
-    print
-    print 'Correlations (coefficients less than 0.2 omitted)'
+    print()
+    print('Correlations (coefficients less than 0.2 omitted)')
     if res.correl is not None:
         correls = {(param1,param2): res.correl[param1][param2]
                    for param1 in res.params.keys()
@@ -181,9 +181,9 @@ def main():
                    if param1 < param2}
         for (p1,p2), c in sorted(correls.items(), key=lambda ((a,b),c): c, reverse=True):
             if abs(c) > 0.2:
-                print '  %-15s / %-15s       %1.2f' % (p1, p2, c)
+                print('  %-15s / %-15s       %1.2f' % (p1, p2, c))
     else:
-        print "  Failed to compute due to flat axis"
+        print("  Failed to compute due to flat axis")
 
     if args.json is not None:
         import json
