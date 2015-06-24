@@ -13,8 +13,8 @@ parser.add_argument('file', nargs='+', type=argparse.FileType('r'), help='Timest
 args = parser.parse_args()
 for f in args.file:
     ts = read_photons.open(f.name)
-    print '%s:' % (f.name)
-    print '    jiffy = %g' % ts.jiffy
+    print('%s:' % (f.name))
+    print('    jiffy = %g' % ts.jiffy)
     for c in ts.valid_channels:
         d = ts.channel(c)
         N = len(d)
@@ -25,8 +25,8 @@ for f in args.file:
         bins = bin_photons(d, 1. / ts.jiffy)
         m, b, r, p, stderr = linregress(bins['start_t'], bins['count'])
 
-        print '    channel %s: T=%1.1f seconds, N=%1.2e' % (c, dur, N)
-        print '        rate = %1.1f Hz, variance = %1.1f Hz²' % (N / dur, np.var(bins['count']))
-        print '        dI/dt = %g ± %1.1g Hz / second' % (m / ts.jiffy, stderr / ts.jiffy)
+        print('    channel %s: T=%1.1f seconds, N=%1.2e' % (c, dur, N))
+        print('        rate = %1.1f Hz, variance = %1.1f Hz²' % (N / dur, np.var(bins['count'])))
+        print('        dI/dt = %g ± %1.1g Hz / second' % (m / ts.jiffy, stderr / ts.jiffy))
 
-    print
+    print()
