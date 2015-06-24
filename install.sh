@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 git submodule update --init
 make -C corr
