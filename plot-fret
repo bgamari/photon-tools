@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from photon_tools.timetag_parse import get_strobe_events
 from photon_tools.bin_photons import bin_photons
