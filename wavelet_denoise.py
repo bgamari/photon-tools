@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" 
+"""
 Implementation of FRET denoising using wavelet decomposition
 Ben Gamari, 2010
 
@@ -65,7 +65,7 @@ def test_data(transitions=100):
                 state = random.choice(states)
                 clean.append([state] * length)
                 noisy.append(np.random.normal(state, 17, length))
-                
+
         return np.hstack(clean), np.hstack(noisy)
 
 if __name__ == "__main__":
@@ -73,8 +73,8 @@ if __name__ == "__main__":
 
         noisy = np.random.normal(163, 17, 500)
         denoised = denoise(noisy, level)
-        print 'raw', mean(noisy), std(noisy)
-        print 'denoised', mean(denoised), std(denoised)
+        print('raw', mean(noisy), std(noisy))
+        print('denoised', mean(denoised), std(denoised))
 
         clean, noisy = test_data()
         denoised = denoise(noisy, level)
@@ -87,4 +87,3 @@ if __name__ == "__main__":
         pl.plot(clean, label='clean')
         pl.legend()
         pl.show()
-
