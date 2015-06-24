@@ -355,9 +355,9 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4):
         if sep_resid:
             axes.locator_params(axis='y', nbins=2)
 
-    residuals.values()[len(corrs)//2].set_ylabel('residual')
-    residuals.values()[len(corrs)-1].set_xlabel('time (ns)')
-    pl.setp(residuals.values()[len(corrs)-1].get_xticklabels(), visible=True)
+    list(residuals.values())[len(corrs)//2].set_ylabel('residual')
+    list(residuals.values())[len(corrs)-1].set_xlabel('time (ns)')
+    list(pl.setp(residuals.values())[len(corrs)-1].get_xticklabels(), visible=True)
     plots.set_yscale('log')
     pl.setp(plots.get_xticklabels(), visible=False)
 
