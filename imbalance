@@ -25,11 +25,11 @@ def estimate_period(y, period=1562.5, error=False):
     from scipy.interpolate import interp1d
     from scipy.optimize import brentq
     from scipy.misc import derivative
-    
+
     ts = np.arange(y.size)
     y_int = interp1d(ts, y)
     y_int_prime = lambda x0: derivative(y_int, x0, dx=1e-6)
-    
+
     # Must remove dt from each end of range to be able to take derivative
     tps = np.linspace(1, y.size-2,1e4)
     yps = y_int_prime(tps)
@@ -66,11 +66,11 @@ def estimate_period(y, period=1562.5, error=False):
 
     t1s = np.array(t1s)
     periods = np.array(periods)
-    
+
     debug = False
     if debug:
-        print 'Period: %.2f +/- %.2f bins' % (periods.mean(), periods.std())
-        print 'Period: %.2f +/- %.2f ps\n' % (periods.mean()*8, periods.std()*8)
+        print('Period: %.2f +/- %.2f bins' % (periods.mean(), periods.std()))
+        print('Period: %.2f +/- %.2f ps\n' % (periods.mean()*8, periods.std()*8))
         y1s = y_int(t1s)
         y2s = y_int(t2s)
         pl.plot(y)
@@ -100,12 +100,12 @@ def interpolate(signal, period=1562.5, offset=0):
 class Fit(object):
     def __init__(self, params):
         """
-        Provides global fitting of the detector imbalance and channel offsets 
+        Provides global fitting of the detector imbalance and channel offsets
         using the lmfit package. The model calculates g and offsets for each dataset
         such that parallel channel = g * perpendicular channel (shifted by offset).
         The fit will return the offsets measured in bins and the imbalance g is the
         ratio of amplitudes of the parallel channel to the perpendicular channel.
-        
+
         :type params: lmfit `Parameters` object
         :param params: Initially only containing parameter g, the detector imbalance
         """
@@ -126,8 +126,8 @@ class Fit(object):
         period = aniso.map(estimate_period)
         self._periods.append(period)
         self._offset_names.append(offset_name)
-        print 'Component %d par period: %.2f' % (len(self._anisos), period.par)
-        print 'Component %d sen period: %.2f' % (len(self._anisos), period.sen)
+        print('Component %d par period: %.2f' % (len(self._anisos), period.par))
+        print('Component %d sen period: %.2f' % (len(self._anisos), period.sen))
 
     def period(self):
         """ Average period from all datasets and both channels """
@@ -135,7 +135,7 @@ class Fit(object):
 
         for p in self._periods:
             period_sum += p.par + p.sen
-           
+
         period = period_sum/len(self._periods)/2
 
         return period
@@ -171,10 +171,10 @@ class Fit(object):
     def print_redchis(self):
         """ Print reduced chisquares of each dataset """
         g, pars, sens, weights = self.unpack(self._params)
-        print 'Reduced Chisquares:'
+        print('Reduced Chisquares:')
         for idx, (par, sen, weight) in enumerate(zip(pars, sens, weights)):
             redchi = np.sum( ((par-g*sen)*weight)**2 ) / (len(par)-2)
-            print 'Component %d: %.2f' % (idx, redchi)
+            print('Component %d: %.2f' % (idx, redchi))
 
     def print_gs(self):
         """
@@ -186,15 +186,15 @@ class Fit(object):
         and solving for g.
         """
         g, pars, sens, weights = self.unpack(self._params)
-        print '\nCalculation of g from equation using fitted offset:'
+        print('\nCalculation of g from equation using fitted offset:')
         for idx, (par, sen) in enumerate(zip(pars, sens)):
             g = np.sum(par*sen/(par+sen))/np.sum(sen**2/(par+sen))
-            print 'Component %d: %.2f' % (idx, g)
-    
+            print('Component %d: %.2f' % (idx, g))
+
     def plot(self):
         """ Plot the fit result. """
         g, pars, sens, weights = self.unpack(self._params)
-        
+
         import matplotlib.pyplot as pl
         fig, (ax0, ax1) = pl.subplots(2, sharex=True)
         for idx, (par, sen) in enumerate(zip(pars, sens)):
@@ -212,27 +212,27 @@ class Fit(object):
 
         :rtype: lmfit `minimize` fit result
         """
-        print "Average period: %.2f" % self.period()
-        
+        print("Average period: %.2f" % self.period())
+
         from lmfit import minimize, report_errors
         result = minimize(self.residual, self._params, method='leastsq')
         self.print_redchis()
-        print "Complete Fit: %.2f\n" % result.redchi
+        print("Complete Fit: %.2f\n" % result.redchi)
         report_errors(result.params)
         self.print_gs()
         self.plot()
-       
+
         return result
 
 class Fit_Single_Offset(Fit):
     def __init__(self, params):
         """
-        Provides global fitting of the detector imbalance and a single global channel 
+        Provides global fitting of the detector imbalance and a single global channel
         offset using the lmfit package. The model calculates g and an offset for all datasets
         such that parallel channel = g * perpendicular channel (shifted by offset).
         The fit will return the offset measured in bins and the imbalance g is the
         ratio of amplitudes of the parallel channel to the perpendicular channel.
-        
+
         :type params: lmfit `Parameters` object
         :param params: Needs to contain a parameter `g` for the detector imbalance
                        and a parameter `offset` for the offset between par and sen channels
@@ -253,8 +253,8 @@ class Fit_Single_Offset(Fit):
         self._anisos.append(aniso)
         period = aniso.map(estimate_period)
         self._periods.append(period)
-        print 'Component %d par period: %.2f' % (len(self._anisos), period.par)
-        print 'Component %d sen period: %.2f' % (len(self._anisos), period.sen)
+        print('Component %d par period: %.2f' % (len(self._anisos), period.par))
+        print('Component %d sen period: %.2f' % (len(self._anisos), period.sen))
 
     def unpack(self, params):
         """
@@ -288,10 +288,10 @@ def fit(anisos, single_offset=False):
     if single_offset:
         params.add('offset', 80)
         fit = Fit_Single_Offset(params)
-      
+
         for aniso in anisos:
             fit.add_curve(aniso)
-       
+
         return fit.fit()
 
     else:
@@ -317,13 +317,13 @@ def main():
 
     corrs = [Aniso(a,b) for a,b in zip(args.corr[::2], args.corr[1::2])]
     for idx, corr in enumerate(corrs):
-        print 'Component %d par: %s' % (idx, corr.par.name)
-        print 'Component %d sen: %s' % (idx, corr.sen.name)
+        print('Component %d par: %s' % (idx, corr.par.name))
+        print('Component %d sen: %s' % (idx, corr.sen.name))
 
     corrs = [aniso.map(lambda name: np.genfromtxt(name, names='time,counts')['counts']) for aniso in corrs]
-    
+
     result = fit(corrs, single_offset=args.single_offset)
-    
+
 
 if __name__=='__main__':
     main()
