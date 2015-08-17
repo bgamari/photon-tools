@@ -351,8 +351,9 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4, pair_idxs=N
             sym = '+' if ch == 'par' else 'x'
             if ch == 'par':
                 label = aniso.name
-                if pair_idx in labels:
-                    label += ' (%s)' % labels[pair_idx]
+                user_label = '%s, ' % labels[pair_idx] \
+                             if pair_idx in labels else  ''
+                label += ' (%s$\\chi^2=%1.2f$)' % (user_label, cres.reduced_chi_sqr)
             else:
                 label = None
             kwargs = {'color': color, 'markersize': 1.5}
