@@ -353,6 +353,8 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4, pair_idxs=N
                 label = aniso.name
                 if pair_idx in labels:
                     label += ' (%s)' % labels[pair_idx]
+            else:
+                label = None
             kwargs = {'color': color, 'markersize': 1.5}
             plots.plot(times, cres.curve.data, sym, alpha=opacity/2, **kwargs)
             plots.plot(times, cres.fit, label=label, alpha=opacity, **kwargs)
