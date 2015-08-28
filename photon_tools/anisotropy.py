@@ -151,7 +151,8 @@ def fit(corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     # Run the fit first to get the parameters roughly correct, then
     # then infer the period
     res1,desc1 = analyze(corrs, exc_period, n_components, jiffy_ps, **kwargs)
-    del kwargs['params0']
+    if 'params0' in kwargs:
+        del kwargs['params0']
     res2,desc2 = analyze(corrs, exc_period, n_components, jiffy_ps,
                    free_period=True, params0=res1.params, **kwargs)
     return res1, res2, desc2
