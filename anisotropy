@@ -96,8 +96,8 @@ def main():
     parser.add_argument('--opacity', type=float, default=0.8, help='Set opacity of plot')
     args = parser.parse_args()
 
-    def read_hist(fname):
-        return np.genfromtxt(fname, dtype=None, names='time,counts')
+    def read_hist(file_obj):
+        return np.genfromtxt(str(file_obj.name), dtype=None, names='time,counts')
 
     # Read IRF
     irfs = [read_hist(irf) for irf in args.irf]
