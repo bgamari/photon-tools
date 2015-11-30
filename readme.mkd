@@ -45,9 +45,10 @@ name resolution scheme. To do this, one must run,
 
 Utilities requiring timestamp data as input accept data in the following formats,
 
- * Raw 64-bit integer timestamps (read as little endian)
- * Picoquant PT2
- * Goldner FPGA timetagger `.timetag` files
+ * Raw 64-bit integer timestamps (read as little endian; use extension `.times`)
+ * Raw 64-bit integer timestamps and associated 8-bit channel numbers (read as little endian; use extension `.timech`)
+ * Picoquant PT2 (`.pt2`, `.pt3`)
+ * Goldner FPGA timetagger (`.timetag`)
  
 In all of these cases, the utilities will attempt to figure out the
 period of the timebase (known as the jiffy) from whatever metadata is
