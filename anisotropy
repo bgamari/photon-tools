@@ -96,8 +96,8 @@ def main():
     parser.add_argument('--opacity', type=float, default=0.8, help='Set opacity of plot')
     args = parser.parse_args()
 
-    def read_hist(fname):
-        return np.genfromtxt(fname, dtype=None, names='time,counts')
+    def read_hist(file_obj):
+        return np.genfromtxt(str(file_obj.name), dtype=None, names='time,counts')
 
     # Read IRF
     irfs = [read_hist(irf) for irf in args.irf]
@@ -179,7 +179,7 @@ def main():
                    for param1 in res.params.keys()
                    for param2 in res.params.keys()
                    if param1 < param2}
-        for (p1,p2), c in sorted(correls.items(), key=lambda ((a,b),c): c, reverse=True):
+        for (p1,p2), c in sorted(correls.items(), key=lambda x: x[1], reverse=True):
             if abs(c) > 0.2:
                 print('  %-15s / %-15s       %1.2f' % (p1, p2, c))
     else:

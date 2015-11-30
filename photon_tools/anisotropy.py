@@ -23,7 +23,7 @@ class FitSet(object):
     """ A pair of anisotropy decay curves along with their IRF """
     def __init__(self, name, irf, decay):
         """
-        :type name: str
+        :type name: A :class:`str` name
         :type irf: :class:`Aniso`
         :param irf: normalized IRF histogram
         :type decay: :class:`Aniso`
@@ -151,7 +151,8 @@ def fit(corrs, jiffy_ps, exc_period, n_components, periods=1, **kwargs):
     # Run the fit first to get the parameters roughly correct, then
     # then infer the period
     res1,desc1 = analyze(corrs, exc_period, n_components, jiffy_ps, **kwargs)
-    del kwargs['params0']
+    if 'params0' in kwargs:
+        del kwargs['params0']
     res2,desc2 = analyze(corrs, exc_period, n_components, jiffy_ps,
                    free_period=True, params0=res1.params, **kwargs)
     return res1, res2, desc2
@@ -306,7 +307,7 @@ def analyze(corrs, exc_period, n_components, jiffy_ps,
         res = fit.fit(params0, report_progress=5)
     return (res, model_desc)
 
-def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4):
+def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4, pair_idxs=None, labels={}):
     """
     Plot a fit produced by :func:`analyze`
 
@@ -317,32 +318,45 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4):
     :param result: A :class:`FitResult` from :func:`analyze`
     :type sep_resid: `bool`
     :param sep_resid: Plot residuals on per-pair axes.
+    :param pair_idxs: Only plot the given curves. Plot all curves in ``corrs``
+      if ``None``.
+    :param labels: A :class:`dict` from pair indices to string labels
     """
     import matplotlib.gridspec as gridspec
+    if pair_idxs is None:
+        pair_idxs = range(len(corrs))
+    ncurves = len(pair_idxs)
+
     if sep_resid:
-        ncurves = len(corrs)
         gs = gridspec.GridSpec(1 + ncurves, 2,
                                width_ratios=[3,1],
                                height_ratios=[4] + [1]*ncurves)
     else:
-        gs = gridspec.GridSpec(2, 2, width_ratios=[3,1], height_ratios=[3,1])
+        gs = gridspec.GridSpec(2, 2, width_ratios=[3,1], height_ratios=[2.5,1])
 
     plots = pl.subplot(gs[0, 0])
     legend = gs[0:1, 1]
     if sep_resid:
-        residuals = {pair_idx: pl.subplot(gs[1+pair_idx, 0]) for pair_idx,_ in enumerate(corrs)}
+        residuals = {pair_idxs[i]: pl.subplot(gs[1+i, 0]) for i in range(ncurves)}
     else:
         resid = pl.subplot(gs[1, 0])
-        residuals = {pair_idx: resid for pair_idx,_ in enumerate(corrs)}
+        residuals = {pair_idxs[i]: resid for i in range(ncurves)}
 
     color_cycle = pl.rcParams['axes.color_cycle']
-    for pair_idx, aniso in enumerate(corrs):
+    for pair_idx in pair_idxs:
+        aniso = corrs[pair_idx]
         for ch in ['par', 'perp']:
             cres = result.curves['%s_%s' % (aniso.name, ch)]
             color = color_cycle[pair_idx % len(color_cycle)]
             times = jiffy_ps / 1000 * np.arange(cres.fit.shape[0])
             sym = '+' if ch == 'par' else 'x'
-            label = aniso.name if ch == 'par' else None
+            if ch == 'par':
+                label = aniso.name
+                user_label = '%s, ' % labels[pair_idx] \
+                             if pair_idx in labels else  ''
+                label += ' (%s$\\chi^2=%1.2f$)' % (user_label, cres.reduced_chi_sqr)
+            else:
+                label = None
             kwargs = {'color': color, 'markersize': 1.5}
             plots.plot(times, cres.curve.data, sym, alpha=opacity/2, **kwargs)
             plots.plot(times, cres.fit, label=label, alpha=opacity, **kwargs)
@@ -355,9 +369,9 @@ def plot(fig, corrs, jiffy_ps, result, sep_resid=False, opacity=0.4):
         if sep_resid:
             axes.locator_params(axis='y', nbins=2)
 
-    list(residuals.values())[len(corrs)//2].set_ylabel('residual')
-    list(residuals.values())[len(corrs)-1].set_xlabel('time (ns)')
-    pl.setp(list(residuals.values())[len(corrs)-1].get_xticklabels(), visible=True)
+    list(residuals.values())[ncurves//2].set_ylabel('residual')
+    list(residuals.values())[ncurves-1].set_xlabel('time (ns)')
+    pl.setp(list(residuals.values())[ncurves-1].get_xticklabels(), visible=True)
     plots.set_yscale('log')
     pl.setp(plots.get_xticklabels(), visible=False)
 
