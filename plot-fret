@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from photon_tools.timetag_parse import get_strobe_events
+from photon_tools.io.timetag_parse import get_strobe_events
 from photon_tools.bin_photons import bin_photons
 import argparse
 from numpy import mean, std, amin, amax, logical_and
