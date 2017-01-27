@@ -12,6 +12,7 @@ parser.add_argument('-s', '--bin-size', metavar='TIME', type=float, help='Length
 parser.add_argument('-S', '--skip', metavar='N', type=int, help='Skip first N records', default=0)
 parser.add_argument('-c', '--clockrate', metavar='HZ', type=float,
                     help='Clockrate of timetagger (will read from .params file by default)', default=None)
+parser.add_argument('-t', '--time', metavar='TIME', type=float, help='Use this much time for analysis (seconds)', default=None)
 parser.add_argument('-A', '--acceptor', metavar='N', required=True, type=int, help='Acceptor channel')
 parser.add_argument('-D', '--donor', metavar='N', required=True, type=int, help='Donor channel')
 parser.add_argument('-o', '--output', metavar='FILE', help='Output File Name')
@@ -28,6 +29,11 @@ bd = bin_photons(dd['t'], args.bin_size*clockrate)
 # Make sure data are aligned
 start_t = max(amin(ba['start_t']), amin(bd['start_t']))
 end_t = min(amax(ba['start_t']), amax(bd['start_t']))
+if args.time is not None:
+    end_t_temp = start_t + 128e6*args.time
+    if not end_t_temp > end_t:
+        end_t = end_t_temp
+
 ba = ba[logical_and(ba['start_t'] >= start_t, ba['start_t'] < end_t)]
 bd = bd[logical_and(bd['start_t'] >= start_t, bd['start_t'] < end_t)]
 dt = end_t - start_t
@@ -41,19 +47,26 @@ pl.figure(figsize=(6,8))
 pl.subplots_adjust(hspace=0.6, wspace=0.5, bottom=0.1, right=0.9, top=0.9, left=0.15)
 
 pl.figtext(0.5, 0.96, args.file.name, fontsize=12, horizontalalignment='center')
-pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{s}, \langle I_D \\rangle = %1.1f \/\mathrm{Hz}, \langle I_A \\rangle = %1.1f \/\mathrm{Hz}$' % 
-                ((end_t-start_t)/clockrate, 1.*len(da)/dt*clockrate, 1.*len(dd)/dt*clockrate), horizontalalignment='center')
+pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{s}, \langle N_D \\rangle = %1.1f \/\mathrm{Hz}, \langle N_A \\rangle = %1.1f \/\mathrm{Hz}, %d \mathrm{ms}$' % 
+                ((end_t-start_t)/clockrate, 1.*len(da)/dt*clockrate, 1.*len(dd)/dt*clockrate, args.bin_size*1000), horizontalalignment='center')
 
 def plot_bins(ax, bins, color):
         ax.plot(bins['start_t'], bins['count'], color=color)
         ax.set_xlim(bins['start_t'][0], bins['start_t'][1000])
+        ax.set_ylim(0, bins['count'][:1000].max())
         ax.set_xlabel('Time')
         ax.set_ylabel('Counts')
+        ax.tick_params('x',width='1.5',which='major')
+        for label in ax.xaxis.get_ticklabels()[::2]:
+                label.set_visible(False)
 
 def plot_burst_hist(ax, bins, color):
         ax.hist(bins['count'], bins=20, log=True, color=color)
         ax.set_xlabel('Burst size (photons)')
         ax.set_ylabel('Events')
+        ax.tick_params('x',width='1.5',which='major')
+        for label in ax.xaxis.get_ticklabels()[::2]:
+                label.set_visible(False)
 
 plot_bins(pl.subplot(421), bd, 'g')
 plot_burst_hist(pl.subplot(422), ba, 'r')
@@ -63,14 +76,14 @@ plot_burst_hist(pl.subplot(424), bd, 'r')
 
 def plot_fret_eff_hist(ax, thresh):
         t = mean(ctot) + thresh*std(ctot)
-        take = ctot > t
+        take = ctot > int(t)
         ta, td = ba[take], bd[take]
         ax.locator_params(nbins=4)
         if len(ta) > 0:
                 ax.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1))
                 ax.set_xlabel('FRET Efficiency')
                 ax.set_ylabel('Events')
-        ax.text(0.1, 0.75, '$%1.2f \sigma \/(I > %1.2f \/\mathrm{Hz})$' % (thresh, t), transform=ax.transAxes)
+        ax.text(0.1, 0.8, '$\mu + %1.1f \sigma \/(N > %d \mathrm{/bin})$' % (thresh, t), transform=ax.transAxes)
 
 plot_fret_eff_hist(pl.subplot(425), 1.0)
 plot_fret_eff_hist(pl.subplot(426), 1.5)
