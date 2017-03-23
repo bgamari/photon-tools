@@ -8,21 +8,21 @@ experiments.
 
 To install `photon-tools` on Ubuntu,
 
-     $ sudo apt-get install python python-numpy python-scipy python-matplotlib \
-       build-essential cython libboost-all-dev
+     $ sudo apt-get install python3 python3-numpy python3-scipy python3-matplotlib \
+       python3-setuptools build-essential cython3 libboost-all-dev
      $ git clone git://github.com/bgamari/photon-tools.git
      $ cd photon-tools
      $ ./install.sh
 
 ## Installation: the unabridged version
 
-Many of these utilities are written in Python and generally require Python 2.6
+Many of these utilities are written in Python and generally require Python 3
 or greater along with numpy. In particular, some optimized modules require
 Cython. Utilities capable of producing plots require the matplotlib Python
 plotting library. On the whole, `photon-tools` depends on,
 
  * Gnu make
- * Python >= 2.6
+ * Python3
  * Numpy
  * Scipy
  * Matplotlib >= 1.4
