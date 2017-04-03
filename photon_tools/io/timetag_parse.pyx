@@ -26,14 +26,18 @@ ELSE:
 
 def get_strobe_events(f, channel_mask, skip_wraps=1):
         """
-        Returns a list of delta channel events. The event is defined by a start
-        time past which the state is the given value.
+        Returns a list of strobe channel events.
+        
+        Strobe events record photon arrival times in units of clock cycles and the channels
+        in which the event occured.
 
         :type f: :class:`file` or :class:`str` (file name)
         :param f: timetag file
-        :type strobe_mask: int
-        :param strobe_mask: Logical bitmask of strobe channels of interest
-            (e.g. ``1`` selects channel 0, ``5`` selects channels 0 and 2)
+        :type channel_mask: int
+        :param channel_mask: Logical bitmask of strobe channels of interest. Selecting multiple
+            channels returns events occuring simultaneously in all channels specified.
+            (e.g. ``1`` selects channel 0, ``5`` selects channels 0 and 2, 
+                  ``15`` selects all channels [0-3])
         :type skip_wraps: int
         :param skip_wraps: How many timestamp wraparounds to skip at the beginning of the data set.
             This was introduced to work around hardware limitations where
@@ -102,13 +106,16 @@ def get_strobe_events(f, channel_mask, skip_wraps=1):
 
 def get_delta_events(f, channel, skip_wraps=1):
         """
-        Returns a list of delta channel events. The event is defined by a start
-        time past which the state is the given value.
+        Returns a list of delta channel events. 
+        
+        Delta events record a start-time and the new state of the delta channel at the start-time
+        of the event. The channel remains in the same state until the next event. The state is 
+        binary (either 0 or 1).
 
         :type f: :class:`file` or :class:`str` (file name)
         :param f: timetag file
-        :type strobe_mask: int
-        :param strobe_mask: Logical bitmask of strobe channels of interest
+        :type channel: int
+        :param channel: Delta channel of interest (0-3)
         :type skip_wraps: int
         :param skip_wraps: How many timestamp wraparounds to skip at the beginning of the data set.
             This was introduced to work around hardware limitations where
@@ -124,6 +131,9 @@ def get_delta_events(f, channel, skip_wraps=1):
         if fl == NULL:
                 raise RuntimeError("Couldn't open file")
 
+        if channel > 3 or channel < 0:
+                raise RuntimeError("Invalid channel")
+        
         cdef size_t chunk_sz = 1024
         cdef unsigned int j = 0
         cdef uint64_t time_offset = 0
