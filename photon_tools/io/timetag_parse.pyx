@@ -123,8 +123,11 @@ def get_delta_events(f, channel, skip_wraps=1):
             of the data stream.
         """
         cdef char* fname
-        if isinstance(f, str):
+        if isinstance(f, bytes):
                 fname = f
+        elif isinstance(f, str):
+                encoded = f.encode()
+                fname = encoded
         else:
                 fname = f.name
         cdef FILE* fl = fopen(fname, "r")
@@ -148,7 +151,7 @@ def get_delta_events(f, channel, skip_wraps=1):
         cdef unsigned int rec_n = 0
         cdef np.ndarray[DeltaEvent] chunk
         chunk = np.empty(chunk_sz, dtype=delta_event_dtype)
-        chunks = [chunk]
+        chunks = []
 
         while not feof(fl):
                 res = fread(&rec, 6, 1, fl)
