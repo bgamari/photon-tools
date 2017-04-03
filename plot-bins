@@ -10,8 +10,6 @@ from matplotlib.ticker import MaxNLocator
 from photon_tools.io import read_photons
 import photon_tools.bin_photons as bp
 
-colors = pl.rcParams['axes.color_cycle']
-
 DataSet = namedtuple('DataSet', 'data,label')
 
 def plot_file(fname, channels={0: 'Channel 0'},
@@ -61,7 +59,7 @@ def plot_file(fname, channels={0: 'Channel 0'},
     print()
 
     bin_width_j = round(bin_width / jiffy)
-    bins = map(lambda c: DataSet(bp.bin_photons(c.data, bin_width_j, start_t), c.label), data_sets)
+    bins = list(map(lambda c: DataSet(bp.bin_photons(c.data, bin_width_j, start_t), c.label), data_sets))
 
     if max_count == 'max':
         ymax = max(map(lambda c: np.max(c.data['count']), bins))
@@ -90,11 +88,11 @@ def plot_bins(bins, jiffy, rows=10, row_width=30, ymax=None):
         pl.subplot(rows, 1, r+1)
         s = r * row_width + start_t*jiffy
         e = (r+1) * row_width + start_t*jiffy
-        for color, chan, chan_bins in zip(colors, channels, bins):
+        for chan, chan_bins in zip(channels, bins):
             b = chan_bins.data
             ab = b[np.logical_and(b['start_t'] >= s/jiffy, b['start_t'] < e/jiffy)]
-            pl.plot(ab['start_t']*jiffy, ab['count'],
-                    '-', c=color, label=chan_bins.label, alpha=0.7)
+            pl.plot(ab['start_t']*jiffy, ab['count'], '-', 
+                    label=chan_bins.label, alpha=0.7)
 
         ax = pl.gca()
         for artist in ax.xaxis.get_ticklabels(): artist.set_visible(False)
@@ -104,7 +102,6 @@ def plot_bins(bins, jiffy, rows=10, row_width=30, ymax=None):
         pl.xlim(s, e)
         pl.ylim(0, ymax)
 
-    pl.gca().axes.get_xaxis().set_visible(True)
     pl.xlabel('Time (seconds)')
 
 if __name__ == '__main__':
