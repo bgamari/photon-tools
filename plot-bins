@@ -4,13 +4,28 @@ import argparse
 from collections import namedtuple
 
 import numpy as np
+from matplotlib import rcParams
 from matplotlib import pyplot as pl
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter, NullFormatter
 
 from photon_tools.io import read_photons
 import photon_tools.bin_photons as bp
 
+rcParams.update({'font.size': 13})
+
 DataSet = namedtuple('DataSet', 'data,label')
+
+class TickFormatter(ScalarFormatter):
+    """Formats axis ticks for final axis in a grid plot"""
+    def __init__(self, rows, row_width):
+        self.rows = rows
+        self.row_width = row_width
+        offset = row_width*(rows-1)
+        ScalarFormatter.__init__(self, useOffset=offset)
+
+    def get_offset(self):
+        s = '+%gr' % self.row_width
+        return s
 
 def plot_file(fname, channels={0: 'Channel 0'},
               bin_width=10e-3, override_jiffy=None, max_count='max', **kwargs):
@@ -72,7 +87,7 @@ def plot_file(fname, channels={0: 'Channel 0'},
     else:
         ymax = float(max_count)
     plot_bins(bins, jiffy=jiffy, ymax=ymax, **kwargs)
-    pl.suptitle(fname + '\nBin Width=%1.1f ms' % (bin_width*1e3))
+    pl.suptitle(fname + '        Bin Width=%1.1f ms' % (bin_width*1e3), y=0.99)
 
 def plot_bins(bins, jiffy, rows=10, row_width=30, ymax=None):
     """
@@ -83,49 +98,63 @@ def plot_bins(bins, jiffy, rows=10, row_width=30, ymax=None):
     :param ymax: Upper limit of y axis given in counts per bin.
     """
 
+    fig, axes = pl.subplots(rows, 1, figsize=(10.5,8),
+         gridspec_kw={'bottom':0.06, 'top':0.95, 'hspace':0, 'left':0.07, 'right':0.98})
+    fig.text(0.0125, 0.5, 'Counts per bin', va='center', rotation='vertical')
+    
     start_t = bins[0].data[0]['start_t']
-    for r in range(rows):
-        pl.subplot(rows, 1, r+1)
+    for r, ax in enumerate(axes):
         s = r * row_width + start_t*jiffy
         e = (r+1) * row_width + start_t*jiffy
         for chan, chan_bins in zip(channels, bins):
             b = chan_bins.data
             ab = b[np.logical_and(b['start_t'] >= s/jiffy, b['start_t'] < e/jiffy)]
-            pl.plot(ab['start_t']*jiffy, ab['count'], '-', 
+            ax.plot(ab['start_t']*jiffy, ab['count'], '-', 
                     label=chan_bins.label, alpha=0.7)
 
-        ax = pl.gca()
-        for artist in ax.xaxis.get_ticklabels(): artist.set_visible(False)
-        ax.yaxis.set_major_locator(MaxNLocator(2))
+        if r < rows-1:
+            for artist in ax.xaxis.get_ticklabels(): artist.set_visible(False)
+        ax.xaxis.set_tick_params(direction='inout', length=8, top=True)
+        ax.yaxis.set_major_locator(MaxNLocator(2, prune='lower'))
         ax.yaxis.set_minor_locator(MaxNLocator(4))
-        ax.yaxis.grid(which='minor', alpha=0.2, color='black', linestyle='-')
-        pl.xlim(s, e)
-        pl.ylim(0, ymax)
+        ax.yaxis.grid(which='minor', alpha=0.25, color='black', linestyle='-')
+        ax.set_xlim(s, e)
+        ax.set_ylim(0, ymax)
 
-    pl.xlabel('Time (seconds)')
+    ax.xaxis.set_major_formatter(TickFormatter(rows,row_width))
+    ax.xaxis.set_minor_formatter(TickFormatter(rows,row_width))
+    ax.yaxis.set_major_locator(MaxNLocator(2))
+    ax.set_xlabel('Time (seconds)')
+    axes[0].xaxis.set_tick_params(direction='in', length=4, top=True)
+    axes[0].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+              ncol=4, mode="expand", borderaxespad=0., frameon=False, shadow=False)
 
 if __name__ == '__main__':
-    description = 'Utility to plot a binned series of timestamps'
-    parser = argparse.ArgumentParser(description=description)
+    description = 'Utility to bin and plot a series of timestamps'
+    parser = argparse.ArgumentParser(description=description, 
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('input', metavar='FILE', type=argparse.FileType('r'),
                         nargs='+', help='Input timestamp data')
-    parser.add_argument('-w', '--bin-width', metavar='TIME', type=float, default=10e-3,
+    parser.add_argument('-j', '--jiffy', metavar='SECONDS', type=float, default=None,
+                        help='Instrument tick period. Will be obtained from metadata if present.')
+    parser.add_argument('-c', '--channel', metavar='CHANNEL',
+                        action='append', default=[],
+                        help='Channel (zero-based) to plot (CHANNEL{=LABEL}). '+
+                             'This argument can be specified multiple times. '+
+                             'Default "0=donor, 1=acceptor"')
+    parser.add_argument('-w', '--bin-width', metavar='SECONDS', type=float, default=10e-3,
                         help='Bin width in seconds')
     parser.add_argument('-r', '--rows', metavar='N', type=int, default=10,
                         help='Number of plot rows')
-    parser.add_argument('-j', '--jiffy', metavar='TIME', type=float, default=None,
-                        help='Instrument tick period')
-    parser.add_argument('-W', '--row-width', metavar='TIME', type=float, default=10,
+    parser.add_argument('-W', '--row-width', metavar='SECONDS', type=float, default=10,
                         help='Width of row in seconds')
-    parser.add_argument('-y', '--max-count', metavar='COUNT{/sec}|COUNT/bin|max|avg', default='max',
-                        help='Maximum count rate of Y axis')
+    parser.add_argument('-y', '--max-count', metavar='COUNT{/sec}|max|avg', default='max',
+                        help='Maximum count rate of Y axis. COUNT interpreted as per bin unless'+
+                             ' "/sec" suffix is given (e.g. "400/sec"). "max" or "avg" can also be specified.')
+    parser.add_argument('-s', '--start', metavar='SECONDS', type=float, default=None,
+                        help='Time at which to begin plotting')
     parser.add_argument('-o', '--output', metavar='FILE', type=argparse.FileType('w'), default=None,
                         help='Output to named file')
-    parser.add_argument('-c', '--channel', metavar='CHANNEL',
-                        action='append', default=[],
-                        help='Channels to plot (CHANNEL{=LABEL})')
-    parser.add_argument('-s', '--start', metavar='TIME', type=float, default=None,
-                        help='Time at which to begin plotting')
     parser.add_argument('-O', '--auto-output', action='store_true',
                         help='Output to file (name automatically generated)')
     args = parser.parse_args()
@@ -143,13 +172,8 @@ if __name__ == '__main__':
             channels[chan] = label
 
     for f in args.input:
-        pl.clf()
         plot_file(f.name, channels=channels, bin_width=args.bin_width, override_jiffy=args.jiffy,
                   max_count=args.max_count, rows=args.rows, row_width=args.row_width)
-
-        pl.subplot(args.rows, 1, 1)
-        pl.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                  ncol=4, mode="expand", borderaxespad=0.)
 
         if args.output is not None:
             pl.savefig(args.output.name)
