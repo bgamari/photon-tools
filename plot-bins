@@ -101,7 +101,7 @@ def plot_bins(bins, jiffy, rows=10, row_width=30, ymax=None):
     """
 
     fig, axes = pl.subplots(rows, 1, figsize=(10.5,8),
-         gridspec_kw={'bottom':0.06, 'top':0.95, 'hspace':0, 'left':0.07, 'right':0.98})
+         gridspec_kw={'bottom':0.07, 'top':0.95, 'hspace':0, 'left':0.07, 'right':0.98})
     fig.text(0.0125, 0.5, 'Counts per bin', va='center', rotation='vertical')
     
     start_t = bins[0].data[0]['start_t']
