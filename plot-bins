@@ -76,10 +76,12 @@ def plot_file(fname, channels={0: 'Channel 0'},
     bin_width_j = round(bin_width / jiffy)
     bins = list(map(lambda c: DataSet(bp.bin_photons(c.data, bin_width_j, start_t), c.label), data_sets))
 
+    mask = lambda c: np.logical_and(c.data['start_t'] >= start_t,
+                                    c.data['start_t'] <= start_t + args.rows*args.row_width/jiffy)
     if max_count == 'max':
-        ymax = max(map(lambda c: np.max(c.data['count']), bins))
+        ymax = max(map(lambda c: np.max(c.data['count'][mask(c)]), bins))
     elif max_count == 'avg':
-        ymax = 1.5 * max(map(lambda c: np.mean(c.data['count']), bins))
+        ymax = 1.5 * max(map(lambda c: np.mean(c.data['count'][mask(c)]), bins))
     elif max_count.endswith('/sec'):
         ymax = float(max_count) * bin_width
     elif max_count.endswith('/bin'):
