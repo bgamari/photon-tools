@@ -55,8 +55,8 @@ pl.figure(figsize=(6,8))
 pl.subplots_adjust(hspace=0.6, wspace=0.4, bottom=0.07, right=0.95, top=0.9, left=0.15)
 
 pl.figtext(0.5, 0.96, args.file.name, fontsize='x-large', horizontalalignment='center')
-pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{s}, \/\langle N_D \\rangle = %1.1f \/\mathrm{Hz}, \/\langle N_A \\rangle = %1.1f \/\mathrm{Hz}, \/%d \mathrm{ms}$' % 
-                (dt/clockrate, 1.*len(dd)/dt*clockrate, 1.*len(da)/dt*clockrate, args.bin_size*1000), horizontalalignment='center')
+pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{min}, \/\langle N_D \\rangle = %1.1f \/\mathrm{Hz}, \/\langle N_A \\rangle = %1.1f \/\mathrm{Hz}, \/%d \mathrm{ms}$' % 
+                (dt/clockrate/60, 1.*len(dd)/dt*clockrate, 1.*len(da)/dt*clockrate, args.bin_size*1000), horizontalalignment='center')
 
 def plot_bins(ax, bins, color):
         bins = bins[:3000]
@@ -72,6 +72,8 @@ def plot_burst_hist(ax, bins, color):
         ax.hist(bins['count'], bins=hist_bins, log=True, color=color)
         if len(hist_bins) > 100:
             ax.set_xscale('log')
+        else:
+            ax.locator_params('x', nbins=5, integer=True)
         ax.set_xlabel('Burst size (photons)')
         ax.set_ylabel('Events')
         ax.tick_params('x',width='1.5',which='major')
