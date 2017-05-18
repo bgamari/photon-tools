@@ -16,6 +16,7 @@ parser.add_argument('-S', '--skip', metavar='N', type=int, help='Skip first N re
 parser.add_argument('-t', '--time', metavar='SECONDS', type=float, help='Use this much time for analysis', default=None)
 parser.add_argument('-c', '--clockrate', metavar='HZ', type=float,
                     help='Clockrate of timetagger (read from .meta file if exists else defaults to 128 MHz)', default=None)
+parser.add_argument('-l', '--super-label', type=str, help='Figure super title (default: filename)', default=None)
 parser.add_argument('-o', '--output', metavar='FILE', type=str, help='Output to named file')
 parser.add_argument('-O', '--auto-output', action='store_true',
                     help='Output to file (name automatically generated)')
@@ -54,7 +55,8 @@ def fret_eff(acc_bins, don_bins):
 pl.figure(figsize=(6,8))
 pl.subplots_adjust(hspace=0.6, wspace=0.4, bottom=0.07, right=0.95, top=0.9, left=0.15)
 
-pl.figtext(0.5, 0.96, args.file.name, fontsize='x-large', horizontalalignment='center')
+suptitle = args.file.name if args.super_label is None else args.super_label
+pl.figtext(0.5, 0.96, suptitle, fontsize='x-large', horizontalalignment='center')
 pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{min}, \/\langle N_D \\rangle = %1.1f \/\mathrm{Hz}, \/\langle N_A \\rangle = %1.1f \/\mathrm{Hz}, \/%d \mathrm{ms}$' % 
                 (dt/clockrate/60, 1.*len(dd)/dt*clockrate, 1.*len(da)/dt*clockrate, args.bin_size*1000), horizontalalignment='center')
 
