@@ -245,9 +245,9 @@ over the course of the day. In this case, one can fit these datasets
 collectively, sharing the common parameters. `fcs-fit` enables this
 sort of fit by using
 
-### lifetime-fit
+### anisotropy (fluorescence lifetime and anisotropy analysis)
 
-`lifetime-fit` is a tool for the instrument response correction and
+`anisotropy` is a tool for the instrument response correction and
 fitting of fluorescence lifetime histograms.
 
 The analysis of fluorescence lifetime data roughly resembles the
@@ -278,6 +278,6 @@ There are two (at least) means of accounting for the IRF in the analysis:
    histogram. This is often known as *reconvolution*.
 
 The problem of deconvolution is a difficult, and often ill-posed,
-inverse problem. For this reason `lifetime-fit` uses the reconvolution
+inverse problem. For this reason `anisotropy` uses the reconvolution
 method to account for the IRF.
 
