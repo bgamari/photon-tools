@@ -7,21 +7,24 @@ import argparse
 from numpy import mean, std, amin, amax, logical_and
 from matplotlib import pyplot as pl
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description='Plot FRET efficiency historams')
 parser.add_argument('file', type=argparse.FileType('r'), help='Time trace file')
-parser.add_argument('-s', '--bin-size', metavar='TIME', type=float, help='Length of histogram bins (seconds)', default=1e-3)
+parser.add_argument('-s', '--bin-size', metavar='SECONDS', type=float, help='Length of histogram bins (default: 0.002)', default=2e-3)
+parser.add_argument('-D', '--donor', metavar='N', type=int, help='Donor channel (zero-based, default: 0)', default=0)
+parser.add_argument('-A', '--acceptor', metavar='N', type=int, help='Acceptor channel (zero-based, default: 1)', default=1)
 parser.add_argument('-S', '--skip', metavar='N', type=int, help='Skip first N records', default=0)
+parser.add_argument('-t', '--time', metavar='SECONDS', type=float, help='Use this much time for analysis', default=None)
 parser.add_argument('-c', '--clockrate', metavar='HZ', type=float,
                     help='Clockrate of timetagger (read from .meta file if exists else defaults to 128 MHz)', default=None)
-parser.add_argument('-t', '--time', metavar='TIME', type=float, help='Use this much time for analysis (seconds)', default=None)
-parser.add_argument('-A', '--acceptor', metavar='N', required=True, type=int, help='Acceptor channel')
-parser.add_argument('-D', '--donor', metavar='N', required=True, type=int, help='Donor channel')
-parser.add_argument('-o', '--output', metavar='FILE', help='Output File Name')
+parser.add_argument('-l', '--super-label', type=str, help='Figure super title (default: filename)', default=None)
+parser.add_argument('-o', '--output', metavar='FILE', type=str, help='Output to named file')
+parser.add_argument('-O', '--auto-output', action='store_true',
+                    help='Output to file (name automatically generated)')
 
 args = parser.parse_args()
 
-da = get_strobe_events(args.file.name, 1<<(args.acceptor-1))[args.skip:]
-dd = get_strobe_events(args.file.name, 1<<(args.donor-1))[args.skip:]
+da = get_strobe_events(args.file.name, 1<<(args.acceptor))[args.skip:]
+dd = get_strobe_events(args.file.name, 1<<(args.donor))[args.skip:]
 
 if args.clockrate is None:
     meta = get_metadata(args.file.name)
@@ -36,7 +39,7 @@ bd = bin_photons(dd['t'], args.bin_size*clockrate)
 start_t = max(amin(ba['start_t']), amin(bd['start_t']))
 end_t = min(amax(ba['start_t']), amax(bd['start_t']))
 if args.time is not None:
-    end_t_temp = start_t + 128e6*args.time
+    end_t_temp = start_t + clockrate*args.time
     if not end_t_temp > end_t:
         end_t = end_t_temp
 
@@ -50,53 +53,62 @@ def fret_eff(acc_bins, don_bins):
         return 1. * acc_bins['count'] / (don_bins['count']+acc_bins['count'])
 
 pl.figure(figsize=(6,8))
-pl.subplots_adjust(hspace=0.6, wspace=0.5, bottom=0.1, right=0.9, top=0.9, left=0.15)
+pl.subplots_adjust(hspace=0.6, wspace=0.4, bottom=0.07, right=0.95, top=0.9, left=0.15)
 
-pl.figtext(0.5, 0.96, args.file.name, fontsize=12, horizontalalignment='center')
-pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{s}, \langle N_D \\rangle = %1.1f \/\mathrm{Hz}, \langle N_A \\rangle = %1.1f \/\mathrm{Hz}, %d \mathrm{ms}$' % 
-                ((end_t-start_t)/clockrate, 1.*len(da)/dt*clockrate, 1.*len(dd)/dt*clockrate, args.bin_size*1000), horizontalalignment='center')
+suptitle = args.file.name if args.super_label is None else args.super_label
+pl.figtext(0.5, 0.96, suptitle, fontsize='x-large', horizontalalignment='center')
+pl.figtext(0.5, 0.92, '$T=%1.1f \/\mathrm{min}, \/\langle N_D \\rangle = %1.1f \/\mathrm{Hz}, \/\langle N_A \\rangle = %1.1f \/\mathrm{Hz}, \/%d \mathrm{ms}$' % 
+                (dt/clockrate/60, 1.*len(dd)/dt*clockrate, 1.*len(da)/dt*clockrate, args.bin_size*1000), horizontalalignment='center')
 
 def plot_bins(ax, bins, color):
-        ax.plot(bins['start_t'], bins['count'], color=color)
-        ax.set_xlim(bins['start_t'][0], bins['start_t'][1000])
-        ax.set_ylim(0, bins['count'][:1000].max())
-        ax.set_xlabel('Time')
+        bins = bins[:3000]
+        ax.plot(bins['start_t']/clockrate, bins['count'], color=color)
+        ax.set_ylim(0, bins['count'].max())
+        ax.set_xlabel('Time (sec)')
         ax.set_ylabel('Counts')
         ax.tick_params('x',width='1.5',which='major')
-        for label in ax.xaxis.get_ticklabels()[::2]:
-                label.set_visible(False)
+        ax.locator_params('y', nbins=5, integer=True)
 
 def plot_burst_hist(ax, bins, color):
-        ax.hist(bins['count'], bins=20, log=True, color=color)
+        hist_bins=range(0,bins['count'].max()+1)
+        ax.hist(bins['count'], bins=hist_bins, log=True, color=color)
+        if len(hist_bins) > 100:
+            ax.set_xscale('log')
+        else:
+            ax.locator_params('x', nbins=5, integer=True)
         ax.set_xlabel('Burst size (photons)')
         ax.set_ylabel('Events')
         ax.tick_params('x',width='1.5',which='major')
-        for label in ax.xaxis.get_ticklabels()[::2]:
-                label.set_visible(False)
 
 plot_bins(pl.subplot(421), bd, 'g')
-plot_burst_hist(pl.subplot(422), ba, 'r')
+plot_burst_hist(pl.subplot(422), bd, 'g')
+pl.figtext(0.03, 0.832, 'Donor', rotation='vertical', verticalalignment='center', fontsize='x-large', color='g')
 
-plot_bins(pl.subplot(423), bd, 'g')
-plot_burst_hist(pl.subplot(424), bd, 'r')
+plot_bins(pl.subplot(423), ba, 'r')
+plot_burst_hist(pl.subplot(424), ba, 'r')
+pl.figtext(0.03, 0.61, 'Acceptor', rotation='vertical', verticalalignment='center', fontsize='x-large', color='r')
 
 def plot_fret_eff_hist(ax, thresh):
         t = mean(ctot) + thresh*std(ctot)
         take = ctot > int(t)
         ta, td = ba[take], bd[take]
         ax.locator_params(nbins=4)
+        ax.ticklabel_format(axis='y', scilimits=(0,1))
         if len(ta) > 0:
                 ax.hist(fret_eff(ta, td), bins=20, histtype='step', range=(0,1))
                 ax.set_xlabel('FRET Efficiency')
                 ax.set_ylabel('Events')
-        ax.text(0.1, 0.8, '$\mu + %1.1f \sigma \/(N > %d \mathrm{/bin})$' % (thresh, t), transform=ax.transAxes)
+        ax.text(0.5, 0.8, '$\mu + %d \sigma \/\/(N_\mathrm{tot} > %d \mathrm{/bin})$' % (thresh, t), transform=ax.transAxes, horizontalalignment='center')
 
-plot_fret_eff_hist(pl.subplot(425), 1.0)
-plot_fret_eff_hist(pl.subplot(426), 1.5)
-plot_fret_eff_hist(pl.subplot(427), 2.0)
-plot_fret_eff_hist(pl.subplot(428), 4.0)
+plot_fret_eff_hist(pl.subplot(425), 2)
+plot_fret_eff_hist(pl.subplot(426), 3)
+plot_fret_eff_hist(pl.subplot(427), 4)
+plot_fret_eff_hist(pl.subplot(428), 5)
 
-if args.output is None:
-        pl.show()
+if args.output is not None:
+    pl.savefig(args.output)
+elif args.auto_output:
+    (root,_,_) = args.file.name.rpartition('.')
+    pl.savefig('%s-fret.pdf' % root)
 else:
-        pl.savefig(args.output)
+    pl.show()
