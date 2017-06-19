@@ -12,6 +12,7 @@ parser.add_argument('file', type=argparse.FileType('r'), help='Time trace file')
 parser.add_argument('-s', '--bin-size', metavar='SECONDS', type=float, help='Length of histogram bins (default: 0.002)', default=2e-3)
 parser.add_argument('-D', '--donor', metavar='N', type=int, help='Donor channel (zero-based, default: 0)', default=0)
 parser.add_argument('-A', '--acceptor', metavar='N', type=int, help='Acceptor channel (zero-based, default: 1)', default=1)
+parser.add_argument('-m', '--multiplier', metavar='N', type=int, help='Multiply thresholds by given factor', default=1)
 parser.add_argument('-S', '--skip', metavar='N', type=int, help='Skip first N records', default=0)
 parser.add_argument('-t', '--time', metavar='SECONDS', type=float, help='Use this much time for analysis', default=None)
 parser.add_argument('-c', '--clockrate', metavar='HZ', type=float,
@@ -89,6 +90,7 @@ plot_burst_hist(pl.subplot(424), ba, 'r')
 pl.figtext(0.03, 0.61, 'Acceptor', rotation='vertical', verticalalignment='center', fontsize='x-large', color='r')
 
 def plot_fret_eff_hist(ax, thresh):
+        thresh *= args.multiplier
         t = mean(ctot) + thresh*std(ctot)
         take = ctot > int(t)
         ta, td = ba[take], bd[take]
