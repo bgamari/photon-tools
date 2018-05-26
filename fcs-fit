@@ -70,7 +70,7 @@ def main():
         take = np.logical_and(take, datum['var'] > 0)
         taken = datum[take]
 
-        model = 0 if not args.offset else fit.param('offset-%d' % curve_idx, 0)
+        model = 0 if not args.offset else fit.param('offset-%d' % curve_idx, taken['G'][-1])
         for comp_idx, tauD in enumerate(lifetimes):
             n = fit.param('N-%d-%d' % (curve_idx, comp_idx), initial=1)
             model += three_dim_diffusion(lag=lag, tauD=tauD, aspect=aspect, n=n, alpha=alpha)
