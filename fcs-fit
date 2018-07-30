@@ -72,7 +72,7 @@ def main():
 
         model = 0 if not args.offset else fit.param('offset-%d' % curve_idx, taken['G'][-1])
         for comp_idx, tauD in enumerate(lifetimes):
-            n = fit.param('N-%d-%d' % (curve_idx, comp_idx), initial=1)
+            n = fit.param('N-%d-%d' % (curve_idx, comp_idx), initial=1.0/taken['G'][0]/len(lifetimes))
             model += three_dim_diffusion(lag=lag, tauD=tauD, aspect=aspect, n=n, alpha=alpha)
 
         if args.triplet:
