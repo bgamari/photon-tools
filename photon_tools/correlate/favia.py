@@ -71,7 +71,7 @@ def corr(x, y, jiffy=1./128e6, short_grain=1e-6, long_lag=1, fineness=8, verbose
     t0 = min(x[0], y[0]) if y is not None else x[0]
     (x-t0).tofile(fx.name)
     if y is not None:
-        (x-t0).tofile(fy.name)
+        (y-t0).tofile(fy.name)
 
     args = [
             'favia',
